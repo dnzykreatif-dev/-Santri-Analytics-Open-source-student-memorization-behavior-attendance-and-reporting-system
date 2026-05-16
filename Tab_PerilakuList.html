@@ -1,0 +1,78 @@
+<!-- Tab Perilaku List -->
+<!-- TAB: LIST PERILAKU -->
+<div
+  x-show="currentTab === 'list_perilaku'"
+  x-transition:enter="transition ease-out duration-300"
+  class="space-y-6"
+>
+  <div class="bento-card p-6 bg-white">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="font-bold text-xl text-gray-800">Daftar Kasus Perilaku</h3>
+      <button
+        @click="currentTab = 'pelanggaran'"
+        class="bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm"
+      >
+        + Tambah Catatan
+      </button>
+    </div>
+    <div class="space-y-4">
+      <template x-if="summary.recentIncidents.length === 0">
+        <p class="text-center text-gray-400 py-10">
+          Belum ada catatan perilaku.
+        </p>
+      </template>
+      <template x-for="inc in summary.recentIncidents" :key="inc.IncidentID">
+        <div
+          class="p-4 border border-gray-100 rounded-xl hover:bg-red-50 transition-all border-l-4"
+          :class="inc.IncidentType === 'Violation' ? 'border-red-400' : 'border-green-400'"
+        >
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <div class="flex justify-between items-center mb-1">
+                <p
+                  class="font-bold text-gray-900 cursor-pointer hover:text-blue-600"
+                  @click="openStudentDetail(students.find(s => s.StudentID === inc.StudentID))"
+                  x-text="inc.StudentName"
+                ></p>
+                <span
+                  class="text-[10px] font-bold px-2 py-1 rounded"
+                  :class="inc.Points >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                  x-text="inc.IncidentType"
+                ></span>
+              </div>
+              <p
+                class="text-sm text-gray-600 mt-1"
+                x-text="inc.Description"
+              ></p>
+              <div class="flex justify-between items-center mt-2">
+                <p
+                  class="text-[10px] text-gray-400 font-mono"
+                  x-text="formatDate(inc.DateOfIncident) + ' • ' + inc.Points + ' Poin • Ustadz: ' + inc.ReportedBy"
+                ></p>
+                <!-- Edit & Delete Buttons (only for Mudir/Ustadz) -->
+                <template
+                  x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'"
+                >
+                  <div class="flex gap-2">
+                    <button
+                      @click.stop="editPerilaku(inc); currentTab = 'pelanggaran'"
+                      class="text-[10px] text-blue-500 font-bold hover:underline"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      @click.stop="deletePerilaku(inc.IncidentID)"
+                      class="text-[10px] text-red-500 font-bold hover:underline"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>

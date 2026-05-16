@@ -1,0 +1,145 @@
+<!-- CONTENT: PELANGGARAN -->
+<div
+  x-show="studentDetailTab === 'pelanggaran'"
+  class="grid grid-cols-1 md:grid-cols-2 gap-8"
+>
+  <!-- Left: Form Input -->
+  <div
+    class="space-y-6"
+    x-show="user.Role === 'Mudir' || user.Role === 'Ustadz'"
+  >
+    <div class="bento-card p-6 bg-white">
+      <h4
+        class="font-bold mb-4 text-red-400"
+        x-text="editModePerilaku ? 'Edit Catatan' : 'Catat Perilaku / Pelanggaran'"
+      ></h4>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+            >Jenis Catatan</label
+          >
+          <select
+            x-model="incidentForm.IncidentType"
+            class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#FAD4C0] outline-none bg-white"
+          >
+            <option value="Violation">Pelanggaran</option>
+            <option value="Improvement">Perubahan Positif / Prestasi</option>
+            <option value="Warning">Peringatan</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+              >Tingkat / Bobot</label
+            >
+            <select
+              x-model="incidentForm.Severity"
+              class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#FAD4C0] outline-none bg-white"
+            >
+              <option value="Minor">Ringan</option>
+              <option value="Moderate">Sedang</option>
+              <option value="Major">Berat</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+              >Poin (+/-)</label
+            >
+            <input
+              type="number"
+              x-model="incidentForm.Points"
+              placeholder="Contoh: -10 atau 20"
+              class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#FAD4C0] outline-none"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+            >Keterangan Kejadian</label
+          >
+          <textarea
+            x-model="incidentForm.Description"
+            rows="3"
+            placeholder="Jelaskan detail kejadian..."
+            class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#FAD4C0] outline-none"
+          ></textarea>
+        </div>
+
+        <div class="flex gap-2">
+          <button
+            @click="submitIncident"
+            class="flex-1 py-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-bold transition-all shadow-sm"
+            x-text="editModePerilaku ? 'Update Catatan' : 'Simpan Catatan'"
+          ></button>
+          <button
+            x-show="editModePerilaku"
+            @click="cancelEditPerilaku"
+            class="py-3 px-4 bg-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-300"
+          >
+            Batal
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: History -->
+  <div class="space-y-4">
+    <h4 class="font-bold text-red-400">Rekam Jejak Perilaku</h4>
+    <div class="space-y-3">
+      <template x-if="studentIncidents.length === 0">
+        <div
+          class="text-center py-8 bg-white/50 rounded-2xl border-2 border-dashed border-gray-200"
+        >
+          <p class="text-gray-400 text-sm">Belum ada catatan perilaku.</p>
+        </div>
+      </template>
+      <template x-for="inc in studentIncidents" :key="inc.IncidentID">
+        <div
+          class="bento-card p-4 bg-white border-l-4"
+          :class="{
+          'border-red-400': inc.IncidentType === 'Violation',
+          'border-green-400': inc.IncidentType === 'Improvement',
+          'border-orange-400': inc.IncidentType === 'Warning'
+        }"
+        >
+          <div class="flex justify-between items-start mb-2">
+            <span class="font-bold text-sm" x-text="inc.IncidentType"></span>
+            <span
+              class="text-[10px] text-gray-400"
+              x-text="formatDate(inc.DateOfIncident)"
+            ></span>
+          </div>
+          <p class="text-sm text-gray-600 mb-2" x-text="inc.Description"></p>
+          <div class="flex justify-between items-center">
+            <div class="flex gap-2">
+              <span
+                class="text-[10px] px-2 py-0.5 rounded bg-gray-100 font-medium"
+                x-text="'Tingkat: ' + inc.Severity"
+              ></span>
+              <span
+                :class="inc.Points >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                class="text-[10px] px-2 py-0.5 rounded font-bold"
+                x-text="(inc.Points >= 0 ? '+' : '') + inc.Points + ' Poin'"
+              ></span>
+            </div>
+            <div class="flex gap-2">
+              <button
+                @click="editPerilaku(inc)"
+                class="text-[10px] text-blue-500 font-bold hover:underline"
+              >
+                Edit
+              </button>
+              <button
+                @click="deletePerilaku(inc.IncidentID)"
+                class="text-[10px] text-red-500 font-bold hover:underline"
+              >
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>

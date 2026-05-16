@@ -1,0 +1,549 @@
+<!-- Tab: User Management (only visible for Mudir/Admin) -->
+<template
+  x-if="currentTab === 'users' && (user.Role === 'Mudir' || user.Role === 'Admin')"
+>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div
+      class="flex flex-col md:flex-row md:items-center justify-between gap-4"
+    >
+      <div>
+        <h2 class="text-2xl font-bold text-gray-800">Manajemen User</h2>
+        <p class="text-gray-600 mt-1">
+          Kelola akun pengguna (Mudir, Admin, Wali, Ustadz)
+        </p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button
+          @click="runParentContactConversion()"
+          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center gap-2"
+          :disabled="loading"
+        >
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            />
+          </svg>
+          Konversi Contact Parent
+        </button>
+        <button
+          @click="showAddUserModal = true; resetForm('userForm')"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center gap-2"
+        >
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          Tambah User
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="bg-white rounded-xl p-4 shadow-sm">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Cari User</label
+          >
+          <input
+            type="text"
+            x-model="userSearchQuery"
+            placeholder="Cari berdasarkan nama atau username..."
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Filter Role</label
+          >
+          <select
+            x-model="userFilterRole"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Semua Role</option>
+            <option value="Mudir">Mudir</option>
+            <option value="Admin">Admin</option>
+            <option value="Ustadz">Ustadz</option>
+            <option value="Wali">Wali</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Filter Status</label
+          >
+          <select
+            x-model="userFilterStatus"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Semua Status</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Suspended">Suspended</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                User
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Role
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Kontak
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Status
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Terakhir Login
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Aksi
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <template x-for="userItem in filteredUsers" :key="userItem.UserID">
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div
+                      class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center"
+                    >
+                      <span
+                        class="text-blue-600 font-semibold"
+                        x-text="userItem.Name ? userItem.Name.charAt(0).toUpperCase() : userItem.Username.charAt(0).toUpperCase()"
+                      ></span>
+                    </div>
+                    <div class="ml-4">
+                      <div
+                        class="text-sm font-medium text-gray-900"
+                        x-text="userItem.Name || '-'"
+                      ></div>
+                      <div
+                        class="text-sm text-gray-500"
+                        x-text="'@' + userItem.Username"
+                      ></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span
+                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                    :class="{
+                      'bg-purple-100 text-purple-800': userItem.Role === 'Mudir',
+                      'bg-red-100 text-red-800': userItem.Role === 'Admin',
+                      'bg-green-100 text-green-800': userItem.Role === 'Ustadz',
+                      'bg-blue-100 text-blue-800': userItem.Role === 'Wali'
+                    }"
+                    x-text="userItem.Role"
+                  ></span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div
+                    class="text-sm text-gray-900"
+                    x-text="userItem.Email || '-'"
+                  ></div>
+                  <div
+                    class="text-sm text-gray-500"
+                    x-text="userItem.Phone || '-'"
+                  ></div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span
+                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                    :class="{
+                      'bg-green-100 text-green-800': userItem.Status === 'Active',
+                      'bg-gray-100 text-gray-800': userItem.Status === 'Inactive',
+                      'bg-red-100 text-red-800': userItem.Status === 'Suspended'
+                    }"
+                    x-text="userItem.Status"
+                  ></span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span
+                    x-text="formatDate(userItem.LastLogin) || 'Belum pernah'"
+                  ></span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div class="flex items-center gap-2">
+                    <button
+                      @click="editUser(userItem)"
+                      class="text-blue-600 hover:text-blue-900"
+                      title="Edit"
+                    >
+                      <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      @click="deleteUser(userItem.UserID, userItem.Username)"
+                      class="text-red-600 hover:text-red-900"
+                      title="Hapus"
+                      :disabled="userItem.Username === user.Username"
+                      :class="{ 'opacity-50 cursor-not-allowed': userItem.Username === user.Username }"
+                    >
+                      <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+            <template x-if="filteredUsers.length === 0">
+              <tr>
+                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                  <svg
+                    class="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0c-.66 0-1.293-.103-1.897-.298"
+                    />
+                  </svg>
+                  <p class="mt-2">Tidak ada user ditemukan</p>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-xl shadow-sm">
+        <div class="text-sm text-gray-500">Total Users</div>
+        <div
+          class="text-2xl font-bold text-gray-800"
+          x-text="users.length"
+        ></div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm">
+        <div class="text-sm text-gray-500">Mudir</div>
+        <div
+          class="text-2xl font-bold text-purple-600"
+          x-text="users.filter(u => u.Role === 'Mudir').length"
+        ></div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm">
+        <div class="text-sm text-gray-500">Active</div>
+        <div
+          class="text-2xl font-bold text-green-600"
+          x-text="users.filter(u => u.Status === 'Active').length"
+        ></div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm">
+        <div class="text-sm text-gray-500">Last 30 Days</div>
+        <div
+          class="text-2xl font-bold text-blue-600"
+          x-text="recentUsersCount"
+        ></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- Add/Edit User Modal -->
+<template x-if="showAddUserModal">
+  <div
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+  >
+    <div
+      class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+    >
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3
+            class="text-xl font-bold text-gray-800"
+            x-text="editModeUser ? 'Edit User' : 'Tambah User Baru'"
+          ></h3>
+          <button
+            @click="closeUserModal"
+            class="text-gray-400 hover:text-gray-600"
+          >
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <form @submit.prevent="submitUserForm" class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Basic Info -->
+            <div class="space-y-4">
+              <h4 class="font-medium text-gray-700">Informasi Dasar</h4>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Nama Lengkap *</label
+                >
+                <input
+                  type="text"
+                  x-model="userForm.Name"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Nama lengkap user"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Username *</label
+                >
+                <input
+                  type="text"
+                  x-model="userForm.Username"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Username untuk login"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Role *</label
+                >
+                <select
+                  x-model="userForm.Role"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Pilih Role</option>
+                  <option value="Mudir">Mudir</option>
+                  <option value="Admin">Admin</option>
+                  <option value="Ustadz">Ustadz</option>
+                  <option value="Wali">Wali</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Status</label
+                >
+                <select
+                  x-model="userForm.Status"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Contact & Security -->
+            <div class="space-y-4">
+              <h4 class="font-medium text-gray-700">Kontak & Keamanan</h4>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Email</label
+                >
+                <input
+                  type="email"
+                  x-model="userForm.Email"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="email@example.com"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Nomor Telepon</label
+                >
+                <input
+                  type="tel"
+                  x-model="userForm.Phone"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="0812-3456-7890"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Password
+                  <span
+                    class="text-gray-500 text-sm"
+                    x-text="editModeUser ? '(kosongkan jika tidak diubah)' : ''"
+                  ></span
+                ></label>
+                <input
+                  type="password"
+                  x-model="userForm.Password"
+                  :required="!editModeUser"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Minimal 6 karakter"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Konfirmasi Password</label
+                >
+                <input
+                  type="password"
+                  x-model="userForm.ConfirmPassword"
+                  :required="!editModeUser"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Ulangi password"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Info -->
+          <div class="space-y-4">
+            <h4 class="font-medium text-gray-700">Informasi Tambahan</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Student ID (jika Wali)</label
+                >
+                <input
+                  type="text"
+                  x-model="userForm.StudentID"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="ID Santri yang diasuh"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Kelas</label
+                >
+                <input
+                  type="text"
+                  x-model="userForm.Class"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Kelas user (jika Ustadz)"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div
+            x-show="userFormError"
+            class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg"
+          >
+            <span x-text="userFormError"></span>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex justify-end gap-3 pt-4 border-t">
+            <button
+              type="button"
+              @click="closeUserModal"
+              class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              :disabled="loadingUserForm"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <svg
+                x-show="loadingUserForm"
+                class="animate-spin h-4 w-4 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span
+                x-text="editModeUser ? 'Update User' : 'Simpan User'"
+              ></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>

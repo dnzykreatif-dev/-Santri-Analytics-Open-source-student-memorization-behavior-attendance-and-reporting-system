@@ -1,0 +1,36 @@
+<!-- Modal Add Student -->
+<!-- MODAL TAMBAH SANTRI -->
+<div
+  x-show="showAddStudent"
+  class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+  x-cloak
+>
+  <div class="bg-white p-6 rounded-xl w-80 shadow-lg">
+    <h3 class="mb-4 font-bold text-xl">Tambah Santri</h3>
+
+    <input
+      x-model="newStudent.Name"
+      placeholder="Nama"
+      class="w-full mb-2 border p-2 rounded-lg"
+    />
+    <input
+      x-model="newStudent.ClassLevel"
+      placeholder="Kelas"
+      class="w-full mb-2 border p-2 rounded-lg"
+    />
+    <input
+      x-model="newStudent.ParentContact"
+      placeholder="WA Orang Tua (628...)"
+      class="w-full mb-4 border p-2 rounded-lg"
+    />
+
+    <div class="flex gap-2">
+      <button @click="showAddStudent=false" class="flex-1 border p-2">
+        Batal
+      </button>
+      <button @click="submitStudent" class="flex-1 bg-[#FAD4C0] p-2">
+        Simpan
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,134 @@
+<!-- CONTENT: LINK LIVE / REKAMAN -->
+<div x-show="studentDetailTab === 'links'" class="space-y-6">
+  <!-- Form Input -->
+  <div
+    class="bento-card p-6 bg-white"
+    x-show="user.Role === 'Mudir' || user.Role === 'Ustadz'"
+  >
+    <h4
+      class="font-bold mb-4 text-[#80A1C1]"
+      x-text="editModeLink ? 'Edit Link' : 'Tambah Link Baru'"
+    ></h4>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+          >Judul / Keterangan</label
+        >
+        <input
+          type="text"
+          x-model="linkForm.Title"
+          placeholder="Contoh: Setoran Juz 1 - Live Zoom"
+          class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#FAD4C0] outline-none"
+        />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+          >Tipe Link</label
+        >
+        <select
+          x-model="linkForm.Type"
+          class="w-full px-4 py-2 border rounded-xl bg-white focus:ring-2 focus:ring-[#FAD4C0] outline-none"
+        >
+          <option value="Rekaman">Rekaman Video/Audio</option>
+          <option value="Live Meeting">Live Meeting (Zoom/Meet)</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </div>
+    </div>
+    <div class="mt-4">
+      <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+        >URL Link</label
+      >
+      <input
+        type="url"
+        x-model="linkForm.URL"
+        placeholder="https://..."
+        class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#FAD4C0] outline-none"
+      />
+    </div>
+
+    <div class="flex gap-2 mt-4">
+      <button
+        @click="submitLink"
+        class="flex-1 py-2 bg-[#FAD4C0] hover:bg-[#f8c3a6] rounded-xl font-bold transition-all text-sm"
+      >
+        <span x-text="editModeLink ? 'Update Link' : 'Simpan Link'"></span>
+      </button>
+      <button
+        x-show="editModeLink"
+        @click="cancelEditLink"
+        class="py-2 px-4 bg-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-300 text-sm"
+      >
+        Batal
+      </button>
+    </div>
+  </div>
+
+  <!-- List Links -->
+  <div class="space-y-3">
+    <h4 class="font-bold text-gray-700">Daftar Link Tersimpan</h4>
+    <template x-if="studentLinks.length === 0">
+      <div class="text-center py-8 bg-gray-50 rounded-xl text-gray-400 text-sm">
+        Belum ada link tersimpan.
+      </div>
+    </template>
+    <template x-for="link in studentLinks" :key="link.LinkID">
+      <div
+        class="bento-card p-4 bg-white flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-l-4"
+        :class="{
+             'border-blue-400': link.Type === 'Live Meeting',
+             'border-green-400': link.Type === 'Rekaman',
+             'border-gray-300': link.Type === 'Lainnya'
+           }"
+      >
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <span
+              class="text-xs font-bold px-2 py-0.5 rounded-full uppercase"
+              :class="{
+                     'bg-blue-100 text-blue-700': link.Type === 'Live Meeting',
+                     'bg-green-100 text-green-700': link.Type === 'Rekaman'
+                   }"
+              x-text="link.Type"
+            ></span>
+            <p class="font-bold text-gray-800" x-text="link.Title"></p>
+          </div>
+          <a
+            :href="link.URL"
+            target="_blank"
+            class="text-sm text-blue-500 hover:underline break-all mt-1 block"
+            x-text="link.URL"
+          ></a>
+          <p
+            class="text-[10px] text-gray-400 mt-1"
+            x-text="formatDate(link.DateAdded)"
+          ></p>
+        </div>
+        <div class="flex gap-2 items-center">
+          <a
+            :href="link.URL"
+            target="_blank"
+            class="px-3 py-1 bg-gray-100 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-200"
+            >Buka</a
+          >
+          <template x-if="user.Role === 'Mudir' || user.Role === 'Ustadz'">
+            <div class="flex gap-1">
+              <button
+                @click="editLink(link)"
+                class="text-xs text-blue-500 font-bold hover:underline"
+              >
+                Edit
+              </button>
+              <button
+                @click="deleteLink(link.LinkID)"
+                class="text-xs text-red-500 font-bold hover:underline"
+              >
+                Hapus
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>

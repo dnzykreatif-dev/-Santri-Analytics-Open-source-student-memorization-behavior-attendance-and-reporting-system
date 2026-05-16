@@ -1,0 +1,1738 @@
+<script>
+  window.app = function () {
+    // ===== CONSTANTS =====
+    const FORM_DEFAULTS = {
+      memoForm: {
+        StudentID: "",
+        Surah: "",
+        Juz: "",
+        AyahStart: "",
+        AyahEnd: "",
+        Status: "New",
+        Category: "",
+        CustomDate: "",
+        CustomTime: "",
+      },
+      incidentForm: {
+        StudentID: "",
+        IncidentType: "Violation",
+        Description: "",
+        Severity: "Minor",
+        Points: 0,
+      },
+      loginForm: { username: "", password: "" },
+      registerForm: { username: "", password: "", confirmPassword: "" },
+      newStudent: { Name: "", ClassLevel: "", ParentContact: "" },
+      attendanceForm: { Type: "Sakit", Notes: "", Date: "" },
+    };
+
+    // ===== HELPER: Google Script Call Wrapper =====
+    function callGoogleScript(methodName, ...args) {
+      return {
+        onSuccess: function (callback) {
+          google.script.run
+            .withSuccessHandler((res) => {
+              if (res && res.ok) {
+                callback(null, res.data);
+              } else {
+                callback(new Error(res ? res.message : "Unknown error"));
+              }
+            })
+            .withFailureHandler((err) => callback(err))
+            [methodName](...args);
+          return this;
+        },
+        onSuccessRaw: function (callback) {
+          google.script.run
+            .withSuccessHandler(callback)
+            .withFailureHandler((err) => callback(null, null, err))
+            [methodName](...args);
+          return this;
+        },
+      };
+    }
+
+    return {
+      // ===== STATE =====
+      isLoggedIn: false,
+      user: { Username: "", Role: "" },
+      students: [],
+      summary: {
+        totalStudents: 0,
+        totalLogs: 0,
+        totalIncidents: 0,
+        recentLogs: [],
+        recentIncidents: [],
+        attentionStudents: [],
+      },
+      currentTab: "dashboard",
+      error: "",
+      showAddStudent: false,
+      showDetailModal: false,
+      selectedStudent: null,
+      studentDetailTab: "hafalan",
+      studentHistory: [],
+      studentIncidents: [],
+      teacherNote: "",
+      parentEmail: "",
+      loadingReport: false,
+      loadingEmail: false,
+      charts: { memo: null, incident: null },
+      memoChartInstance: null,
+      behaviorChartInstance: null,
+      filters: {
+        startDate: "",
+        endDate: "",
+        classFilter: "",
+        memoCategory: "",
+        incidentType: "",
+      },
+      searchQuery: "",
+      filterClass: "",
+      showRegister: false,
+      registerError: "",
+      // === STATE LINKS ===
+      studentLinks: [],
+      linkForm: { Title: "", URL: "", Type: "Rekaman" },
+      editModeLink: null,
+
+      // State baru
+      linkLiveList: [],
+      linkLiveForm: {
+        LinkID: null,
+        StudentID: "",
+        Title: "",
+        URL: "",
+        Type: "Live",
+      },
+      editModeLinkLive: false,
+
+      // === STATE USER MANAGEMENT ===
+      users: [],
+      userSearchQuery: "",
+      userFilterRole: "",
+      userFilterStatus: "",
+      showAddUserModal: false,
+      editModeUser: null,
+      userForm: {
+        Name: "",
+        Username: "",
+        Email: "",
+        Phone: "",
+        Role: "",
+        StudentID: "",
+        Class: "",
+        Password: "",
+        ConfirmPassword: "",
+        Status: "Active",
+      },
+      userFormError: "",
+      loadingUserForm: false,
+      recentUsersCount: 0,
+
+      // ===== STATE PULANG BULANAN =====
+      monthOptions: [
+        { value: "1", label: "Januari" },
+        { value: "2", label: "Februari" },
+        { value: "3", label: "Maret" },
+        { value: "4", label: "April" },
+        { value: "5", label: "Mei" },
+        { value: "6", label: "Juni" },
+        { value: "7", label: "Juli" },
+        { value: "8", label: "Agustus" },
+        { value: "9", label: "September" },
+        { value: "10", label: "Oktober" },
+        { value: "11", label: "November" },
+        { value: "12", label: "Desember" },
+      ],
+      pulangBulananLogs: [],
+      pulangSummary: {
+        total: 0,
+        pulang: 0,
+        tidakPulang: 0,
+        izin: 0,
+        tepatWaktu: 0,
+        terlambat: 0,
+        belumKembali: 0,
+      },
+      pulangFilter: {
+        Month: String(new Date().getMonth() + 1),
+        Year: String(new Date().getFullYear()),
+        Class: "",
+        StatusKembali: "",
+      },
+      showPulangBulananModal: false,
+      pulangEditMode: false,
+      pulangForm: {
+        PulangID: "",
+        StudentID: "",
+        StudentName: "",
+        Class: "",
+        Month: String(new Date().getMonth() + 1),
+        Year: String(new Date().getFullYear()),
+        StatusPulang: "Pulang",
+        TanggalPulang: "",
+        JamPulang: "",
+        TanggalKembali: "",
+        JamKembali: "",
+        BatasJamKembali: "17:00",
+        Penjemput: "",
+        HubunganPenjemput: "",
+        Phone: "",
+        Notes: "",
+      },
+
+      // Fungsi untuk load link live
+      loadLinks() {
+        if (!this.selectedStudent) return;
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) this.linkLiveList = res.data.links || [];
+            else this.showToast("Gagal memuat link live", "error");
+          })
+          .getStudentLinks(this.selectedStudent.StudentID);
+      },
+
+      // Fungsi submit (tambah/update)
+      submitLinkLive() {
+        if (
+          !this.linkLiveForm.StudentID ||
+          !this.linkLiveForm.Title ||
+          !this.linkLiveForm.URL
+        ) {
+          this.showToast("Mohon lengkapi semua kolom.", "error");
+          return;
+        }
+
+        const data = {
+          ...this.linkLiveForm,
+          TeacherID: this.user?.Username || "System",
+        };
+
+        if (this.editModeLinkLive) {
+          google.script.run
+            .withSuccessHandler((res) => {
+              if (res.ok) {
+                this.showToast("Link live berhasil diupdate", "success");
+                this.loadLinks();
+                this.cancelEditLinkLive();
+              } else {
+                this.showToast(res.message, "error");
+              }
+            })
+            .updateHafalanLink(this.linkLiveForm.LinkID, data);
+        } else {
+          google.script.run
+            .withSuccessHandler((res) => {
+              if (res.ok) {
+                this.showToast("Link live berhasil disimpan", "success");
+                this.loadLinks();
+                this.cancelEditLinkLive();
+              } else {
+                this.showToast(res.message, "error");
+              }
+            })
+            .addHafalanLink(data);
+        }
+      },
+
+      editLinkLive(link) {
+        this.editModeLinkLive = true;
+        this.linkLiveForm = { ...link };
+      },
+
+      cancelEditLinkLive() {
+        this.editModeLinkLive = false;
+        this.linkLiveForm = {
+          LinkID: null,
+          StudentID: "",
+          Title: "",
+          URL: "",
+          Type: "Live",
+        };
+      },
+
+      deleteLinkLive(linkId) {
+        if (!confirm("Yakin ingin menghapus link ini?")) return;
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) {
+              this.showToast("Link live berhasil dihapus", "success");
+              this.loadLinks();
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .deleteHafalanLink(linkId);
+      },
+      // ===== LINK ACTIONS =====
+      loadLinks() {
+        if (!this.selectedStudent) return;
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) this.studentLinks = res.data.links;
+          })
+          .getStudentLinks(this.selectedStudent.StudentID);
+      },
+
+      editLink(link) {
+        this.editModeLink = link.LinkID;
+        this.linkForm.Title = link.Title;
+        this.linkForm.URL = link.URL;
+        this.linkForm.Type = link.Type;
+      },
+
+      cancelEditLink() {
+        this.editModeLink = null;
+        this.linkForm = { Title: "", URL: "", Type: "Rekaman" };
+      },
+
+      deleteLink(linkId) {
+        if (!confirm("Yakin hapus link ini?")) return;
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) {
+              this.showToast("Link dihapus", "success");
+              this.loadLinks();
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .deleteHafalanLink(linkId);
+      },
+
+      submitLink() {
+        if (!this.selectedStudent || !this.selectedStudent.StudentID) {
+          this.showToast("Pilih santri terlebih dahulu.", "error");
+          return;
+        }
+        if (!this.linkForm.URL) {
+          this.showToast("URL tidak boleh kosong", "error");
+          return;
+        }
+
+        const data = {
+          StudentID: this.selectedStudent.StudentID,
+          Title: this.linkForm.Title,
+          URL: this.linkForm.URL,
+          Type: this.linkForm.Type || "Rekaman",
+          TeacherID: this.user?.Username || "System",
+        };
+
+        const onSuccess = (res) => {
+          if (res.ok) {
+            const actionType = this.editModeLink ? "diupdate" : "disimpan";
+            this.showToast(`Link berhasil ${actionType}`, "success");
+            this.loadLinks();
+            this.cancelEditLink();
+          } else {
+            this.showToast(res.message, "error");
+          }
+        };
+
+        if (this.editModeLink) {
+          google.script.run
+            .withSuccessHandler(onSuccess)
+            .updateHafalanLink(this.editModeLink, data);
+        } else {
+          google.script.run.withSuccessHandler(onSuccess).addHafalanLink(data);
+        }
+      },
+      // === LOADING & NOTIFICATIONS ===
+      loading: false,
+      toast: { show: false, message: "", type: "success" },
+
+      // === EDIT MODE STATE ===
+      editModeHafalan: null,
+      editModePerilaku: null,
+      raportData: null,
+
+      // === INPUT MODE ===
+      inputMode: "hafalan", // 'hafalan' or 'keterangan'
+
+      // ===== FORMS (Initialized with defaults) =====
+      loginForm: { ...FORM_DEFAULTS.loginForm },
+      registerForm: { ...FORM_DEFAULTS.registerForm },
+      newStudent: { ...FORM_DEFAULTS.newStudent },
+      memoForm: { ...FORM_DEFAULTS.memoForm },
+      incidentForm: { ...FORM_DEFAULTS.incidentForm },
+      attendanceForm: {
+        Type: FORM_DEFAULTS.attendanceForm.Type,
+        Notes: FORM_DEFAULTS.attendanceForm.Notes,
+        Date: new Date().toISOString().split("T")[0],
+      },
+
+      // Static Data
+      incidentCategories: INCIDENT_CATEGORIES,
+
+      // ===== COMPUTED =====
+      get uniqueClasses() {
+        const classes = this.students
+          .map((s) => s["Class/Level"])
+          .filter(Boolean);
+        return [...new Set(classes)].sort();
+      },
+
+      get filteredStudents() {
+        let filtered = this.students;
+        if (this.filterClass) {
+          filtered = filtered.filter(
+            (s) => s["Class/Level"] === this.filterClass,
+          );
+        }
+        if (this.searchQuery) {
+          const q = this.searchQuery.toLowerCase();
+          filtered = filtered.filter((s) => s.Name.toLowerCase().includes(q));
+        }
+        return filtered;
+      },
+
+      get filteredUsers() {
+        let filtered = this.users;
+        if (this.userFilterRole) {
+          filtered = filtered.filter((u) => u.Role === this.userFilterRole);
+        }
+        if (this.userFilterStatus) {
+          filtered = filtered.filter((u) => u.Status === this.userFilterStatus);
+        }
+        if (this.userSearchQuery) {
+          const q = this.userSearchQuery.toLowerCase();
+          filtered = filtered.filter(
+            (u) =>
+              (u.Name && u.Name.toLowerCase().includes(q)) ||
+              u.Username.toLowerCase().includes(q) ||
+              (u.Email && u.Email.toLowerCase().includes(q)),
+          );
+        }
+        return filtered;
+      },
+
+      // ===== INITIALIZATION =====
+      init() {
+        const savedUser = sessionStorage.getItem("user");
+        if (savedUser) {
+          try {
+            this.user = JSON.parse(savedUser);
+            this.isLoggedIn = true;
+            this.refreshData();
+          } catch (e) {
+            sessionStorage.removeItem("user");
+          }
+        }
+      },
+
+      // ===== HELPER: TOAST NOTIFICATION =====
+      showToast(message, type = "success") {
+        this.toast = { show: true, message, type };
+        setTimeout(() => {
+          this.toast.show = false;
+        }, 3000);
+      },
+
+      // ===== HELPER: RESET FORM =====
+      resetForm(formName) {
+        if (FORM_DEFAULTS[formName]) {
+          this[formName] = { ...FORM_DEFAULTS[formName] };
+          if (formName === "attendanceForm") {
+            this[formName].Date = new Date().toISOString().split("T")[0];
+          }
+        }
+      },
+
+      // ===== HELPER: SCROLL TO FORM =====
+      scrollToForm() {
+        const bentoCard = this.$el?.querySelector(".bento-card");
+        if (bentoCard) {
+          bentoCard.scrollIntoView({ behavior: "smooth" });
+        }
+      },
+
+      // ===== HELPER: REFRESH STUDENT DETAIL =====
+      refreshStudentDetail() {
+        if (!this.selectedStudent?.StudentID) return;
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res && res.ok && res.data) {
+              this.studentHistory = res.data.memos;
+              this.studentIncidents = res.data.incidents;
+              this.$nextTick(() => {
+                this.renderCharts();
+              });
+            }
+          })
+          .getStudentDetailData(this.selectedStudent.StudentID);
+      },
+
+      // ===== AUTH ACTIONS =====
+      handleLogin() {
+        if (!this.loginForm.username || !this.loginForm.password) {
+          this.error = "Username dan Password harus diisi";
+          return;
+        }
+        this.loading = true;
+        this.error = "";
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loading = false;
+            if (res.ok) {
+              this.user = res.user;
+              sessionStorage.setItem("user", JSON.stringify(res.user));
+              this.isLoggedIn = true;
+              this.refreshData();
+            } else {
+              this.error = res.message;
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loading = false;
+            this.error = "Terjadi kesalahan koneksi: " + err;
+          })
+          .login(this.loginForm.username, this.loginForm.password);
+      },
+
+      handleRegister() {
+        this.registerError = "";
+        if (this.registerForm.password !== this.registerForm.confirmPassword) {
+          this.registerError = "Password dan konfirmasi password tidak cocok.";
+          return;
+        }
+        if (this.registerForm.password.length < 6) {
+          this.registerError = "Password minimal 6 karakter.";
+          return;
+        }
+
+        this.loading = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loading = false;
+            if (res.ok) {
+              this.showToast(res.message, "success");
+              this.showRegister = false;
+              this.resetForm("registerForm");
+              this.error = "";
+            } else {
+              this.registerError = res.message;
+            }
+          })
+          .createAccount(
+            this.registerForm.username,
+            this.registerForm.password,
+            "Wali",
+          );
+      },
+
+      logout() {
+        this.isLoggedIn = false;
+        this.user = { Username: "", Role: "" };
+        sessionStorage.removeItem("user");
+      },
+
+      // ===== DATA FETCHING =====
+      refreshData() {
+        this.fetchStudents();
+        this.fetchSummary();
+      },
+
+      fetchSummary() {
+        if (this.students.length === 0) this.loading = true;
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loading = false;
+            if (res.ok) {
+              this.summary = res.data;
+              this.$nextTick(() => {
+                this.renderDashboardCharts();
+              });
+            }
+          })
+          .withFailureHandler(() => {
+            this.loading = false;
+            this.showToast("Gagal memuat ringkasan data", "error");
+          })
+          .getDashboardSummary(this.user, this.filters);
+      },
+
+      destroyDashboardCharts() {
+        if (this.memoChartInstance) {
+          this.memoChartInstance.destroy();
+          this.memoChartInstance = null;
+        }
+        if (this.behaviorChartInstance) {
+          this.behaviorChartInstance.destroy();
+          this.behaviorChartInstance = null;
+        }
+      },
+
+      renderDashboardCharts() {
+        const self = this;
+
+        // Multiple attempts with increasing delays
+        const attempts = [0, 100, 300, 500];
+        let attemptIndex = 0;
+
+        function tryRender() {
+          self.destroyDashboardCharts();
+
+          const memoCanvas = document.getElementById("memoChart");
+          const behaviorCanvas = document.getElementById("behaviorChart");
+
+          // Log for debugging
+          console.log("[Dashboard] renderDashboardCharts called");
+          console.log("[Dashboard] memoCanvas:", !!memoCanvas);
+          console.log("[Dashboard] behaviorCanvas:", !!behaviorCanvas);
+          console.log(
+            "[Dashboard] memoChartData:",
+            self.summary.memoChartData
+              ? self.summary.memoChartData.length
+              : "null",
+          );
+          console.log(
+            "[Dashboard] behaviorChartData:",
+            self.summary.behaviorChartData
+              ? self.summary.behaviorChartData.length
+              : "null",
+          );
+
+          // Memo Chart
+          if (memoCanvas && self.summary.memoChartData) {
+            const memoData = self.summary.memoChartData;
+
+            // Get parent container and ensure it has proper styling
+            const memoContainer = memoCanvas.parentElement;
+            if (memoContainer) {
+              memoContainer.style.position = "relative";
+              memoContainer.style.height = "256px";
+              memoContainer.style.width = "100%";
+            }
+
+            if (memoData.length > 0) {
+              self.memoChartInstance = new Chart(memoCanvas, {
+                type: "line",
+                data: {
+                  labels: memoData.map((d) => d.label),
+                  datasets: [
+                    {
+                      label: "Total Setoran",
+                      data: memoData.map((d) => d.total),
+                      borderColor: "#22c55e",
+                      backgroundColor: "rgba(34, 197, 94, 0.1)",
+                      fill: true,
+                      tension: 0.4,
+                    },
+                    {
+                      label: "Disetujui",
+                      data: memoData.map((d) => d.approved),
+                      borderColor: "#16a34a",
+                      backgroundColor: "rgba(22, 163, 74, 0.1)",
+                      fill: true,
+                      tension: 0.4,
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  animation: { duration: 800 },
+                  plugins: {
+                    legend: { position: "bottom" },
+                  },
+                  scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                  },
+                },
+              });
+              console.log("[Dashboard] memoChart created successfully");
+            }
+          }
+
+          // Behavior Score Chart
+          if (behaviorCanvas && self.summary.behaviorChartData) {
+            const behaviorData = self.summary.behaviorChartData;
+
+            // Get parent container and ensure it has proper styling
+            const behaviorContainer = behaviorCanvas.parentElement;
+            if (behaviorContainer) {
+              behaviorContainer.style.position = "relative";
+              behaviorContainer.style.height = "256px";
+              behaviorContainer.style.width = "100%";
+            }
+
+            if (behaviorData.length > 0) {
+              self.behaviorChartInstance = new Chart(behaviorCanvas, {
+                type: "line",
+                data: {
+                  labels: behaviorData.map((d) => d.label),
+                  datasets: [
+                    {
+                      label: "Skor Perilaku Rata-rata",
+                      data: behaviorData.map((d) => d.avgScore),
+                      borderColor: "#f97316",
+                      backgroundColor: "rgba(249, 115, 22, 0.1)",
+                      fill: true,
+                      tension: 0.4,
+                    },
+                  ],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  animation: { duration: 800 },
+                  plugins: {
+                    legend: { position: "bottom" },
+                  },
+                  scales: {
+                    y: { min: 0, max: 100 },
+                  },
+                },
+              });
+              console.log("[Dashboard] behaviorChart created successfully");
+            }
+          }
+        }
+
+        // Try rendering immediately and then with delays
+        function scheduleNextAttempt() {
+          if (attemptIndex < attempts.length) {
+            setTimeout(function () {
+              tryRender();
+              attemptIndex++;
+              scheduleNextAttempt();
+            }, attempts[attemptIndex]);
+          }
+        }
+        scheduleNextAttempt();
+      },
+
+      fetchStudents() {
+        this.loading = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loading = false;
+            if (res.ok) this.students = res.data.students;
+          })
+          .withFailureHandler(() => {
+            this.loading = false;
+            this.showToast("Gagal memuat data santri", "error");
+          })
+          .getStudents(this.user);
+      },
+
+      // ===== HELPER FUNCTIONS =====
+      formatDate(isoString) {
+        if (!isoString) return "-";
+        const date = new Date(isoString);
+        return date.toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "short",
+        });
+      },
+
+      setQuickFilter(type) {
+        const now = new Date();
+        const start = new Date();
+        switch (type) {
+          case "day":
+            start.setHours(0, 0, 0, 0);
+            break;
+          case "week":
+            start.setDate(now.getDate() - 7);
+            break;
+          case "month":
+            start.setMonth(now.getMonth() - 1);
+            break;
+        }
+        this.filters.startDate = start.toISOString().split("T")[0];
+        this.filters.endDate = now.toISOString().split("T")[0];
+        this.fetchSummary();
+      },
+
+      resetFilters() {
+        this.filters.startDate = "";
+        this.filters.endDate = "";
+        this.filters.classFilter = "";
+        this.filters.memoCategory = "";
+        this.filters.incidentType = "";
+        this.fetchSummary();
+      },
+
+      // ===== STUDENT ACTIONS =====
+      submitStudent() {
+        this.loading = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loading = false;
+            if (res.ok) {
+              this.showAddStudent = false;
+              this.fetchStudents();
+              this.resetForm("newStudent");
+              this.showToast("Santri berhasil ditambahkan!", "success");
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .addStudent(this.newStudent);
+      },
+
+      openStudentDetail(student) {
+        if (!student || !student.StudentID) return;
+
+        this.selectedStudent = { ...student };
+        this.studentDetailTab = "hafalan";
+        this.showDetailModal = true;
+        this.loadFullStudentReport(student.StudentID);
+      },
+
+      openStudentRaport(student) {
+        if (!student || !student.StudentID) return;
+
+        this.selectedStudent = { ...student };
+        this.studentDetailTab = "raport";
+        this.showDetailModal = true;
+        this.loadFullStudentReport(student.StudentID);
+      },
+
+      loadFullStudentReport(studentId) {
+        this.raportData = null; // Ensure raportData is reset
+        this.fullStudentReport = false; // Set to false to show loading message initially
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res && res.ok) {
+              // Check for 'ok' field in the response
+              this.raportData = res.data;
+              this.fullStudentReport = true; // Set to true on success to show the report
+            } else {
+              this.showToast(
+                res.message || "Gagal memuat raport santri",
+                "error",
+              );
+              this.fullStudentReport = false; // Keep false on error
+            }
+          })
+          .withFailureHandler((err) => {
+            this.showToast("Gagal memuat raport: " + err.message, "error");
+            this.fullStudentReport = false; // Keep false on failure
+          })
+          .getStudentReportData(studentId); // Call the correct server-side function
+      },
+
+      // This function is redundant after the fix above, but keeping it for now
+      // It essentially does the same as loadFullStudentReport, and should be removed if loadFullStudentReport works correctly.
+      loadRaportData() {
+        if (!this.selectedStudent) return;
+        this.raportData = null;
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) {
+              this.raportData = res.data;
+            } else {
+              this.showToast("Gagal memuat raport", "error");
+            }
+          })
+          .getStudentReportData(this.selectedStudent.StudentID);
+      },
+
+      savePembinaan() {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) {
+              this.showToast("Catatan pembinaan disimpan!", "success");
+              this.fetchStudents();
+            } else {
+              this.showToast("Gagal menyimpan catatan", "error");
+            }
+          })
+          .updateStudentNote(
+            this.selectedStudent.StudentID,
+            this.selectedStudent.CatatanPembinaan,
+          );
+      },
+
+      // ===== HAFALAN (MEMORIZATION) ACTIONS =====
+      editHafalan(log) {
+        this.editModeHafalan = log.LogID;
+        // Copy relevant fields to form including StudentID
+        this.memoForm = {
+          ...this.memoForm,
+          StudentID: log.StudentID || "",
+          Surah: log.Surah,
+          AyahStart: log.AyahStart,
+          AyahEnd: log.AyahEnd,
+          Category: log.Category,
+          Status: log.Status,
+          Juz: log.Juz,
+        };
+        this.scrollToForm();
+      },
+
+      cancelEditHafalan() {
+        this.editModeHafalan = null;
+        this.resetForm("memoForm");
+      },
+
+      deleteHafalan(logId) {
+        if (!confirm("Yakin ingin menghapus data hafalan ini?")) return;
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) {
+              this.showToast("Hafalan berhasil dihapus", "success");
+              this.refreshStudentDetail();
+              this.fetchSummary();
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .deleteMemorization(logId);
+      },
+
+      submitMemorization() {
+        if (!this.memoForm.Category) {
+          this.showToast("Silakan pilih kategori hafalan!", "error");
+          return;
+        }
+
+        const data = {
+          ...this.memoForm,
+          StudentID: this.selectedStudent.StudentID,
+          DateLogged: new Date().toISOString(),
+        };
+
+        const onSuccess = (res) => {
+          if (res.ok) {
+            const actionType = this.editModeHafalan ? "diupdate" : "disimpan";
+            this.showToast(`Hafalan berhasil ${actionType}`, "success");
+          } else {
+            this.showToast(res.message, "error");
+          }
+        };
+
+        if (this.editModeHafalan) {
+          google.script.run
+            .withSuccessHandler(onSuccess)
+            .updateMemorization(this.editModeHafalan, data);
+        } else {
+          google.script.run.withSuccessHandler(onSuccess).logMemorization(data);
+        }
+
+        this.cancelEditHafalan();
+        this.refreshStudentDetail();
+        this.fetchSummary();
+      },
+
+      submitMemorizationGlobal() {
+        if (!this.memoForm.StudentID) {
+          this.showToast("Silakan pilih santri!", "error");
+          return;
+        }
+        if (!this.memoForm.Category) {
+          this.showToast("Silakan pilih kategori hafalan!", "error");
+          return;
+        }
+
+        const data = { ...this.memoForm, DateLogged: new Date().toISOString() };
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) {
+              this.showToast("Hafalan berhasil disimpan!", "success");
+              this.resetForm("memoForm");
+              this.fetchSummary();
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .logMemorization(data);
+      },
+
+      // ===== ATTENDANCE ACTIONS =====
+      loadRaportData() {
+        if (!this.selectedStudent) return;
+        this.raportData = null;
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) {
+              this.raportData = res.data;
+            } else {
+              this.showToast("Gagal memuat raport", "error");
+            }
+          })
+          .getStudentReportData(this.selectedStudent.StudentID);
+      },
+
+      submitAttendanceGlobal() {
+        if (!this.memoForm.StudentID) {
+          this.showToast("Silakan pilih santri!", "error");
+          return;
+        }
+
+        const data = {
+          StudentID: this.memoForm.StudentID,
+          Type: this.attendanceForm.Type,
+          Notes: this.attendanceForm.Notes,
+          DateLogged: new Date(this.attendanceForm.Date).toISOString(),
+          TeacherID: this.user.Username,
+        };
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) {
+              this.showToast("Keterangan berhasil disimpan", "success");
+              this.resetForm("attendanceForm");
+              this.fetchSummary();
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .logAttendance(data);
+      },
+
+      // ===== INCIDENT (PERILAKU) ACTIONS =====
+      editPerilaku(inc) {
+        this.editModePerilaku = inc.IncidentID;
+        this.incidentForm = {
+          ...this.incidentForm,
+          StudentID: inc.StudentID || "",
+          IncidentType: inc.IncidentType,
+          Description: inc.Description,
+          Severity: inc.Severity,
+          Points: inc.Points,
+          Category: inc.Category || "Umum",
+        };
+        this.scrollToForm();
+      },
+
+      cancelEditPerilaku() {
+        this.editModePerilaku = null;
+        this.resetForm("incidentForm");
+      },
+
+      deletePerilaku(incidentId) {
+        if (
+          !confirm(
+            "Yakin ingin menghapus catatan perilaku ini? Skor santri akan dihitung ulang.",
+          )
+        )
+          return;
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) {
+              this.showToast("Catatan perilaku dihapus", "success");
+              this.fetchStudents();
+              this.refreshStudentDetail();
+              this.fetchSummary();
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .deleteIncident(incidentId);
+      },
+
+      applyQuickIncident(item) {
+        if (!this.incidentForm.StudentID) {
+          this.showToast("Pilih santri dulu!", "error");
+          return;
+        }
+        this.incidentForm = {
+          ...this.incidentForm,
+          Description: item.desc,
+          Points: item.pts,
+          Severity: item.sev,
+          IncidentType: item.type || "Violation",
+        };
+        this.submitIncidentGlobal();
+      },
+
+      submitIncident() {
+        const data = {
+          ...this.incidentForm,
+          StudentID: this.selectedStudent.StudentID,
+          DateOfIncident: new Date().toISOString(),
+        };
+
+        const onSuccess = (res) => {
+          if (res.ok) {
+            const actionType = this.editModePerilaku ? "diupdate" : "disimpan";
+            this.showToast(`Catatan berhasil ${actionType}`, "success");
+          } else {
+            this.showToast(res.message, "error");
+          }
+        };
+
+        if (this.editModePerilaku) {
+          google.script.run
+            .withSuccessHandler(onSuccess)
+            .updateIncident(this.editModePerilaku, data, this.user);
+        } else {
+          google.script.run
+            .withSuccessHandler(onSuccess)
+            .logIncident(data, this.user);
+        }
+
+        this.cancelEditPerilaku();
+        this.refreshStudentDetail();
+        this.fetchSummary();
+        this.fetchStudents();
+      },
+
+      submitIncidentGlobal() {
+        if (!this.incidentForm.StudentID) {
+          this.showToast("Silakan pilih santri terlebih dahulu!", "error");
+          return;
+        }
+
+        const data = {
+          ...this.incidentForm,
+          Points: parseInt(this.incidentForm.Points) || 0,
+          DateOfIncident: new Date().toISOString(),
+        };
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) {
+              this.fetchStudents();
+              if (
+                data.IncidentType === "Violation" &&
+                res.broadcast?.parentContact
+              ) {
+                if (
+                  confirm(
+                    "Catatan disimpan. Kirim notifikasi WA ke orang tua sekarang?",
+                  )
+                ) {
+                  this.sendWABroadcast(res.broadcast);
+                }
+              } else {
+                this.showToast("Catatan berhasil disimpan!", "success");
+              }
+              this.resetForm("incidentForm");
+              this.fetchSummary();
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .logIncident(data, this.user);
+      },
+
+      // ===== REPORT ACTIONS =====
+      generatePDF() {
+        this.loadingReport = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingReport = false;
+            if (res.ok) {
+              this.showToast("Laporan PDF berhasil dibuat!", "success");
+              window.open(res.data.viewUrl, "_blank");
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingReport = false;
+            this.showToast("Gagal membuat PDF: " + err.message, "error");
+          })
+          .generateStudentReportPdf(
+            this.selectedStudent.StudentID,
+            this.teacherNote,
+          );
+      },
+
+      sendToWA() {
+        const phone = this.selectedStudent.ParentContact
+          ? this.selectedStudent.ParentContact.replace(/\D/g, "")
+          : "";
+        if (!phone) {
+          this.showToast("Nomor HP orang tua tidak tersedia", "error");
+          return;
+        }
+
+        const msg =
+          "Assalamu'alaikum Bapak/Ibu Wali dari " +
+          this.selectedStudent.Name +
+          ".\n\n" +
+          "Berikut ringkasan perkembangan ananda di Ponpes:\n" +
+          "- Skor Perilaku: " +
+          this.selectedStudent.TotalScore +
+          "\n" +
+          "- Status: " +
+          this.selectedStudent.StatusLabel +
+          "\n\n" +
+          "Catatan Ustadz: " +
+          (this.teacherNote || "-") +
+          "\n\n" +
+          "Terima kasih.";
+
+        const url =
+          "https://wa.me/" + phone + "?text=" + encodeURIComponent(msg);
+        window.open(url, "_blank");
+      },
+
+      sendToEmail() {
+        if (!this.parentEmail) return;
+        this.loadingEmail = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingEmail = false;
+            if (res.ok) {
+              this.showToast(res.message, "success");
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .withFailureHandler(() => {
+            this.loadingEmail = false;
+            this.showToast("Gagal mengirim email", "error");
+          })
+          .sendReportToEmail(
+            this.selectedStudent.StudentID,
+            this.teacherNote,
+            this.parentEmail,
+          );
+      },
+
+      sendWABroadcast(data) {
+        const phone = data.parentContact
+          ? data.parentContact.replace(/\D/g, "")
+          : "";
+        if (!phone) return;
+
+        const emoji = data.type === "Violation" ? "⚠️" : "✅";
+        const msg =
+          "*NOTIFIKASI PONPES*\n\n" +
+          "Assalamu'alaikum Bapak/Ibu,\n\n" +
+          "Menginfokan catatan perilaku ananda *" +
+          data.studentName +
+          "*:\n\n" +
+          "Jenis: " +
+          emoji +
+          " " +
+          data.type +
+          "\n" +
+          "Keterangan: " +
+          data.desc +
+          "\n" +
+          "Poin: " +
+          data.points +
+          "\n\n" +
+          "Mohon kerjasamanya untuk membimbing ananda agar lebih baik lagi. Terima kasih.";
+
+        const url =
+          "https://wa.me/" + phone + "?text=" + encodeURIComponent(msg);
+        window.open(url, "_blank");
+      },
+
+      // ===== CHART RENDERING =====
+      renderCharts() {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (!res.ok) return;
+
+            const ctxMemo = document.getElementById("memoChart");
+            const ctxInc = document.getElementById("incidentChart");
+
+            if (!ctxMemo || !ctxInc) return;
+
+            // Destroy existing charts to prevent overlay issues
+            if (this.charts.memo) this.charts.memo.destroy();
+            if (this.charts.incident) this.charts.incident.destroy();
+
+            // Common chart options
+            const commonOptions = {
+              responsive: true,
+              plugins: { legend: { display: false } },
+            };
+
+            // Memo Chart (Line)
+            this.charts.memo = new Chart(ctxMemo.getContext("2d"), {
+              type: "line",
+              data: {
+                labels: res.data.labels,
+                datasets: [
+                  {
+                    label: "Jumlah Setoran",
+                    data: res.data.memos,
+                    borderColor: "#80A1C1",
+                    backgroundColor: "#80A1C122",
+                    fill: true,
+                    tension: 0.4,
+                  },
+                ],
+              },
+              options: commonOptions,
+            });
+
+            // Incident Chart (Bar)
+            this.charts.incident = new Chart(ctxInc.getContext("2d"), {
+              type: "bar",
+              data: {
+                labels: res.data.labels,
+                datasets: [
+                  {
+                    label: "Poin Perilaku",
+                    data: res.data.points,
+                    backgroundColor: res.data.points.map((p) =>
+                      p >= 0 ? "#16A34A" : "#DC2626",
+                    ),
+                    borderRadius: 8,
+                  },
+                ],
+              },
+              options: commonOptions,
+            });
+          })
+          .getStudentAnalytics(this.selectedStudent.StudentID);
+      },
+
+      // ===== USER MANAGEMENT ACTIONS =====
+      fetchUsers() {
+        if (this.user.Role !== "Mudir" && this.user.Role !== "Admin") return;
+
+        this.loading = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loading = false;
+            if (res.ok) {
+              this.users = res.data.users;
+              // Calculate recent users (created in last 30 days)
+              const thirtyDaysAgo = new Date();
+              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+              this.recentUsersCount = this.users.filter((u) => {
+                const created = new Date(u.CreatedAt);
+                return created >= thirtyDaysAgo;
+              }).length;
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .withFailureHandler(() => {
+            this.loading = false;
+            this.showToast("Gagal memuat data user", "error");
+          })
+          .getUsers(this.user);
+      },
+
+      editUser(user) {
+        this.editModeUser = user.UserID;
+        this.userForm = {
+          Name: user.Name || "",
+          Username: user.Username,
+          Email: user.Email || "",
+          Phone: user.Phone || "",
+          Role: user.Role,
+          StudentID: user.StudentID || "",
+          Class: user.Class || "",
+          Password: "",
+          ConfirmPassword: "",
+          Status: user.Status || "Active",
+        };
+        this.showAddUserModal = true;
+      },
+
+      closeUserModal() {
+        this.showAddUserModal = false;
+        this.editModeUser = null;
+        this.userFormError = "";
+        this.userForm = {
+          Name: "",
+          Username: "",
+          Email: "",
+          Phone: "",
+          Role: "",
+          StudentID: "",
+          Class: "",
+          Password: "",
+          ConfirmPassword: "",
+          Status: "Active",
+        };
+      },
+
+      submitUserForm() {
+        // Validate form
+        this.userFormError = "";
+
+        if (
+          !this.userForm.Name ||
+          !this.userForm.Username ||
+          !this.userForm.Role
+        ) {
+          this.userFormError = "Nama, Username, dan Role wajib diisi.";
+          return;
+        }
+
+        if (
+          !this.editModeUser &&
+          (!this.userForm.Password || this.userForm.Password.length < 6)
+        ) {
+          this.userFormError = "Password minimal 6 karakter.";
+          return;
+        }
+
+        if (
+          this.userForm.Password &&
+          this.userForm.Password !== this.userForm.ConfirmPassword
+        ) {
+          this.userFormError = "Password dan konfirmasi password tidak cocok.";
+          return;
+        }
+
+        this.loadingUserForm = true;
+
+        const userData = {
+          Name: this.userForm.Name,
+          Username: this.userForm.Username,
+          Email: this.userForm.Email,
+          Phone: this.userForm.Phone,
+          Role: this.userForm.Role,
+          StudentID: this.userForm.StudentID,
+          Class: this.userForm.Class,
+          Status: this.userForm.Status,
+        };
+
+        // Only include password if provided
+        if (this.userForm.Password) {
+          userData.Password = this.userForm.Password;
+        }
+
+        if (this.editModeUser) {
+          // Update existing user
+          google.script.run
+            .withSuccessHandler((res) => {
+              this.loadingUserForm = false;
+              if (res.ok) {
+                this.showToast(res.message, "success");
+                this.fetchUsers();
+                this.closeUserModal();
+              } else {
+                this.userFormError = res.message;
+              }
+            })
+            .withFailureHandler((err) => {
+              this.loadingUserForm = false;
+              this.userFormError = "Terjadi kesalahan: " + err.message;
+            })
+            .updateUser(this.editModeUser, userData, this.user);
+        } else {
+          // Add new user
+          google.script.run
+            .withSuccessHandler((res) => {
+              this.loadingUserForm = false;
+              if (res.ok) {
+                this.showToast(res.message, "success");
+                this.fetchUsers();
+                this.closeUserModal();
+              } else {
+                this.userFormError = res.message;
+              }
+            })
+            .withFailureHandler((err) => {
+              this.loadingUserForm = false;
+              this.userFormError = "Terjadi kesalahan: " + err.message;
+            })
+            .addUser(userData, this.user);
+        }
+      },
+
+      runParentContactConversion() {
+        if (
+          !confirm(
+            "Konversi semua contact parent menjadi user Wali? Password: 123456",
+          )
+        )
+          return;
+
+        this.loading = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loading = false;
+            if (res.ok) {
+              this.showToast(res.message, "success");
+              this.fetchUsers();
+              // Show detailed stats
+              if (res.stats) {
+                const stats = res.stats;
+                alert(
+                  `Konversi selesai:\n- ${stats.created} user dibuat\n- ${stats.skipped} dilewati\n- ${stats.errors} error`,
+                );
+              }
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loading = false;
+            this.showToast("Gagal konversi: " + err.message, "error");
+          })
+          .runParentContactConversion(this.user);
+      },
+
+      deleteUser(userId, username) {
+        if (!confirm(`Yakin ingin menghapus user "${username}"?`)) return;
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res.ok) {
+              this.showToast(res.message, "success");
+              this.fetchUsers();
+            } else {
+              this.showToast(res.message, "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.showToast("Gagal menghapus user: " + err.message, "error");
+          })
+          .deleteUser(userId, this.user);
+      },
+
+      // ===== METHOD PULANG BULANAN =====
+      loadPulangBulanan() {
+        if (!this.user) {
+          return;
+        }
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res && res.success) {
+              this.pulangBulananLogs = res.data || [];
+            } else {
+              this.showToast(
+                res.message || "Gagal memuat data pulang bulanan.",
+                "error",
+              );
+            }
+          })
+          .withFailureHandler((err) => {
+            this.showToast(
+              err.message || "Gagal memuat data pulang bulanan.",
+              "error",
+            );
+          })
+          .getPulangBulananLogs(this.user, this.pulangFilter);
+        this.loadPulangBulananSummary();
+      },
+
+      loadPulangBulananSummary() {
+        if (!this.user) {
+          return;
+        }
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res && res.success) {
+              this.pulangSummary = res.data || {
+                total: 0,
+                pulang: 0,
+                tidakPulang: 0,
+                izin: 0,
+                tepatWaktu: 0,
+                terlambat: 0,
+                belumKembali: 0,
+              };
+            } else {
+              this.showToast(
+                res.message || "Gagal memuat ringkasan pulang bulanan.",
+                "error",
+              );
+            }
+          })
+          .withFailureHandler((err) => {
+            this.showToast(
+              err.message || "Gagal memuat ringkasan pulang bulanan.",
+              "error",
+            );
+          })
+          .getPulangBulananSummary(this.user, this.pulangFilter);
+      },
+
+      resetPulangBulananFilter() {
+        this.pulangFilter = {
+          Month: String(new Date().getMonth() + 1),
+          Year: String(new Date().getFullYear()),
+          Class: "",
+          StatusKembali: "",
+        };
+        this.loadPulangBulanan();
+      },
+
+      openPulangBulananModal() {
+        this.pulangEditMode = false;
+        this.pulangForm = {
+          PulangID: "",
+          StudentID: "",
+          StudentName: "",
+          Class: "",
+          Month: String(new Date().getMonth() + 1),
+          Year: String(new Date().getFullYear()),
+          StatusPulang: "Pulang",
+          TanggalPulang: "",
+          JamPulang: "",
+          TanggalKembali: "",
+          JamKembali: "",
+          BatasJamKembali: "17:00",
+          Penjemput: "",
+          HubunganPenjemput: "",
+          Phone: "",
+          Notes: "",
+        };
+        this.showPulangBulananModal = true;
+      },
+
+      syncPulangStudent() {
+        const s = (this.students || []).find(
+          (item) =>
+            String(item.StudentID) === String(this.pulangForm.StudentID),
+        );
+        if (s) {
+          this.pulangForm.StudentName = s.Name || s.StudentName || s.Nama || "";
+          this.pulangForm.Class = s.Class || s.Kelas || "";
+        }
+      },
+
+      editPulangBulanan(item) {
+        this.pulangEditMode = true;
+        this.pulangForm = {
+          PulangID: item.PulangID || "",
+          StudentID: item.StudentID || "",
+          StudentName: item.StudentName || "",
+          Class: item.Class || "",
+          Month: String(item.Month || ""),
+          Year: String(item.Year || ""),
+          StatusPulang: item.StatusPulang || "Pulang",
+          TanggalPulang: this.toInputDate(item.TanggalPulang),
+          JamPulang: item.JamPulang || "",
+          TanggalKembali: this.toInputDate(item.TanggalKembali),
+          JamKembali: item.JamKembali || "",
+          BatasJamKembali: "17:00",
+          Penjemput: item.Penjemput || "",
+          HubunganPenjemput: item.HubunganPenjemput || "",
+          Phone: item.Phone || "",
+          Notes: item.Notes || "",
+        };
+        this.showPulangBulananModal = true;
+      },
+
+      toInputDate(value) {
+        if (!value) {
+          return "";
+        }
+        if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          return value;
+        }
+        const d = new Date(value);
+        if (isNaN(d.getTime())) {
+          return value;
+        }
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      },
+
+      closePulangBulananModal() {
+        this.showPulangBulananModal = false;
+      },
+
+      savePulangBulananAction() {
+        if (!this.pulangForm.StudentID) {
+          this.showToast("Santri wajib dipilih.", "error");
+          return;
+        }
+        if (!this.pulangForm.Month) {
+          this.showToast("Bulan wajib dipilih.", "error");
+          return;
+        }
+        if (!this.pulangForm.Year) {
+          this.showToast("Tahun wajib diisi.", "error");
+          return;
+        }
+        if (!this.pulangForm.StatusPulang) {
+          this.showToast("Status pulang wajib dipilih.", "error");
+          return;
+        }
+        this.syncPulangStudent();
+        if (this.pulangEditMode) {
+          google.script.run
+            .withSuccessHandler((res) => {
+              if (res && res.success) {
+                this.showToast(
+                  res.message || "Data berhasil diperbarui.",
+                  "success",
+                );
+                this.closePulangBulananModal();
+                this.loadPulangBulanan();
+              } else {
+                this.showToast(
+                  res.message || "Gagal memperbarui data.",
+                  "error",
+                );
+              }
+            })
+            .withFailureHandler((err) => {
+              this.showToast(err.message || "Gagal memperbarui data.", "error");
+            })
+            .updatePulangBulanan(
+              this.pulangForm.PulangID,
+              this.pulangForm,
+              this.user,
+            );
+        } else {
+          google.script.run
+            .withSuccessHandler((res) => {
+              if (res && res.success) {
+                this.showToast(
+                  res.message || "Data berhasil disimpan.",
+                  "success",
+                );
+                this.closePulangBulananModal();
+                this.loadPulangBulanan();
+              } else {
+                this.showToast(res.message || "Gagal menyimpan data.", "error");
+              }
+            })
+            .withFailureHandler((err) => {
+              this.showToast(err.message || "Gagal menyimpan data.", "error");
+            })
+            .savePulangBulanan(this.pulangForm, this.user);
+        }
+      },
+
+      deletePulangBulananAction(item) {
+        if (
+          !confirm("Hapus data pulang bulanan untuk " + item.StudentName + "?")
+        ) {
+          return;
+        }
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res && res.success) {
+              this.showToast(
+                res.message || "Data berhasil dihapus.",
+                "success",
+              );
+              this.loadPulangBulanan();
+            } else {
+              this.showToast(res.message || "Gagal menghapus data.", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.showToast(err.message || "Gagal menghapus data.", "error");
+          })
+          .deletePulangBulanan(item.PulangID, this.user);
+      },
+
+      // ===== CLEANUP =====
+      destroy() {
+        if (this.charts.memo) {
+          this.charts.memo.destroy();
+          this.charts.memo = null;
+        }
+        if (this.charts.incident) {
+          this.charts.incident.destroy();
+          this.charts.incident = null;
+        }
+      },
+    };
+  };
+</script>

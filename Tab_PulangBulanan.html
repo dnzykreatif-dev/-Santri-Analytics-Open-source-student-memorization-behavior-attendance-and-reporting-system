@@ -1,0 +1,463 @@
+<div
+  x-show="currentTab === 'pulang_bulanan'"
+  x-cloak
+  class="p-4 md:p-6 space-y-5"
+>
+  <!-- Header -->
+  <div
+    class="flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+  >
+    <div>
+      <h2 class="text-2xl font-black text-slate-800">Pulang Bulanan</h2>
+      <p class="text-sm text-slate-500">
+        Pencatatan izin pulang bulanan dan kedisiplinan kembali santri.
+      </p>
+    </div>
+    <button
+      x-show="user && (user.Role === 'Mudir' || user.Role === 'Ustadz')"
+      type="button"
+      @click="openPulangBulananModal()"
+      class="px-4 py-2 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600 transition"
+    >
+      + Catat Pulang
+    </button>
+  </div>
+
+  <!-- Filter -->
+  <div
+    class="bg-white rounded-2xl border border-slate-200 p-4 grid grid-cols-1 md:grid-cols-5 gap-3"
+  >
+    <div>
+      <label class="text-xs font-bold text-slate-500 uppercase">Bulan</label>
+      <select
+        x-model="pulangFilter.Month"
+        @change="loadPulangBulanan()"
+        class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+      >
+        <option value="">Semua Bulan</option>
+        <template x-for="m in monthOptions" :key="m.value">
+          <option :value="m.value" x-text="m.label"></option>
+        </template>
+      </select>
+    </div>
+    <div>
+      <label class="text-xs font-bold text-slate-500 uppercase">Tahun</label>
+      <input
+        type="number"
+        x-model="pulangFilter.Year"
+        @change="loadPulangBulanan()"
+        class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+      />
+    </div>
+    <div>
+      <label class="text-xs font-bold text-slate-500 uppercase">Kelas</label>
+      <input
+        type="text"
+        x-model="pulangFilter.Class"
+        @input.debounce.500ms="loadPulangBulanan()"
+        placeholder="Contoh: KELAS 10"
+        class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+      />
+    </div>
+    <div>
+      <label class="text-xs font-bold text-slate-500 uppercase"
+        >Status Kembali</label
+      >
+      <select
+        x-model="pulangFilter.StatusKembali"
+        @change="loadPulangBulanan()"
+        class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+      >
+        <option value="">Semua</option>
+        <option value="Tepat Waktu">Tepat Waktu</option>
+        <option value="Terlambat">Terlambat</option>
+        <option value="Belum Kembali">Belum Kembali</option>
+      </select>
+    </div>
+    <div class="flex items-end">
+      <button
+        type="button"
+        @click="resetPulangBulananFilter()"
+        class="w-full px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200"
+      >
+        Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+    <div class="bg-white rounded-2xl border border-slate-200 p-4">
+      <div class="text-xs font-bold text-slate-400 uppercase">Total</div>
+      <div
+        class="text-2xl font-black text-slate-800"
+        x-text="pulangSummary.total || 0"
+      ></div>
+    </div>
+    <div class="bg-green-50 rounded-2xl border border-green-100 p-4">
+      <div class="text-xs font-bold text-green-500 uppercase">Pulang</div>
+      <div
+        class="text-2xl font-black text-green-700"
+        x-text="pulangSummary.pulang || 0"
+      ></div>
+    </div>
+    <div class="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+      <div class="text-xs font-bold text-slate-500 uppercase">Tidak Pulang</div>
+      <div
+        class="text-2xl font-black text-slate-700"
+        x-text="pulangSummary.tidakPulang || 0"
+      ></div>
+    </div>
+    <div class="bg-blue-50 rounded-2xl border border-blue-100 p-4">
+      <div class="text-xs font-bold text-blue-500 uppercase">Tepat Waktu</div>
+      <div
+        class="text-2xl font-black text-blue-700"
+        x-text="pulangSummary.tepatWaktu || 0"
+      ></div>
+    </div>
+    <div class="bg-red-50 rounded-2xl border border-red-100 p-4">
+      <div class="text-xs font-bold text-red-500 uppercase">Terlambat</div>
+      <div
+        class="text-2xl font-black text-red-700"
+        x-text="pulangSummary.terlambat || 0"
+      ></div>
+    </div>
+    <div class="bg-yellow-50 rounded-2xl border border-yellow-100 p-4">
+      <div class="text-xs font-bold text-yellow-600 uppercase">
+        Belum Kembali
+      </div>
+      <div
+        class="text-2xl font-black text-yellow-700"
+        x-text="pulangSummary.belumKembali || 0"
+      ></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-slate-500">
+          <tr>
+            <th class="text-left p-3">Santri</th>
+            <th class="text-left p-3">Periode</th>
+            <th class="text-left p-3">Status Pulang</th>
+            <th class="text-left p-3">Pulang</th>
+            <th class="text-left p-3">Kembali</th>
+            <th class="text-left p-3">Status Kembali</th>
+            <th class="text-left p-3">Penjemput</th>
+            <th class="text-right p-3">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="item in pulangBulananLogs" :key="item.PulangID">
+            <tr class="border-t border-slate-100 hover:bg-orange-50/40">
+              <td class="p-3">
+                <div
+                  class="font-black text-slate-800"
+                  x-text="item.StudentName"
+                ></div>
+                <div class="text-xs text-slate-400">
+                  <span x-text="item.StudentID"></span>
+                  <span> • </span>
+                  <span x-text="item.Class || '-'"></span>
+                </div>
+              </td>
+              <td
+                class="p-3 font-bold text-slate-600"
+                x-text="item.PeriodLabel"
+              ></td>
+              <td class="p-3">
+                <span
+                  class="px-2 py-1 rounded-lg text-xs font-bold"
+                  :class="{
+                    'bg-green-100 text-green-700': item.StatusPulang === 'Pulang',
+                    'bg-slate-100 text-slate-700': item.StatusPulang === 'Tidak Pulang',
+                    'bg-blue-100 text-blue-700': item.StatusPulang === 'Izin',
+                    'bg-red-100 text-red-700': item.StatusPulang === 'Sakit'
+                  }"
+                  x-text="item.StatusPulang"
+                >
+                </span>
+              </td>
+              <td class="p-3 text-slate-600">
+                <div x-text="item.TanggalPulang || '-'"></div>
+                <div
+                  class="text-xs text-slate-400"
+                  x-text="item.JamPulang || ''"
+                ></div>
+              </td>
+              <td class="p-3 text-slate-600">
+                <div x-text="item.TanggalKembali || '-'"></div>
+                <div
+                  class="text-xs text-slate-400"
+                  x-text="item.JamKembali || ''"
+                ></div>
+              </td>
+              <td class="p-3">
+                <span
+                  class="px-2 py-1 rounded-lg text-xs font-bold"
+                  :class="{
+                    'bg-green-100 text-green-700': item.StatusKembali === 'Tepat Waktu',
+                    'bg-red-100 text-red-700': item.StatusKembali === 'Terlambat',
+                    'bg-yellow-100 text-yellow-700': item.StatusKembali === 'Belum Kembali'
+                  }"
+                  x-text="item.StatusKembali"
+                >
+                </span>
+                <div
+                  x-show="Number(item.KeterlambatanMenit || 0) > 0"
+                  class="text-xs text-red-500 mt-1"
+                >
+                  <span x-text="item.KeterlambatanMenit"></span>
+                  <span> menit</span>
+                </div>
+              </td>
+              <td class="p-3 text-slate-600">
+                <div x-text="item.Penjemput || '-'"></div>
+                <div
+                  class="text-xs text-slate-400"
+                  x-text="item.Phone || ''"
+                ></div>
+              </td>
+              <td class="p-3 text-right space-x-1">
+                <button
+                  x-show="user && (user.Role === 'Mudir' || user.Role === 'Ustadz')"
+                  type="button"
+                  @click="editPulangBulanan(item)"
+                  class="px-3 py-1 rounded-lg bg-amber-100 text-amber-700 font-bold hover:bg-amber-200"
+                >
+                  Edit
+                </button>
+                <button
+                  x-show="user && user.Role === 'Mudir'"
+                  type="button"
+                  @click="deletePulangBulananAction(item)"
+                  class="px-3 py-1 rounded-lg bg-red-100 text-red-700 font-bold hover:bg-red-200"
+                >
+                  Hapus
+                </button>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="!pulangBulananLogs || pulangBulananLogs.length === 0">
+            <td colspan="8" class="p-8 text-center text-slate-400">
+              Belum ada data pulang bulanan.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Form -->
+  <div
+    x-show="showPulangBulananModal"
+    x-cloak
+    class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+  >
+    <div
+      class="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-5 space-y-4"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <h3
+            class="text-xl font-black text-slate-800"
+            x-text="pulangEditMode ? 'Edit Pulang Bulanan' : 'Catat Pulang Bulanan'"
+          ></h3>
+          <p class="text-sm text-slate-500">
+            Isi data pulang dan kembali santri.
+          </p>
+        </div>
+        <button
+          type="button"
+          @click="closePulangBulananModal()"
+          class="text-2xl text-slate-400 hover:text-slate-700"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="md:col-span-2">
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Santri</label
+          >
+          <select
+            x-model="pulangForm.StudentID"
+            @change="syncPulangStudent()"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          >
+            <option value="">Pilih Santri</option>
+            <template x-for="s in students" :key="s.StudentID">
+              <option
+                :value="s.StudentID"
+                x-text="(s.Name || s.StudentName || s.Nama) + ' - ' + (s.Class || s.Kelas || '-')"
+              ></option>
+            </template>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Bulan</label
+          >
+          <select
+            x-model="pulangForm.Month"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          >
+            <option value="">Pilih Bulan</option>
+            <template x-for="m in monthOptions" :key="m.value">
+              <option :value="m.value" x-text="m.label"></option>
+            </template>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Tahun</label
+          >
+          <input
+            type="number"
+            x-model="pulangForm.Year"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Status Pulang</label
+          >
+          <select
+            x-model="pulangForm.StatusPulang"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          >
+            <option value="">Pilih Status</option>
+            <option value="Pulang">Pulang</option>
+            <option value="Tidak Pulang">Tidak Pulang</option>
+            <option value="Izin">Izin</option>
+            <option value="Sakit">Sakit</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Batas Jam Kembali</label
+          >
+          <input
+            type="time"
+            x-model="pulangForm.BatasJamKembali"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Tanggal Pulang</label
+          >
+          <input
+            type="date"
+            x-model="pulangForm.TanggalPulang"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Jam Pulang</label
+          >
+          <input
+            type="time"
+            x-model="pulangForm.JamPulang"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Tanggal Kembali</label
+          >
+          <input
+            type="date"
+            x-model="pulangForm.TanggalKembali"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Jam Kembali</label
+          >
+          <input
+            type="time"
+            x-model="pulangForm.JamKembali"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Nama Penjemput</label
+          >
+          <input
+            type="text"
+            x-model="pulangForm.Penjemput"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Hubungan Penjemput</label
+          >
+          <input
+            type="text"
+            x-model="pulangForm.HubunganPenjemput"
+            placeholder="Ayah/Ibu/Wali/Kakak"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          />
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >No. HP</label
+          >
+          <input
+            type="text"
+            x-model="pulangForm.Phone"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+          />
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="text-xs font-bold text-slate-500 uppercase"
+            >Catatan</label
+          >
+          <textarea
+            x-model="pulangForm.Notes"
+            rows="3"
+            class="w-full mt-1 px-4 py-2 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-orange-300"
+            placeholder="Catatan tambahan..."
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3">
+        <button
+          type="button"
+          @click="closePulangBulananModal()"
+          class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200"
+        >
+          Batal
+        </button>
+        <button
+          type="button"
+          @click="savePulangBulananAction()"
+          class="px-4 py-2 rounded-xl bg-orange-500 text-white font-bold hover:bg-orange-600"
+        >
+          Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

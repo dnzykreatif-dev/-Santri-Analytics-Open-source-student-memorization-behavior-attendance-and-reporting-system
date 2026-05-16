@@ -1,0 +1,146 @@
+<!-- TAB: SANTRI -->
+<div
+  x-show="currentTab === 'santri'"
+  x-transition:enter="transition ease-out duration-300"
+  x-transition:enter-start="opacity-0 translate-x-4"
+  x-transition:enter-end="opacity-100 translate-x-0"
+  class="space-y-6"
+>
+  <div class="bento-card p-6 bg-white">
+    <div
+      class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"
+    >
+      <div>
+        <h3 class="font-bold text-xl">Daftar Santri</h3>
+        <div class="mt-2 flex flex-wrap items-center gap-4">
+          <input
+            type="text"
+            x-model="searchQuery"
+            placeholder="Cari nama santri..."
+            class="text-sm border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#FAD4C0] w-48"
+          />
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-bold text-gray-400 uppercase"
+              >Kelas:</label
+            >
+            <select
+              x-model="filterClass"
+              class="text-sm border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#FAD4C0]"
+            >
+              <option value="">Semua</option>
+              <template x-for="className in uniqueClasses" :key="className">
+                <option :value="className" x-text="className"></option>
+              </template>
+            </select>
+          </div>
+        </div>
+      </div>
+      <button
+        x-show="user.Role !== 'Wali'"
+        @click="showAddStudent = true"
+        class="w-full md:w-auto bg-[#FAD4C0] px-6 py-3 rounded-xl font-bold text-sm hover:shadow-md transition-all"
+      >
+        + Tambah Santri
+      </button>
+    </div>
+
+    <!-- SKELETON LOADING STATE -->
+    <div x-show="loading" class="space-y-4">
+      <template x-for="i in 5">
+        <div class="animate-pulse flex space-x-4 p-4 border rounded-xl">
+          <div class="flex-1 space-y-4 py-1">
+            <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+          </div>
+          <div class="h-10 w-10 bg-gray-200 rounded-full"></div>
+        </div>
+      </template>
+    </div>
+
+    <!-- CONTENT: Mobile Card View -->
+    <div x-show="!loading" class="md:hidden grid grid-cols-1 gap-4">
+      <template x-for="s in filteredStudents" :key="s.StudentID">
+        <div
+          @click="openStudentDetail(s)"
+          class="bento-card p-4 bg-white border border-gray-100 flex justify-between items-center cursor-pointer hover:bg-gray-50"
+        >
+          <div class="space-y-1">
+            <p class="font-bold text-gray-800" x-text="s.Name"></p>
+            <div class="flex flex-wrap gap-2 items-center">
+              <span
+                class="text-xs text-gray-400"
+                x-text="s['Class/Level']"
+              ></span>
+              <span
+                :class="s.StatusColor"
+                class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
+                x-text="s.StatusLabel"
+              ></span>
+            </div>
+          </div>
+          <div class="text-right flex flex-col items-end gap-2">
+            <span
+              class="text-lg font-black"
+              :class="s.TotalScore >= 10 ? 'text-green-600' : 'text-red-600'"
+              x-text="s.TotalScore"
+            ></span>
+            <span class="text-[10px] font-bold text-[#80A1C1]"
+              >Lihat Laporan</span
+            >
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- CONTENT: Desktop Table View -->
+    <div x-show="!loading" class="hidden md:block overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="text-left text-gray-400 text-sm border-b">
+            <th class="pb-4 font-medium">Nama Lengkap</th>
+            <th class="pb-4 font-medium">Kelas</th>
+            <th class="pb-4 font-medium">Skor Akhir</th>
+            <th class="pb-4 font-medium">Status Perkembangan</th>
+            <th class="pb-4 font-medium text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          <template x-for="s in filteredStudents" :key="s.StudentID">
+            <tr
+              class="hover:bg-gray-50/50 cursor-pointer"
+              @click="openStudentDetail(s)"
+            >
+              <td
+                class="py-4 font-semibold text-blue-600 hover:underline"
+                x-text="s.Name"
+              ></td>
+              <td
+                class="py-4 text-gray-500 text-sm"
+                x-text="s['Class/Level']"
+              ></td>
+              <td class="py-4">
+                <span
+                  class="text-lg font-black"
+                  :class="s.TotalScore >= 10 ? 'text-green-600' : 'text-red-600'"
+                  x-text="s.TotalScore"
+                ></span>
+              </td>
+              <td class="py-4">
+                <span
+                  :class="s.StatusColor"
+                  class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                  x-text="s.StatusLabel"
+                ></span>
+              </td>
+              <td class="py-4 text-right">
+                <span class="text-xs font-bold text-gray-400"
+                  >Klik untuk detail</span
+                >
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

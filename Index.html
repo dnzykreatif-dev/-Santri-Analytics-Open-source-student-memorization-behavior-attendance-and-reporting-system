@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <?!= include('Head'); ?> <?!= include('Style'); ?>
+  </head>
+
+  <body class="min-h-screen bg-[#FFF5E6] text-[#111827] pb-20 md:pb-0">
+    <div x-data="app()" x-init="init()" x-cloak>
+      <!-- AUTHENTICATION SHELL -->
+      <template x-if="!isLoggedIn">
+        <div>
+          <?!= include('Layout_Login'); ?> <?!= include('Layout_Register'); ?>
+        </div>
+      </template>
+
+      <!-- APP SHELL -->
+      <div x-show="isLoggedIn" class="p-6">
+        <?!= include('Layout_Header'); ?> <?!= include('Layout_NavMobile'); ?>
+        <?!= include('Layout_NavDesktop'); ?> <?!= include('Tab_Dashboard'); ?>
+        <?!= include('Tab_Students'); ?> <?!= include('Tab_Hafalan'); ?> <?!=
+        include('Tab_PerilakuList'); ?> <?!= include('Tab_PerilakuInput'); ?>
+        <?!= include('Tab_LinkLive'); ?> <?!= include('Tab_PulangBulanan'); ?>
+        <?!= include('Tab_PanduanUstadz'); ?> <?!= include('Tab_PanduanWali');
+        ?> <?!= include('Tab_Users'); ?>
+      </div>
+
+      <?!= include('Modal_AddStudent'); ?> <?!= include('Modal_StudentDetail');
+      ?>
+
+      <!-- TAMBAHKAN INI -->
+      <?!= include('Layout_Toast'); ?>
+    </div>
+
+    <?!= include('JS_Data'); ?> <?!= include('JS_App'); ?>
+
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+  </body>
+</html>

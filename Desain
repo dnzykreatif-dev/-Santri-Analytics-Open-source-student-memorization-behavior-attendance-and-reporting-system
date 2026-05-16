@@ -1,0 +1,130 @@
+Buat redesign UI dashboard aplikasi monitoring santri dan pesantren modern dengan style SaaS premium yang clean, elegant, modern, dan profesional.
+
+DESAIN UMUM:
+
+- Tampilan seperti startup modern premium
+- Nuansa islami modern
+- Clean minimal
+- Banyak whitespace
+- Soft shadow
+- Rounded corner besar
+- Glassmorphism ringan
+- Smooth animation
+- Responsive desktop dan mobile
+- Tampilan mahal seperti aplikasi enterprise
+
+WARNA:
+
+- Background utama: #F8F7F4
+- Card putih bersih
+- Primary color hijau emerald: #1F7A5C
+- Accent gold soft: #C89B3C
+- Beige soft: #D8C3A5
+- Text utama: #1E1E1E
+- Text secondary: #6B7280
+
+TYPOGRAPHY:
+
+- Gunakan font Plus Jakarta Sans atau Poppins
+- Heading bold modern
+- Text clean dan readable
+
+LAYOUT:
+HEADER:
+
+- Greeting user
+- Avatar profile
+- Notification icon
+- Search bar modern
+- Sticky top navbar dengan blur effect
+
+NAVIGATION:
+
+- Sidebar atau top navigation modern
+- Active menu dengan background hijau emerald
+- Hover animation smooth
+- Icon modern Lucide style
+
+FILTER SECTION:
+
+- Date picker modern
+- Dropdown filter kelas
+- Dropdown kategori hafalan
+- Dropdown perilaku
+- Tombol reset premium
+
+STATISTIC CARDS:
+
+- Total santri
+- Setoran hafalan
+- Catatan perilaku
+- Progress target
+
+CARD STYLE:
+
+- Rounded 24px
+- Soft shadow modern
+- Border subtle
+- Hover naik sedikit
+- Animasi smooth
+- Number besar modern
+- Icon elegant
+
+CHART:
+
+- Line chart smooth
+- Gradient chart
+- Tooltip modern
+- Area chart premium
+- Statistik 7 hari / 30 hari
+
+TAMBAHKAN:
+
+- Recent activity
+- Progress hafalan santri
+- Badge status
+- Timeline aktivitas
+- Heatmap aktivitas
+- Progress bar modern
+- Empty state modern
+- Skeleton loading
+
+ANIMASI:
+
+- Fade up animation
+- Hover lift
+- Smooth transition
+- Micro interaction
+- Button ripple effect
+- Smooth page transition
+
+STYLE REFERENSI:
+Gabungan style:
+
+- Linear App
+- Stripe Dashboard
+- Notion
+- Vercel
+- Raycast
+- Modern EdTech SaaS
+
+HASIL AKHIR:
+
+- UI terlihat mahal
+- Sangat profesional
+- Premium SaaS dashboard
+- Modern Islamic management system
+- Enterprise-level design
+- Clean dashboard aesthetic
+- Elegant monitoring system
+
+Buat:
+
+- Desktop version
+- Mobile responsive version
+- Full dashboard page
+- Detail card component
+- Navigation component
+- Chart section
+- Modern table section
+- Elegant form controls

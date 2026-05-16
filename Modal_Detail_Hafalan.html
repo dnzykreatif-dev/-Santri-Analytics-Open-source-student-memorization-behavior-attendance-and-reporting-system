@@ -1,0 +1,144 @@
+<!-- CONTENT: HAFALAN -->
+<div
+  x-show="studentDetailTab === 'hafalan'"
+  class="grid grid-cols-1 md:grid-cols-2 gap-8"
+>
+  <!-- Left: Form Input -->
+  <div
+    class="space-y-6"
+    x-show="user.Role === 'Mudir' || user.Role === 'Ustadz'"
+  >
+    <div class="bento-card p-6 bg-white">
+      <h4
+        class="font-bold mb-4 text-[#80A1C1]"
+        x-text="editModeHafalan ? 'Edit Hafalan' : 'Input Hafalan Baru'"
+      ></h4>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+            >Nama Surah</label
+          >
+          <input
+            type="text"
+            x-model="memoForm.Surah"
+            placeholder="Contoh: Al-Baqarah"
+            class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#FAD4C0] outline-none"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+            >Kategori Hafalan</label
+          >
+          <select
+            x-model="memoForm.Category"
+            class="w-full px-4 py-2 border rounded-xl bg-white focus:ring-2 focus:ring-[#FAD4C0] outline-none"
+          >
+            <option value="">-- Pilih Kategori --</option>
+            <option value="Setoran Baru">Setoran Baru</option>
+            <option value="Muroja'ah">Muroja'ah</option>
+            <option value="Perbaikan yang salah">Perbaikan yang salah</option>
+            <option value="Tasmi' banyak">Tasmi' banyak</option>
+            <option value="Ujian">Ujian</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+              >Ayat Mulai</label
+            >
+            <input
+              type="number"
+              x-model="memoForm.AyahStart"
+              class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#FAD4C0] outline-none"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+              >Ayat Selesai</label
+            >
+            <input
+              type="number"
+              x-model="memoForm.AyahEnd"
+              class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#FAD4C0] outline-none"
+            />
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button
+            @click="submitMemorization"
+            class="flex-1 py-3 bg-[#FAD4C0] hover:bg-[#f8c3a6] rounded-xl font-bold transition-all shadow-sm"
+            x-text="editModeHafalan ? 'Update Hafalan' : 'Simpan Hafalan'"
+          ></button>
+          <button
+            x-show="editModeHafalan"
+            @click="cancelEditHafalan"
+            class="py-3 px-4 bg-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-300"
+          >
+            Batal
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: History -->
+  <div class="space-y-4">
+    <h4 class="font-bold text-[#80A1C1]">Riwayat Hafalan</h4>
+    <div class="space-y-3">
+      <template x-if="studentHistory.length === 0">
+        <div
+          class="text-center py-8 bg-white/50 rounded-2xl border-2 border-dashed border-gray-200"
+        >
+          <p class="text-gray-400 text-sm">Belum ada catatan hafalan.</p>
+        </div>
+      </template>
+      <template x-for="history in studentHistory" :key="history.LogID">
+        <div class="bento-card p-4 bg-white flex justify-between items-center">
+          <div class="flex-1">
+            <p class="font-bold" x-text="history.Surah"></p>
+            <p
+              class="text-[10px] font-bold text-[#80A1C1] uppercase"
+              x-text="history.Category"
+            ></p>
+            <p
+              class="text-xs text-gray-500"
+              x-text="'Ayat ' + history.AyahStart + ' - ' + history.AyahEnd"
+            ></p>
+          </div>
+          <div class="flex flex-col items-end gap-2">
+            <div class="flex items-center gap-1">
+              <span
+                :class="{
+                    'bg-green-100 text-green-700': history.Status === 'Mastered',
+                    'bg-blue-100 text-blue-700': history.Status === 'Reviewed',
+                    'bg-orange-100 text-orange-700': history.Status === 'New'
+                }"
+                class="px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                x-text="history.Status"
+              ></span>
+            </div>
+            <div class="flex gap-2 mt-1">
+              <button
+                @click="editHafalan(history)"
+                class="text-[10px] text-blue-500 font-bold hover:underline"
+              >
+                Edit
+              </button>
+              <button
+                @click="deleteHafalan(history.LogID)"
+                class="text-[10px] text-red-500 font-bold hover:underline"
+              >
+                Hapus
+              </button>
+            </div>
+            <p
+              class="text-[10px] text-gray-400 mt-1"
+              x-text="formatDate(history.DateLogged)"
+            ></p>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>

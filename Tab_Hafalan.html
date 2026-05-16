@@ -1,0 +1,276 @@
+<!-- TAB: HAFALAN & KETERANGAN -->
+<div
+  x-show="currentTab === 'hafalan'"
+  x-transition:enter="transition ease-out duration-300"
+  x-transition:enter-start="opacity-0 translate-x-4"
+  x-transition:enter-end="opacity-100 translate-x-0"
+  class="space-y-6"
+>
+  <div class="bento-card p-6 bg-white">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="font-bold text-xl text-[#80A1C1]">Input Aktivitas Santri</h3>
+
+      <!-- TOGGLE MODE -->
+      <div class="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
+        <button
+          @click="inputMode = 'hafalan'"
+          :class="inputMode === 'hafalan' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'"
+          class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+        >
+          Hafalan
+        </button>
+        <button
+          @click="inputMode = 'keterangan'"
+          :class="inputMode === 'keterangan' ? 'bg-white shadow-sm text-orange-600' : 'text-gray-500 hover:text-gray-700'"
+          class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+        >
+          Keterangan (S/I/A)
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- LEFT: FORM -->
+      <div class="space-y-5">
+        <!-- Santri Selector (Shared) -->
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+            >Pilih Santri</label
+          >
+          <select
+            x-model="memoForm.StudentID"
+            class="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-[#FAD4C0] outline-none bg-white text-base"
+          >
+            <option value="">-- Pilih Santri --</option>
+            <template x-for="s in students" :key="s.StudentID">
+              <option :value="s.StudentID" x-text="s.Name"></option>
+            </template>
+          </select>
+        </div>
+
+        <!-- FORM HAFALAN (Show if Mode Hafalan) -->
+        <div x-show="inputMode === 'hafalan'" class="space-y-5">
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+              >Surah & Juz</label
+            >
+            <div class="grid grid-cols-2 gap-3">
+              <input
+                type="text"
+                x-model="memoForm.Surah"
+                placeholder="Nama Surah"
+                class="w-full px-4 py-3 border rounded-xl text-base"
+              />
+              <input
+                type="number"
+                x-model="memoForm.Juz"
+                placeholder="Juz Ke-"
+                class="w-full px-4 py-3 border rounded-xl text-base"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+              >Kategori Hafalan</label
+            >
+            <select
+              x-model="memoForm.Category"
+              class="w-full px-4 py-3 border rounded-xl bg-white focus:ring-2 focus:ring-[#FAD4C0] outline-none text-base"
+            >
+              <option value="">-- Pilih Kategori --</option>
+              <option value="Setoran Baru">Setoran Baru</option>
+              <option value="Muroja'ah">Muroja'ah</option>
+              <option value="Perbaikan yang salah">Perbaikan yang salah</option>
+              <option value="Tasmi' banyak">Tasmi' banyak</option>
+              <option value="Ujian">Ujian</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                class="block text-xs font-bold text-gray-400 uppercase mb-1"
+                >Ayat Mulai</label
+              >
+              <input
+                type="number"
+                x-model="memoForm.AyahStart"
+                class="w-full px-4 py-3 border rounded-xl text-base"
+              />
+            </div>
+            <div>
+              <label
+                class="block text-xs font-bold text-gray-400 uppercase mb-1"
+                >Ayat Akhir</label
+              >
+              <input
+                type="number"
+                x-model="memoForm.AyahEnd"
+                class="w-full px-4 py-3 border rounded-xl text-base"
+              />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                class="block text-xs font-bold text-gray-400 uppercase mb-1"
+                >Tanggal</label
+              >
+              <input
+                type="date"
+                x-model="memoForm.CustomDate"
+                class="w-full px-4 py-3 border rounded-xl text-base"
+              />
+            </div>
+            <div>
+              <label
+                class="block text-xs font-bold text-gray-400 uppercase mb-1"
+                >Jam</label
+              >
+              <input
+                type="time"
+                x-model="memoForm.CustomTime"
+                class="w-full px-4 py-3 border rounded-xl text-base"
+              />
+            </div>
+          </div>
+          <button
+            @click="submitMemorizationGlobal"
+            :disabled="!memoForm.StudentID || !memoForm.Surah"
+            class="w-full py-4 bg-[#FAD4C0] disabled:opacity-50 rounded-xl font-bold text-base shadow-sm active:scale-95 transition-all"
+          >
+            Simpan Setoran
+          </button>
+        </div>
+
+        <!-- FORM KETERANGAN (Show if Mode Keterangan) -->
+        <div x-show="inputMode === 'keterangan'" class="space-y-5">
+          <div
+            class="bg-orange-50 p-4 rounded-xl border border-orange-100 text-xs text-orange-700 mb-4"
+          >
+            Gunakan form ini untuk mencatat keterangan
+            <strong>Sakit, Izin, atau Alpha (Tidak Hadir)</strong> tanpa setoran
+            hafalan.
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+              >Jenis Keterangan</label
+            >
+            <select
+              x-model="attendanceForm.Type"
+              class="w-full px-4 py-3 border rounded-xl bg-white focus:ring-2 focus:ring-[#FAD4C0] outline-none text-base"
+            >
+              <option value="Sakit">Sakit (S)</option>
+              <option value="Izin">Izin (I)</option>
+              <option value="Alpha">Alpha / Tanpa Keterangan (A)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+              >Keterangan / Catatan</label
+            >
+            <textarea
+              x-model="attendanceForm.Notes"
+              placeholder="Contoh: Demam, Urusi keluarga..."
+              class="w-full px-4 py-3 border rounded-xl text-base"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1"
+              >Tanggal</label
+            >
+            <input
+              type="date"
+              x-model="attendanceForm.Date"
+              class="w-full px-4 py-3 border rounded-xl text-base"
+            />
+          </div>
+
+          <button
+            @click="submitAttendanceGlobal"
+            :disabled="!memoForm.StudentID"
+            class="w-full py-4 bg-orange-100 text-orange-700 disabled:opacity-50 rounded-xl font-bold text-base shadow-sm active:scale-95 transition-all"
+          >
+            Simpan Keterangan
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT: RECENT LOGS -->
+      <div class="bg-gray-50 rounded-2xl p-6">
+        <h4 class="text-sm font-bold text-gray-400 mb-4 uppercase">
+          5 Aktivitas Terakhir
+        </h4>
+        <div class="space-y-3">
+          <template x-for="log in summary.recentLogs" :key="log.LogID">
+            <div
+              class="bg-white p-4 rounded-xl shadow-sm text-sm border border-gray-100"
+            >
+              <div class="flex justify-between items-center">
+                <p
+                  class="font-bold text-gray-800"
+                  x-text="log.StudentName || 'Santri'"
+                ></p>
+                <!-- Badge Keterangan vs Hafalan -->
+                <template x-if="log.Category === 'Keterangan'">
+                  <span
+                    class="text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-1 rounded"
+                    x-text="log.Type"
+                  ></span>
+                </template>
+                <template x-if="log.Category !== 'Keterangan'">
+                  <span
+                    class="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded"
+                    x-text="log.Category"
+                  ></span>
+                </template>
+              </div>
+
+              <template x-if="log.Category !== 'Keterangan'">
+                <p
+                  class="text-xs text-gray-600 mt-1"
+                  x-text="`${log.Surah} (${log.AyahStart}–${log.AyahEnd})`"
+                ></p>
+              </template>
+              <template x-if="log.Category === 'Keterangan'">
+                <p
+                  class="text-xs text-gray-600 mt-1 italic"
+                  x-text="log.Notes"
+                ></p>
+              </template>
+
+              <div class="flex justify-between items-center mt-2">
+                <span
+                  class="text-[10px] text-gray-400"
+                  x-text="new Date(log.DateLogged).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'})"
+                ></span>
+                <!-- Edit & Delete Buttons (only for Mudir/Ustadz) -->
+                <template
+                  x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'"
+                >
+                  <div class="flex gap-2">
+                    <button
+                      @click="editHafalan(log)"
+                      class="text-[10px] text-blue-500 font-bold hover:underline"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      @click="deleteHafalan(log.LogID)"
+                      class="text-[10px] text-red-500 font-bold hover:underline"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

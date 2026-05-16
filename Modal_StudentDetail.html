@@ -1,0 +1,172 @@
+<!-- Modal Student Detail -->
+<!-- MODAL DETAIL SANTRI -->
+<div
+  x-show="showDetailModal"
+  class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-0 md:p-4"
+  x-cloak
+>
+  <div
+    class="bg-[#FFF5E6] w-full max-w-4xl h-full md:h-[90vh] overflow-hidden md:rounded-3xl shadow-2xl flex flex-col"
+  >
+    <!-- Modal Header -->
+    <div class="p-6 border-b bg-white flex justify-between items-start">
+      <div>
+        <h3 class="text-2xl font-bold" x-text="selectedStudent?.Name"></h3>
+        <div class="flex items-center gap-2 mt-1">
+          <span
+            class="text-sm text-gray-500"
+            x-text="'Kelas: ' + selectedStudent?.['Class/Level']"
+          ></span>
+          <span class="text-gray-300">•</span>
+          <span
+            :class="selectedStudent?.StatusColor"
+            class="px-2 py-0.5 rounded text-[10px] font-bold uppercase"
+            x-text="selectedStudent?.StatusLabel"
+          ></span>
+        </div>
+      </div>
+      <div class="text-right flex flex-col items-end gap-2">
+        <div>
+          <div class="text-xs font-bold text-gray-400 uppercase">
+            Total Skor
+          </div>
+          <div
+            class="text-3xl font-black text-[#80A1C1]"
+            x-text="selectedStudent?.TotalScore"
+          ></div>
+        </div>
+        <template x-if="user.Role === 'Mudir' || user.Role === 'Ustadz'">
+          <button
+            @click="savePembinaan"
+            class="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded-lg font-bold hover:bg-orange-200"
+          >
+            Simpan Catatan
+          </button>
+        </template>
+      </div>
+      <button
+        @click="showDetailModal = false"
+        class="p-2 hover:bg-gray-100 rounded-full transition-colors ml-4"
+      >
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          ></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Modal Tabs -->
+    <div class="px-6 pt-4 flex gap-4 border-b bg-white">
+      <button
+        @click="studentDetailTab = 'hafalan'"
+        :class="studentDetailTab === 'hafalan' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
+        class="pb-2 px-1 font-bold text-sm transition-all"
+      >
+        Hafalan
+      </button>
+      <button
+        @click="studentDetailTab = 'pelanggaran'"
+        :class="studentDetailTab === 'pelanggaran' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
+        class="pb-2 px-1 font-bold text-sm transition-all"
+      >
+        Catatan Perilaku
+      </button>
+      <button
+        @click="studentDetailTab = 'grafik'; renderCharts();"
+        :class="studentDetailTab === 'grafik' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
+        class="pb-2 px-1 font-bold text-sm transition-all"
+      >
+        Grafik
+      </button>
+      <button
+        @click="studentDetailTab = 'laporan'"
+        :class="studentDetailTab === 'laporan' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
+        class="pb-2 px-1 font-bold text-sm transition-all"
+      >
+        Laporan
+      </button>
+      <button
+        @click="studentDetailTab = 'raport'; loadRaportData()"
+        :class="studentDetailTab === 'raport' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
+        class="pb-2 px-1 font-bold text-sm transition-all"
+      >
+        📜 Raport
+      </button>
+    </div>
+    <div
+      class="px-6 pt-4 flex gap-4 border-b bg-white overflow-x-auto no-scrollbar"
+    >
+      <!-- ... tab lainnya ... -->
+
+      <button
+        @click="studentDetailTab = 'links'; loadLinks()"
+        :class="studentDetailTab === 'links' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
+        class="pb-2 px-1 font-bold text-sm transition-all whitespace-nowrap"
+      >
+        🔗 Link Live
+      </button>
+    </div>
+
+    <!-- Catatan Pembinaan -->
+    <div class="px-6 py-3 bg-orange-50/50 border-b">
+      <label
+        class="block text-[10px] font-bold text-orange-400 uppercase mb-1 tracking-widest"
+        >Catatan Pembinaan</label
+      >
+      <template x-if="user.Role === 'Mudir' || user.Role === 'Ustadz'">
+        <div class="flex gap-2">
+          <textarea
+            x-model="selectedStudent.CatatanPembinaan"
+            class="flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm italic text-gray-700 placeholder-orange-300"
+            placeholder="Catatan pembinaan..."
+          ></textarea>
+          <button
+            @click="savePembinaan"
+            class="bg-[#80A1C1] text-white px-3 py-1 rounded-lg text-xs font-bold"
+          >
+            Simpan
+          </button>
+        </div>
+      </template>
+      <template x-if="user.Role === 'Wali'">
+        <p
+          class="text-sm italic text-orange-800"
+          x-text="selectedStudent?.CatatanPembinaan || 'Ananda dalam bimbingan intensif ustadz.'"
+        ></p>
+      </template>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-6">
+      <!-- Include Sub-Content -->
+      <div class="p-5">
+        <div x-show="studentDetailTab === 'hafalan'" x-cloak>
+          <?!= include('Modal_Detail_Hafalan'); ?>
+        </div>
+        <div x-show="studentDetailTab === 'pelanggaran'" x-cloak>
+          <?!= include('Modal_Detail_Perilaku'); ?>
+        </div>
+        <div x-show="studentDetailTab === 'grafik'" x-cloak>
+          <?!= include('Modal_Detail_Grafik'); ?>
+        </div>
+        <div x-show="studentDetailTab === 'laporan'" x-cloak>
+          <?!= include('Modal_Detail_Laporan'); ?>
+        </div>
+        <div x-show="studentDetailTab === 'raport'" x-cloak>
+          <?!= include('Modal_Detail_Raport'); ?>
+        </div>
+        <div x-show="studentDetailTab === 'links'" x-cloak>
+          <?!= include('Modal_Detail_Links'); ?>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

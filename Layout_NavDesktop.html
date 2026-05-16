@@ -1,0 +1,184 @@
+<!-- Layout Navigation Desktop -->
+<!-- Desktop Sidebar Navigation -->
+<div class="sidebar hidden md:block">
+  <div class="sidebar-nav">
+    <!-- Logo Area -->
+    <div class="sidebar-header">
+      <div class="logo-icon">🏫</div>
+      <div class="logo-text">
+        <span class="logo-title">Monitor</span>
+        <span class="logo-subtitle">Santri</span>
+      </div>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="sidebar-nav">
+      <!-- Dashboard -->
+      <button
+        @click="currentTab = 'dashboard'; fetchSummary()"
+        :class="currentTab === 'dashboard' ? 'nav-item active' : 'nav-item'"
+      >
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+
+      <!-- Santri -->
+      <button
+        @click="currentTab = 'santri'; fetchStudents()"
+        :class="currentTab === 'santri' ? 'nav-item active' : 'nav-item'"
+      >
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Santri</span>
+      </button>
+
+      <!-- Role-based menus -->
+      <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
+        <div class="nav-section">
+          <div class="nav-section-label">Menu Ustadz</div>
+
+          <!-- Input Hafalan -->
+          <button
+            @click="currentTab = 'hafalan'"
+            :class="currentTab === 'hafalan' ? 'nav-item active' : 'nav-item'"
+          >
+            <span class="nav-icon">📖</span>
+            <span class="nav-label">Input Hafalan</span>
+          </button>
+
+          <!-- Input Perilaku -->
+          <button
+            @click="currentTab = 'pelanggaran'"
+            :class="currentTab === 'pelanggaran' ? 'nav-item active' : 'nav-item'"
+          >
+            <span class="nav-icon">📋</span>
+            <span class="nav-label">Input Perilaku</span>
+          </button>
+
+          <!-- Link Hafalan -->
+          <button
+            @click="currentTab = 'link_live'"
+            :class="currentTab === 'link_live' ? 'nav-item active' : 'nav-item'"
+          >
+            <span class="nav-icon">🔗</span>
+            <span class="nav-label">Link Hafalan</span>
+          </button>
+
+          <!-- Pulang Bulanan -->
+          <button
+            @click="currentTab = 'pulang_bulanan'; loadPulangBulanan()"
+            :class="currentTab === 'pulang_bulanan' ? 'nav-item active' : 'nav-item'"
+          >
+            <span class="nav-icon">📅</span>
+            <span class="nav-label">Pulang Bulanan</span>
+          </button>
+        </div>
+      </template>
+
+      <!-- Panduan -->
+      <div class="nav-section">
+        <div class="nav-section-label">Panduan</div>
+
+        <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
+          <button
+            @click="currentTab = 'panduan'"
+            :class="currentTab === 'panduan' ? 'nav-item active' : 'nav-item'"
+          >
+            <span class="nav-icon">📚</span>
+            <span class="nav-label">Panduan Ustadz</span>
+          </button>
+        </template>
+
+        <button
+          @click="currentTab = 'panduan_wali'"
+          :class="currentTab === 'panduan_wali' ? 'nav-item active' : 'nav-item'"
+        >
+          <span class="nav-icon">👨‍👩‍👧</span>
+          <span class="nav-label">Panduan Wali</span>
+        </button>
+      </div>
+
+      <!-- Admin Menu -->
+      <template x-if="user?.Role === 'Mudir' || user?.Role === 'Admin'">
+        <div class="nav-section">
+          <div class="nav-section-label">Administrator</div>
+
+          <button
+            @click="currentTab = 'users'; fetchUsers()"
+            :class="currentTab === 'users' ? 'nav-item active' : 'nav-item'"
+          >
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">Manajemen User</span>
+          </button>
+        </div>
+      </template>
+    </nav>
+
+    <!-- User Info & Logout -->
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar" x-text="user?.Name?.charAt(0) || 'U'"></div>
+        <div class="user-info">
+          <p class="user-name" x-text="user?.Name || 'User'"></p>
+          <p class="user-role" x-text="user?.Role || 'Guest'"></p>
+        </div>
+      </div>
+      <button @click="logout()" class="logout-btn">
+        <span>🚪</span> Logout
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Bottom Navigation (existing) -->
+<nav class="md:hidden flex justify-center gap-2 mb-6">
+  <button
+    @click="currentTab = 'dashboard'; fetchSummary()"
+    :class="currentTab === 'dashboard' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
+    class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+  >
+    Dashboard
+  </button>
+  <button
+    @click="currentTab = 'santri'; fetchStudents()"
+    :class="currentTab === 'santri' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
+    class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+  >
+    Santri
+  </button>
+
+  <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
+    <div class="flex gap-2">
+      <button
+        @click="currentTab = 'hafalan'"
+        :class="currentTab === 'hafalan' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
+        class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+      >
+        Hafalan
+      </button>
+      <button
+        @click="currentTab = 'pelanggaran'"
+        :class="currentTab === 'pelanggaran' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
+        class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+      >
+        Perilaku
+      </button>
+    </div>
+  </template>
+
+  <template x-if="user?.Role === 'Mudir' || user?.Role === 'Admin'">
+    <button
+      @click="currentTab = 'users'; fetchUsers()"
+      :class="currentTab === 'users' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
+      class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+    >
+      Users
+    </button>
+  </template>
+
+  <button
+    @click="logout()"
+    class="px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-100 text-red-500 transition-all"
+  >
+    Logout
+  </button>
+</nav>

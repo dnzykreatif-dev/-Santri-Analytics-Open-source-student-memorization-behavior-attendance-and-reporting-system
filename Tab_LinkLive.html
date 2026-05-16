@@ -1,0 +1,106 @@
+<div
+  x-show="currentTab === 'link_live'"
+  x-transition:enter="transition ease-out duration-300"
+  x-transition:enter-start="opacity-0 translate-x-4"
+  x-transition:enter-end="opacity-100 translate-x-0"
+  class="p-6 bg-white rounded-xl shadow space-y-6 max-w-4xl mx-auto"
+>
+  <h2 class="text-2xl font-bold text-[#80A1C1]">Link Live Hafalan Santri</h2>
+
+  <form @submit.prevent="submitLinkLive" class="space-y-4">
+    <select
+      x-model="linkLiveForm.StudentID"
+      required
+      class="w-full border px-3 py-2 rounded-md focus:ring-2 focus:ring-[#FAD4C0]"
+    >
+      <option value="" disabled>-- Pilih Santri --</option>
+      <template x-for="s in students" :key="s.StudentID">
+        <option :value="s.StudentID" x-text="s.Name"></option>
+      </template>
+    </select>
+
+    <input
+      type="text"
+      x-model="linkLiveForm.Title"
+      placeholder="Judul Link"
+      required
+      class="w-full border px-3 py-2 rounded-md focus:ring-2 focus:ring-[#FAD4C0]"
+    />
+
+    <input
+      type="url"
+      x-model="linkLiveForm.URL"
+      placeholder="URL Link"
+      required
+      class="w-full border px-3 py-2 rounded-md focus:ring-2 focus:ring-[#FAD4C0]"
+    />
+
+    <select
+      x-model="linkLiveForm.Type"
+      class="w-full border px-3 py-2 rounded-md focus:ring-2 focus:ring-[#FAD4C0]"
+    >
+      <option value="Live">Live Meeting</option>
+      <option value="Rekaman">Rekaman</option>
+    </select>
+
+    <div class="flex gap-4">
+      <button
+        type="submit"
+        class="bg-[#FAD4C0] hover:bg-orange-400 rounded-md px-6 py-2 font-bold transition"
+      >
+        Simpan
+      </button>
+      <button
+        type="button"
+        @click="cancelEditLinkLive"
+        x-show="editModeLinkLive"
+        class="px-6 py-2 rounded-md bg-gray-300 font-bold hover:bg-gray-400"
+      >
+        Batal
+      </button>
+    </div>
+  </form>
+
+  <div class="mt-6">
+    <h3 class="font-semibold mb-3">Link Tersimpan</h3>
+    <template x-if="linkLiveList.length === 0">
+      <p class="text-gray-500 italic">Belum ada link tersimpan</p>
+    </template>
+    <template x-for="link in linkLiveList" :key="link.LinkID">
+      <div
+        class="flex justify-between items-center p-3 border rounded-md mb-2 hover:bg-gray-50"
+      >
+        <div class="break-words max-w-xl">
+          <a
+            :href="link.URL"
+            target="_blank"
+            class="text-blue-600 hover:underline font-medium"
+            x-text="link.Title"
+          ></a>
+          <p
+            class="text-xs text-gray-400"
+            x-text="`[${link.Type}] - ${formatDate(link.DateAdded)}`"
+          ></p>
+          <p
+            class="text-xs text-gray-400"
+            x-text="getStudentNameById(link.StudentID)"
+          ></p>
+        </div>
+        <div class="flex gap-3">
+          <button
+            @click="editLinkLive(link)"
+            class="text-blue-500 hover:underline text-sm font-semibold"
+          >
+            Edit
+          </button>
+          <button
+            @click="deleteLinkLive(link.LinkID)"
+            class="text-red-500 hover:underline text-sm font-semibold"
+          >
+            Hapus
+          </button>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>

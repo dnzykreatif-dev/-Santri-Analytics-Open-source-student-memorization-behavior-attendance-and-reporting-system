@@ -1,0 +1,167 @@
+<!-- Data statis seperti kategori -->
+<script>
+  // Data Statis untuk Kategori Insiden
+  const INCIDENT_CATEGORIES = [
+    {
+      label: "Disiplin Umum",
+      color: "bg-red-100 text-red-700",
+      items: [
+        { desc: "Tidak mencuci nampan", pts: -10, sev: "Minor" },
+        { desc: "Berpakaian tidak syar’i", pts: -15, sev: "Medium" },
+        { desc: "Melanggar bahasa", pts: -10, sev: "Minor" },
+        { desc: "Keluar area pondok", pts: -20, sev: "Medium" },
+        { desc: "Interaksi lawan jenis", pts: -30, sev: "Major" },
+        { desc: "Bawa alat internet", pts: -25, sev: "Major" },
+        { desc: "Barang terlarang", pts: -50, sev: "Major" },
+        { desc: "Mencuri", pts: -40, sev: "Major" },
+        { desc: "Berkelahi", pts: -40, sev: "Major" },
+        { desc: "Berkata kasar / kotor", pts: -10, sev: "Minor" },
+      ],
+    },
+    {
+      label: "Disiplin Ibadah dan masjid",
+      color: "bg-orange-100 text-orange-700",
+      items: [
+        { desc: "Terlambat ke masjid setelah adzan", pts: -10, sev: "Minor" },
+        { desc: "Tidak sholat sunnah rawatib", pts: -10, sev: "Minor" },
+        { desc: "Terlambat halaqah", pts: -10, sev: "Minor" },
+        { desc: "Tidak adzan", pts: -15, sev: "Medium" },
+        { desc: "Tidak sholat berjamaah", pts: -20, sev: "Medium" },
+        { desc: "Tidak sholat wajib", pts: -30, sev: "Major" },
+        { desc: "Tidak adzan tanpa alasan syar’i", pts: -15, sev: "Major" },
+        {
+          desc: "Menyimpan barang/pakaian kotor di masjid",
+          pts: -10,
+          sev: "Major",
+        },
+        { desc: "Tidak menjaga kebersihan masjid", pts: -10, sev: "Major" },
+        {
+          desc: "Tidak memakai perlengkapan sholat sayng sesuai (peci, baju muslim)",
+          pts: -10,
+          sev: "Major",
+        },
+      ],
+      label: "ADAB ASRAMA",
+      color: "bg-yellow-100 text-yellow-700",
+      items: [
+        {
+          desc: "Tidak berada di kamar saat jam malam (21:30)",
+          pts: -15,
+          sev: "Minor",
+        },
+        {
+          desc: "Ribut atau berteriak diatas jam malam",
+          pts: -10,
+          sev: "Minor",
+        },
+        {
+          desc: "Tidak memakai pakaian yang sopan di area asrama",
+          pts: -10,
+          sev: "Minor",
+        },
+        { desc: "Tidak menjaga kebersihan kamar", pts: -10, sev: "Medium" },
+        { desc: "Masuk kamar saat jam pelajaran", pts: -15, sev: "Medium" },
+        {
+          desc: "Menjemur pakaian tidak pada tempatnya",
+          pts: -10,
+          sev: "Major",
+        },
+        {
+          desc: "Menyimpan barang/pakaian kotor di asrama",
+          pts: -10,
+          sev: "Major",
+        },
+      ],
+      label: "DISIPLIN BELAJAR",
+      color: "bg-blue-100 text-blue-700",
+      items: [
+        {
+          desc: "terlambat masuk kelas",
+          pts: -10,
+          sev: "Minor",
+        },
+        {
+          desc: "Bolos kelas tanpa alasan syar’i",
+          pts: -20,
+          sev: "Minor",
+        },
+        {
+          desc: "Tidak membawa perlengkapan belajar",
+          pts: -10,
+          sev: "Minor",
+        },
+        {
+          desc: "Tidak mengerjakan tugas",
+          pts: -15,
+          sev: "Medium",
+        },
+        {
+          desc: "Tidak fokus saat pelajaran",
+          pts: -10,
+          sev: "Medium",
+        },
+        {
+          desc: "Mengganggu teman saat pelajaran",
+          pts: -15,
+          sev: "Major",
+        },
+        {
+          desc: "Tidur di kelas",
+          pts: -10,
+          sev: "Minor",
+        },
+        {
+          desc: "Tidak menjaga kebersihan kelas (tidak piket)",
+          pts: -10,
+          sev: "Minor",
+        },
+      ],
+      label: "PELANGGARAN BERAT",
+      color: "bg-red-100 text-red-700",
+      items: [
+        {
+          desc: "NARKOBA/PORNOGRAFI",
+          pts: -100,
+          sev: "Minor",
+          type: "Violation",
+        },
+        { desc: "Mencuri besar", pts: -100, sev: "Minor", type: "Violation" },
+        { desc: "HP Illegal", pts: -100, sev: "Minor", type: "Violation" },
+      ],
+    },
+    {
+      label: "Prestasi & Perubahan",
+      color: "bg-green-100 text-green-700",
+      items: [
+        {
+          desc: "Sholat tepat waktu",
+          pts: 10,
+          sev: "Minor",
+          type: "Improvement",
+        },
+        {
+          desc: "Sholat sunnah rawatib",
+          pts: 10,
+          sev: "Minor",
+          type: "Improvement",
+        },
+        { desc: "Sholat Tahajud", pts: 20, sev: "Minor", type: "Improvement" },
+        { desc: "Setoran lancar", pts: 15, sev: "Minor", type: "Improvement" },
+        { desc: "Hafalan mutqin", pts: 25, sev: "Medium", type: "Improvement" },
+        { desc: "Membantu teman", pts: 10, sev: "Minor", type: "Improvement" },
+        {
+          desc: "Menghormati ustadz",
+          pts: 15,
+          sev: "Minor",
+          type: "Improvement",
+        },
+        {
+          desc: "Tepat waktu masuk kelas",
+          pts: 10,
+          sev: "Minor",
+          type: "Improvement",
+        },
+      ],
+    },
+  ];
+</script>
