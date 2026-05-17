@@ -95,6 +95,15 @@
           <span class="nav-icon">👨‍👩‍👧</span>
           <span class="nav-label">Panduan Wali</span>
         </button>
+
+        <!-- Pulang Bulanan - Visible to all users including Wali -->
+        <button
+          @click="currentTab = 'pulang_bulanan'; loadPulangBulanan()"
+          :class="currentTab === 'pulang_bulanan' ? 'nav-item active' : 'nav-item'"
+        >
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">Pulang Bulanan</span>
+        </button>
       </div>
 
       <!-- Admin Menu -->
@@ -144,6 +153,15 @@
     class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
   >
     Santri
+  </button>
+
+  <!-- Pulang Bulanan - Visible to all users including Wali -->
+  <button
+    @click="currentTab = 'pulang_bulanan'; loadPulangBulanan()"
+    :class="currentTab === 'pulang_bulanan' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
+    class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+  >
+    Pulang
   </button>
 
   <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">

@@ -1609,12 +1609,28 @@
     }
   }
 
+  /* ========== APP CONTAINER ========== */
+  .app-container {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+  }
+
   /* ========== MAIN CONTENT AREA ========== */
   .main-content {
+    width: 100%;
     margin-left: 0;
     padding: 1rem;
     padding-bottom: 5rem;
     min-height: 100vh;
+    /* Mobile nav offset at bottom */
+    padding-bottom: calc(5rem + 60px);
+  }
+
+  @media (min-width: 768px) {
+    .main-content {
+      padding-bottom: 2rem;
+    }
   }
 
   @media (min-width: 1024px) {
@@ -1622,6 +1638,7 @@
       margin-left: 280px;
       padding: 1.5rem 2rem;
       padding-bottom: 2rem;
+      max-width: calc(100% - 280px);
     }
   }
 

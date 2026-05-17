@@ -4,7 +4,7 @@
 
 # ── Dependencies ─────────────────────────────────────────────
 node_modules/
-
+VIBE CODING SYSTEM/
 # ── Environment & Credentials ────────────────────────────────
 .env
 .env.local

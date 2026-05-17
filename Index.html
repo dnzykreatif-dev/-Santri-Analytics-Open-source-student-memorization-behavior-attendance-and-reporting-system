@@ -14,14 +14,18 @@
       </template>
 
       <!-- APP SHELL -->
-      <div x-show="isLoggedIn" class="p-6">
+      <div x-show="isLoggedIn" class="app-container">
         <?!= include('Layout_Header'); ?> <?!= include('Layout_NavMobile'); ?>
-        <?!= include('Layout_NavDesktop'); ?> <?!= include('Tab_Dashboard'); ?>
-        <?!= include('Tab_Students'); ?> <?!= include('Tab_Hafalan'); ?> <?!=
-        include('Tab_PerilakuList'); ?> <?!= include('Tab_PerilakuInput'); ?>
-        <?!= include('Tab_LinkLive'); ?> <?!= include('Tab_PulangBulanan'); ?>
-        <?!= include('Tab_PanduanUstadz'); ?> <?!= include('Tab_PanduanWali');
-        ?> <?!= include('Tab_Users'); ?>
+        <?!= include('Layout_NavDesktop'); ?>
+        <!-- Main Content Wrapper -->
+        <main class="main-content">
+          <?!= include('Tab_Dashboard'); ?> <?!= include('Tab_Students'); ?>
+          <?!= include('Tab_Hafalan'); ?> <?!= include('Tab_PerilakuList'); ?>
+          <?!= include('Tab_PerilakuInput'); ?> <?!= include('Tab_LinkLive'); ?>
+          <?!= include('Tab_PulangBulanan'); ?> <?!=
+          include('Tab_PanduanUstadz'); ?> <?!= include('Tab_PanduanWali'); ?>
+          <?!= include('Tab_Users'); ?>
+        </main>
       </div>
 
       <?!= include('Modal_AddStudent'); ?> <?!= include('Modal_StudentDetail');
