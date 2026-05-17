@@ -316,10 +316,7 @@
         <template x-if="summary.recentIncidents.length === 0">
           <p class="text-sm text-gray-400 italic">Belum ada catatan perilaku</p>
         </template>
-        <template
-          x-for="inc in summary.recentIncidents.slice(0, 5)"
-          :key="inc.IncidentID"
-        >
+        <template x-for="inc in summary.recentIncidents" :key="inc.IncidentID">
           <div
             class="p-3 bg-gray-50 rounded-xl hover:bg-red-50 transition-colors border-l-4"
             :class="inc.IncidentType === 'Violation' ? 'border-red-400' : 'border-green-400'"

@@ -103,12 +103,12 @@ function getDashboardSummary(user, filters = {}) {
   // 2. Gabungkan log hafalan dan absensi
   let allLogs = [...filteredMemorizationLogs, ...attendanceLogs];
 
-  // 3. Sort gabungan dan ambil 5 teratas (HAPUS DEKLARASI LAMA 'recentLogs' DI SINI)
-  const recentLogs = allLogs
-    .sort((a, b) => new Date(b.DateLogged) - new Date(a.DateLogged))
-    .slice(0, 5);
+  // 3. Sort gabungan
+  const recentLogs = allLogs.sort(
+    (a, b) => new Date(b.DateLogged) - new Date(a.DateLogged),
+  );
 
-  const recentIncidents = filteredIncidents.slice(0, 5);
+  const recentIncidents = filteredIncidents;
   // ================================================
 
   // Attention Logic

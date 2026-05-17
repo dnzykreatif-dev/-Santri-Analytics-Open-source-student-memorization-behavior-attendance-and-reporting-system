@@ -245,6 +245,8 @@ function getStudentReportData(studentId) {
       hafalan: {
         total: totalSetoran,
         details: hafalanKategori,
+        newCount: hafalanKategori["Setoran Baru"] || 0,
+        reviewCount: hafalanKategori["Muroja'ah"] || 0,
         lastMemo: memos[0] || null,
       },
       behavior: {
