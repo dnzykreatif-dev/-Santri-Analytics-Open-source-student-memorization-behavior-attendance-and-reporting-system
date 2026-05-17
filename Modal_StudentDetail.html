@@ -125,7 +125,7 @@
       <template x-if="user.Role === 'Mudir' || user.Role === 'Ustadz'">
         <div class="flex gap-2">
           <textarea
-            x-model="$store.app.selectedStudent.CatatanPembinaan"
+            x-model="selectedStudent.CatatanPembinaan"
             class="flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm italic text-gray-700 placeholder-orange-300"
             placeholder="Catatan pembinaan..."
           ></textarea>

@@ -73,21 +73,21 @@
         <div class="bg-gray-50 p-3 rounded-lg">
           <p
             class="text-2xl font-bold text-[#80A1C1]"
-            x-text="raportData?.hafalan?.total"
+            x-text="raportData?.hafalan?.total || 0"
           ></p>
           <p class="text-[10px] text-gray-500 uppercase">Total Setoran</p>
         </div>
         <div class="bg-gray-50 p-3 rounded-lg">
           <p
             class="text-2xl font-bold text-green-600"
-            x-text="raportData?.hafalan?.details?.['Setoran Baru']"
+            x-text="raportData?.hafalan?.newCount || 0"
           ></p>
           <p class="text-[10px] text-gray-500 uppercase">Setoran Baru</p>
         </div>
         <div class="bg-gray-50 p-3 rounded-lg">
           <p
             class="text-2xl font-bold text-blue-600"
-            x-text="raportData?.hafalan?.details?.['Muroja\\'ah']"
+            x-text="raportData?.hafalan?.reviewCount || 0"
           ></p>
           <p class="text-[10px] text-gray-500 uppercase">Muroja'ah</p>
         </div>
@@ -117,37 +117,36 @@
           <p
             class="text-3xl font-black"
             :class="raportData?.behavior?.score >= 50 ? 'text-green-600' : 'text-red-600'"
-            x-text="raportData?.behavior?.score"
+            x-text="raportData?.behavior?.score || 0"
           ></p>
         </div>
         <div class="text-right">
           <p class="text-xs text-gray-500">Predikat</p>
           <p
             class="text-xl font-bold text-orange-600 uppercase"
-            x-text="raportData?.behavior?.predikat"
+            x-text="raportData?.behavior?.predikat || '-'"
           ></p>
         </div>
       </div>
-
       <div class="grid grid-cols-3 gap-2 text-xs text-center border-t pt-3">
         <div>
           <p
             class="font-bold text-gray-700"
-            x-text="raportData?.behavior?.achievements"
+            x-text="raportData?.behavior?.achievements || 0"
           ></p>
           <p class="text-gray-400">Prestasi</p>
         </div>
         <div>
           <p
             class="font-bold text-gray-700"
-            x-text="raportData?.behavior?.violations"
+            x-text="raportData?.behavior?.violations || 0"
           ></p>
           <p class="text-gray-400">Pelanggaran</p>
         </div>
         <div>
           <p
             class="font-bold text-gray-700"
-            x-text="(raportData?.behavior?.score)"
+            x-text="raportData?.behavior?.score || 0"
           ></p>
           <p class="text-gray-400">Net Score</p>
         </div>
@@ -165,21 +164,21 @@
         <div>
           <p
             class="font-bold text-yellow-600"
-            x-text="raportData?.attendance?.sakit"
+            x-text="raportData?.attendance?.sakit || 0"
           ></p>
           <p class="text-gray-500 text-xs">Sakit (S)</p>
         </div>
         <div>
           <p
             class="font-bold text-blue-600"
-            x-text="raportData?.attendance?.izin"
+            x-text="raportData?.attendance?.izin || 0"
           ></p>
           <p class="text-gray-500 text-xs">Izin (I)</p>
         </div>
         <div>
           <p
             class="font-bold text-red-600"
-            x-text="raportData?.attendance?.alpha"
+            x-text="raportData?.attendance?.alpha || 0"
           ></p>
           <p class="text-gray-500 text-xs">Alpha (A)</p>
         </div>

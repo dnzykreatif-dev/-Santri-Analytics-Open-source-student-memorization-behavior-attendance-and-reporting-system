@@ -73,6 +73,7 @@
       studentDetailTab: "hafalan",
       studentHistory: [],
       studentIncidents: [],
+      fullStudentReport: false,
       teacherNote: "",
       parentEmail: "",
       loadingReport: false,
@@ -270,15 +271,6 @@
             }
           })
           .deleteHafalanLink(linkId);
-      },
-      // ===== LINK ACTIONS =====
-      loadLinks() {
-        if (!this.selectedStudent) return;
-        google.script.run
-          .withSuccessHandler((res) => {
-            if (res.ok) this.studentLinks = res.data.links;
-          })
-          .getStudentLinks(this.selectedStudent.StudentID);
       },
 
       editLink(link) {
@@ -801,6 +793,9 @@
         this.selectedStudent = { ...student };
         this.studentDetailTab = "hafalan";
         this.showDetailModal = true;
+        this.studentHistory = [];
+        this.studentIncidents = [];
+        this.refreshStudentDetail();
         this.loadFullStudentReport(student.StudentID);
       },
 
