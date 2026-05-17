@@ -1,0 +1,87 @@
+# ============================================================
+# .gitignore — GAS + Spreadsheet Project
+# ============================================================
+
+# ── Dependencies ─────────────────────────────────────────────
+node_modules/
+
+# ── Environment & Credentials ────────────────────────────────
+.env
+.env.local
+.env.production
+.clasp.json          # clasp credentials (simpan lokal, jangan upload)
+service-account.json
+credentials.json
+token.json
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Cache & Temp ─────────────────────────────────────────────
+.cache/
+.tmp/
+tmp/
+temp/
+
+# ── Build Output ─────────────────────────────────────────────
+dist/
+build/
+
+# ── Office Files (referensi kerja, tidak perlu di repo) ──────
+*.docx
+*.doc
+*.xlsx
+*.xls
+*.csv
+*.pptx
+*.ppt
+*.pdf
+
+# ── Media & Aset Besar ───────────────────────────────────────
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+*.mp4
+*.mp3
+*.zip
+*.rar
+*.7z
+
+# ── IDE & Editor ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ── OS ───────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ── Backup Files ─────────────────────────────────────────────
+*.bak
+*.backup
+*~
+*.orig
+*.swp
+
+# ── Testing & Coverage ───────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ============================================================
+# PENGECUALIAN — file yang TETAP ditrack meski polanya di atas
+# Hapus tanda # di depan baris yang ingin dikecualikan
+# ============================================================
+
+# !docs/contoh-laporan.xlsx   # contoh: izinkan satu file excel tertentu
+# !public/logo.png            # contoh: izinkan logo proyek
+# !README.pdf                 # contoh: izinkan dokumentasi PDF
