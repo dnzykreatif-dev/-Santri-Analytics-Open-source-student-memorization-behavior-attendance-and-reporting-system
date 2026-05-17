@@ -81,12 +81,13 @@ function addUser(userData, currentUser) {
     }
 
     // Check if username already exists
+    const inputUsername = String(userData.Username || "").trim();
     const existingUser = data
       .slice(1)
       .find(
         (row) =>
           String(row[headers.indexOf("Username")] || "").trim() ===
-          userData.Username.trim(),
+          inputUsername,
       );
 
     if (existingUser) {
@@ -118,7 +119,7 @@ function addUser(userData, currentUser) {
           newRow.push(userData.Name || "");
           break;
         case "Username":
-          newRow.push(userData.Username.trim());
+          newRow.push(String(userData.Username || "").trim());
           break;
         case "Email":
           newRow.push(userData.Email || "");
@@ -211,13 +212,14 @@ function updateUser(userId, userData, currentUser) {
     }
 
     // Check if username is being changed and if it already exists
-    if (userData.Username) {
+    if (userData.Username !== undefined && userData.Username !== null) {
+      const usernameStr = String(userData.Username || "").trim();
       const existingUser = data.slice(1).find((row, index) => {
         const rowUserId = row[headers.indexOf("UserID")];
         const rowUsername = String(
           row[headers.indexOf("Username")] || "",
         ).trim();
-        return rowUserId !== userId && rowUsername === userData.Username.trim();
+        return rowUserId !== userId && rowUsername === usernameStr;
       });
 
       if (existingUser) {
