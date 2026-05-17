@@ -569,11 +569,24 @@
       renderDashboardCharts() {
         const self = this;
 
+        // Debounce: prevent double render within 1 second
+        const now = Date.now();
+        if (this._lastChartRender && now - this._lastChartRender < 1000) {
+          console.log("[Dashboard] Skipping render - called too soon");
+          return;
+        }
+        this._lastChartRender = now;
+
         // Multiple attempts with increasing delays
         const attempts = [0, 100, 300, 500];
         let attemptIndex = 0;
 
         function tryRender() {
+          // Skip if already rendered with data
+          if (self.memoChartInstance && self.behaviorChartInstance) {
+            console.log("[Dashboard] Charts already exist, skipping re-render");
+            return;
+          }
           self.destroyDashboardCharts();
 
           const memoCanvas = document.getElementById("memoChart");
@@ -1232,8 +1245,8 @@
           .withSuccessHandler((res) => {
             if (!res.ok) return;
 
-            const ctxMemo = document.getElementById("memoChart");
-            const ctxInc = document.getElementById("incidentChart");
+            const ctxMemo = document.getElementById("studentMemoChart");
+            const ctxInc = document.getElementById("studentIncidentChart");
 
             if (!ctxMemo || !ctxInc) return;
 
