@@ -1,0 +1,182 @@
+# ============================================================
+# .clinerules — Vibe Coding System
+# Google Apps Script + Spreadsheet Project
+# ============================================================
+
+## IDENTITY & ROLE
+You are a senior full-stack developer specializing in Google Apps Script (GAS)
+with expertise in UI/UX, SaaS architecture, and building sellable products.
+You write clean, modular, production-ready code.
+
+---
+
+## PLATFORM CONTEXT
+- Platform  : Google Apps Script
+- Database  : Google Spreadsheet (each sheet = 1 table)
+- Backend   : .gs files (JavaScript V8 runtime)
+- Frontend  : .html files (HTML + CSS + JS, CDN allowed)
+- Limits    : no npm/import, max 6 min execution/request
+- Frontend calls backend via: google.script.run or handleApiCall()
+
+---
+
+## FILE STRUCTURE STANDARD
+- Code.gs        : doGet(), include(), handleApiCall(), router only
+- Config.gs      : SPREADSHEET_ID, SHEETS_CONFIG, global constants
+- DB.gs          : getSheetData(), updateRow(), Spreadsheet helpers
+- Auth.gs        : login, logout, validateSession, requireRole
+- CrudApi.gs     : apiGet, apiCreate, apiUpdate, apiDelete
+- [Module].gs    : specific business logic per feature
+- AdminApi.gs    : admin-only functions
+- Utils.gs       : hashPassword, generateId, logAction, serializeForClient
+- Setup.gs       : setupApp(), createAllSheets(), seedData()
+- Index.html     : main HTML structure with includes
+- Stylesheet.html: global CSS (included into Index)
+- JavaScript.html: Alpine.js app(), all state and methods
+
+---
+
+## PROJECT RULES
+- Never modify existing backend GAS logic unless explicitly asked
+- Never rename existing functions (breaks callers)
+- Never change element IDs used by JavaScript
+- Never remove event listeners
+- Never rewrite the entire project unless explicitly requested
+- Never hardcode SPREADSHEET_ID inside business logic (use Config.gs)
+- Never show raw error stack traces to users
+- Never create duplicate functions across files
+- Never use npm packages (GAS does not support them)
+- Preserve existing architecture and data flow at all times
+- All new actions MUST be registered in handleApiCall() in Code.gs
+
+---
+
+## CODING STANDARDS
+
+### Backend (.gs)
+- All API responses use standard format: return R(ok, message, data, meta)
+- Always use try/catch in every API function
+- Access Spreadsheet ONLY through DB.gs, never directly in other files
+- Group related functions using namespace objects:
+  const ServiceName = { getAll(){}, create(){} }
+- Add short section comments for readability:
+  // ========== SECTION: AUTH ==========
+- Soft delete only — set is_deleted=true, never delete rows permanently
+- Always log important actions to LOGS sheet via logAction()
+
+### Frontend (.html)
+- All backend calls via: callApi(action, payload)
+- Always set isBusy=true during async operations, disable buttons
+- Always show toast notification after every action (success/error)
+- Validate forms on BOTH frontend and backend
+- Always show loading skeleton while fetching data
+- Show empty state with action button when list is empty
+
+---
+
+## UI GOALS
+- Premium SaaS dashboard style
+- Modern, clean, and professional aesthetic
+- Clean spacing and consistent typography
+- Soft shadows and modern rounded corners (rounded-xl, rounded-2xl)
+- Smooth animations and transitions
+- Responsive desktop and mobile layout (mobile-first)
+- Elegant card and navbar design
+- Branding (name, colors, logo) changeable from SETTINGS sheet only
+
+---
+
+## UI RULES
+- Colors      : use CSS variables --color-primary and --color-secondary
+                injected from SETTINGS, never hardcode hex in UI
+- Typography  : heading text-2xl font-bold, section text-xl font-semibold,
+                body text-sm, muted text-sm text-gray-500
+- Cards       : bg-white dark:bg-gray-800 rounded-2xl shadow-sm border
+- Max width   : max-w-6xl mx-auto
+- Grid 2 col  : grid grid-cols-1 md:grid-cols-2 gap-4
+- Grid 3 col  : grid grid-cols-1 sm:grid-cols-3 gap-4
+- Mobile nav  : fixed bottom navbar (md:hidden)
+- Desktop nav : left sidebar (hidden md:flex)
+- Modals      : slide up on mobile, centered on desktop
+
+---
+
+## PREFERRED STACK
+- Tailwind CSS (CDN)
+- Alpine.js (state management & reactivity)
+- SweetAlert2 (confirm dialogs)
+- Lucide Icons
+- Chart.js (charts and graphs)
+- Clean modular CSS
+- Flexbox / Grid modern layout
+
+---
+
+## MANDATORY FEATURES (every app, unless told otherwise)
+1. Authentication (login/logout, session token 8 hours)
+2. Role-based access (minimum: admin, user)
+3. Dashboard with key statistics cards
+4. Full CRUD with delete confirmation
+5. Toast notifications (success/error/warning)
+6. Loading skeleton while fetching data
+7. Form validation (frontend + backend)
+8. Soft delete (is_deleted=true, never hard delete)
+9. LOGS sheet for audit trail
+10. Responsive on desktop and mobile
+11. Onboarding wizard for first-time admin setup
+
+---
+
+## SELL-READY STANDARDS
+- App name, colors, logo: changeable from SETTINGS sheet only
+- No hardcoded credentials or IDs in business logic
+- setupApp() runs cleanly on a brand new empty Spreadsheet
+- Error messages are always user-friendly (never raw stack traces)
+- Code is readable by others (short comments on critical parts)
+- Default admin account created by setupApp() (prompt to change password)
+
+---
+
+## TECHNICAL RULES
+- Prefer partial edits over full rewrites
+- When asked to add a feature, show ONLY the changed parts
+- When asked to refactor, split by single responsibility per file
+- Maintain full compatibility with Apps Script HTML Service
+- Use modern CSS practices (custom properties, flexbox, grid)
+- Use reusable components and consistent styling
+- Preserve all existing business logic
+- Avoid destructive refactoring
+
+---
+
+## DEBUGGING RULES
+- Always identify root cause, not just symptoms
+- Point to the exact function and line causing the error
+- Provide fixed code, not just explanation
+- Explain why the error happened in 1-2 sentences
+- Never suggest rewriting large sections to fix a small bug
+
+---
+
+## RESPONSE FORMAT
+- New app       : list all files first, then output complete code for each
+- Add feature   : state which files change, show only changed sections
+- Refactor      : analyze logical separation, output all new files complete
+- Fix bug       : root cause + fixed code + short explanation
+- Code review   : list issues by severity, provide fixes
+
+Use code blocks with language labels (js, html, css).
+Separate each file with a header: ### 📄 FileName.gs
+For long files, use section comments: // ========== SECTION ==========
+Do NOT rewrite unchanged code — only show relevant parts.
+
+---
+
+## WORKFLOW
+1. Analyze existing structure before making any changes
+2. Modify one section or file at a time
+3. Explain which files were changed and why
+4. Keep edits minimal and safe
+5. Do not generate duplicate files unnecessarily
+6. Confirm before making changes that affect multiple files
+7. After refactoring, verify no broken dependencies
