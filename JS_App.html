@@ -183,12 +183,18 @@
       },
 
       // Fungsi untuk load link live
+
       loadLinks() {
         if (!this.selectedStudent) return;
         google.script.run
           .withSuccessHandler((res) => {
-            if (res.ok) this.linkLiveList = res.data.links || [];
-            else this.showToast("Gagal memuat link live", "error");
+            if (res.ok) {
+              this.studentLinks = res.data.links || [];
+              this.linkLiveList =
+                res.data.links?.filter((l) => l.Type === "Live") || [];
+            } else {
+              this.showToast("Gagal memuat links", "error");
+            }
           })
           .getStudentLinks(this.selectedStudent.StudentID);
       },
@@ -834,21 +840,6 @@
 
       // This function is redundant after the fix above, but keeping it for now
       // It essentially does the same as loadFullStudentReport, and should be removed if loadFullStudentReport works correctly.
-      loadRaportData() {
-        if (!this.selectedStudent) return;
-        this.raportData = null;
-
-        google.script.run
-          .withSuccessHandler((res) => {
-            if (res.ok) {
-              this.raportData = res.data;
-            } else {
-              this.showToast("Gagal memuat raport", "error");
-            }
-          })
-          .getStudentReportData(this.selectedStudent.StudentID);
-      },
-
       savePembinaan() {
         google.script.run
           .withSuccessHandler((res) => {

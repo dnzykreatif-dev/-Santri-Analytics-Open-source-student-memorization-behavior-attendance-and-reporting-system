@@ -160,97 +160,100 @@ function getStudentAnalytics(studentId) {
         incidentPoints[weeks - 1 - i] += Number(inc.Points) || 0;
     });
   }
-  function getStudentReportData(studentId) {
-    const ss = getSpreadsheet_();
 
-    // 1. Data Profil
-    const studentSheet = getSheet_("Students");
-    const studentData = studentSheet.getDataRange().getValues();
-    const studentHeaders = studentData[0];
-    let studentObj = null;
-    for (let i = 1; i < studentData.length; i++) {
-      if (studentData[i][0] === studentId) {
-        studentObj = serializeRow(studentData[i], studentHeaders);
-        break;
-      }
-    }
-    if (!studentObj) return { ok: false, message: "Santri tidak ditemukan" };
-
-    // 2. Rekap Hafalan
-    const memos = normalizeSheetData(
-      getSheet_("MemorizationLogs").getDataRange().getValues(),
-    ).filter((m) => m.StudentID === studentId);
-
-    // Hitung total halaman/juz (estimasi sederhana atau bisa dibuat lebih kompleks)
-    const totalSetoran = memos.length;
-
-    // Grouping Hafalan per Kategori
-    const hafalanKategori = {
-      "Setoran Baru": memos.filter((m) => m.Category === "Setoran Baru").length,
-      "Muroja'ah": memos.filter((m) => m.Category === "Muroja'ah").length,
-      Lainnya: memos.filter(
-        (m) => !["Setoran Baru", "Muroja'ah"].includes(m.Category),
-      ).length,
-    };
-
-    // 3. Rekap Perilaku
-    const incidents = normalizeSheetData(
-      getSheet_("Incidents").getDataRange().getValues(),
-    ).filter((inc) => inc.StudentID === studentId);
-
-    const totalSkor = incidents.reduce(
-      (sum, inc) => sum + (Number(inc.Points) || 0),
-      100,
-    );
-    const pelanggaran = incidents.filter(
-      (inc) => inc.IncidentType === "Violation",
-    ).length;
-    const prestasi = incidents.filter(
-      (inc) => inc.IncidentType === "Improvement",
-    ).length;
-
-    // 4. Rekap Kehadiran
-    let statsHadir = { sakit: 0, izin: 0, alpha: 0 };
-    const attSheet = ss.getSheetByName("Attendance");
-    if (attSheet) {
-      const attendance = normalizeSheetData(
-        attSheet.getDataRange().getValues(),
-      ).filter((att) => att.StudentID === studentId);
-
-      statsHadir.sakit = attendance.filter((a) => a.Type === "Sakit").length;
-      statsHadir.izin = attendance.filter((a) => a.Type === "Izin").length;
-      statsHadir.alpha = attendance.filter((a) => a.Type === "Alpha").length;
-    }
-
-    // 5. Penilaian Akhir (Logika Sederhana)
-    let predikat = "Cukup";
-    if (totalSkor >= 100 && pelanggaran === 0) predikat = "Istimewa";
-    else if (totalSkor >= 70) predikat = "Sangat Baik";
-    else if (totalSkor >= 40) predikat = "Baik";
-    else if (totalSkor < 0) predikat = "Perlu Bimbingan";
-
-    return {
-      ok: true,
-      data: {
-        profile: studentObj,
-        period: "Semester Ini", // Bisa dibuat dinamis
-        hafalan: {
-          total: totalSetoran,
-          details: hafalanKategori,
-          lastMemo: memos[0] || null,
-        },
-        behavior: {
-          score: totalSkor,
-          violations: pelanggaran,
-          achievements: prestasi,
-          predikat: predikat,
-        },
-        attendance: statsHadir,
-      },
-    };
-  }
   return {
     ok: true,
     data: { labels, memos: memoCounts, points: incidentPoints },
   };
-} // CRUD Santri
+}
+
+// ========== SECTION: STUDENT REPORT ==========
+function getStudentReportData(studentId) {
+  const ss = getSpreadsheet_();
+
+  // 1. Data Profil
+  const studentSheet = getSheet_("Students");
+  const studentData = studentSheet.getDataRange().getValues();
+  const studentHeaders = studentData[0];
+  let studentObj = null;
+  for (let i = 1; i < studentData.length; i++) {
+    if (studentData[i][0] === studentId) {
+      studentObj = serializeRow(studentData[i], studentHeaders);
+      break;
+    }
+  }
+  if (!studentObj) return { ok: false, message: "Santri tidak ditemukan" };
+
+  // 2. Rekap Hafalan
+  const memos = normalizeSheetData(
+    getSheet_("MemorizationLogs").getDataRange().getValues(),
+  ).filter((m) => m.StudentID === studentId);
+
+  // Hitung total halaman/juz (estimasi sederhana atau bisa dibuat lebih kompleks)
+  const totalSetoran = memos.length;
+
+  // Grouping Hafalan per Kategori
+  const hafalanKategori = {
+    "Setoran Baru": memos.filter((m) => m.Category === "Setoran Baru").length,
+    "Muroja'ah": memos.filter((m) => m.Category === "Muroja'ah").length,
+    Lainnya: memos.filter(
+      (m) => !["Setoran Baru", "Muroja'ah"].includes(m.Category),
+    ).length,
+  };
+
+  // 3. Rekap Perilaku
+  const incidents = normalizeSheetData(
+    getSheet_("Incidents").getDataRange().getValues(),
+  ).filter((inc) => inc.StudentID === studentId);
+
+  const totalSkor = incidents.reduce(
+    (sum, inc) => sum + (Number(inc.Points) || 0),
+    100,
+  );
+  const pelanggaran = incidents.filter(
+    (inc) => inc.IncidentType === "Violation",
+  ).length;
+  const prestasi = incidents.filter(
+    (inc) => inc.IncidentType === "Improvement",
+  ).length;
+
+  // 4. Rekap Kehadiran
+  let statsHadir = { sakit: 0, izin: 0, alpha: 0 };
+  const attSheet = ss.getSheetByName("Attendance");
+  if (attSheet) {
+    const attendance = normalizeSheetData(
+      attSheet.getDataRange().getValues(),
+    ).filter((att) => att.StudentID === studentId);
+
+    statsHadir.sakit = attendance.filter((a) => a.Type === "Sakit").length;
+    statsHadir.izin = attendance.filter((a) => a.Type === "Izin").length;
+    statsHadir.alpha = attendance.filter((a) => a.Type === "Alpha").length;
+  }
+
+  // 5. Penilaian Akhir (Logika Sederhana)
+  let predikat = "Cukup";
+  if (totalSkor >= 100 && pelanggaran === 0) predikat = "Istimewa";
+  else if (totalSkor >= 70) predikat = "Sangat Baik";
+  else if (totalSkor >= 40) predikat = "Baik";
+  else if (totalSkor < 0) predikat = "Perlu Bimbingan";
+
+  return {
+    ok: true,
+    data: {
+      profile: studentObj,
+      period: "Semester Ini",
+      hafalan: {
+        total: totalSetoran,
+        details: hafalanKategori,
+        lastMemo: memos[0] || null,
+      },
+      behavior: {
+        score: totalSkor,
+        violations: pelanggaran,
+        achievements: prestasi,
+        predikat: predikat,
+      },
+      attendance: statsHadir,
+    },
+  };
+}
