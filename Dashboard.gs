@@ -6,14 +6,28 @@ function getDashboardSummary(user, filters = {}) {
   const allStudents = normalizeSheetData(
     studentsSheet.getDataRange().getValues(),
   );
+  const allUsers = normalizeSheetData(
+    getSheet_("Users").getDataRange().getValues(),
+  );
   const allMemorizationLogs = normalizeSheetData(
     memorizationSheet.getDataRange().getValues(),
   );
   const allIncidents = getRecentIncidents();
 
+  // Filter out students associated with Inactive users (case-insensitive check)
+  const activeStudents = allStudents.filter((s) => {
+    const user = allUsers.find(
+      (u) => u.Username === s.WaliUsername || u.Phone === s.ParentContact,
+    );
+    const userStatus = String(user?.Status || "")
+      .toLowerCase()
+      .trim();
+    return !user || userStatus !== "inactive";
+  });
+
   // === WALI ACCESS CONTROL ===
   // Jika user adalah Wali, hanya tampilkan data untuk StudentID yang terkait
-  let students = allStudents;
+  let students = activeStudents;
   let memorizationLogs = allMemorizationLogs;
   let incidents = allIncidents;
   let isWaliUser = user && user.Role === "Wali";

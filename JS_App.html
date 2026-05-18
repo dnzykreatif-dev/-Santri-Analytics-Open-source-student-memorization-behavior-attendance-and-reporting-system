@@ -1405,6 +1405,7 @@
               if (res.ok) {
                 this.showToast(res.message, "success");
                 this.fetchUsers();
+                this.fetchStudents(); // Refresh student list to sync status changes
                 this.closeUserModal();
               } else {
                 this.userFormError = res.message;

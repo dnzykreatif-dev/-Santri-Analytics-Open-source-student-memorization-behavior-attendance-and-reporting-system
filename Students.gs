@@ -1,3 +1,40 @@
+/**
+ * Sync user status to related Student records
+ * Called when a user's status is changed in UserManagement
+ */
+function syncStudentStatus(waliUsername, status) {
+  try {
+    const sheet = getSheet_("Students");
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const waliCol = headers.indexOf("WaliUsername");
+
+    if (waliCol === -1)
+      return { ok: false, message: "Kolom WaliUsername tidak ditemukan" };
+
+    const cleanUsername = String(waliUsername || "")
+      .trim()
+      .toLowerCase();
+    let updated = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const studentWali = String(data[i][waliCol] || "")
+        .trim()
+        .toLowerCase();
+      if (studentWali === cleanUsername) {
+        // Student found, status is synced via dynamic calculation in getStudents
+        // No need to update column, just confirm match
+        updated++;
+      }
+    }
+
+    logAction(waliUsername, "SYNC_STATUS", "Status changed to: " + status);
+    return { ok: true, message: `Sync status untuk ${updated} santri` };
+  } catch (e) {
+    return { ok: false, message: "Error: " + e.message };
+  }
+}
+
 function getStudents(user) {
   const ss = getSpreadsheet_();
   const sheet = getSheet_("Students");
@@ -5,6 +42,16 @@ function getStudents(user) {
   const headers = data[0];
   const studentsRaw = data.slice(1);
   let result = [];
+
+  // Get user status map for sync
+  const userSheet = getSheet_("Users");
+  const userData = userSheet.getDataRange().getValues();
+  const userHeaders = userData[0];
+  const userStatusMap = {}; // Map Username -> Status
+  userData.slice(1).forEach((row) => {
+    const user = serializeRow(row, userHeaders);
+    userStatusMap[user.Username] = user.Status;
+  });
 
   const allIncidents = normalizeSheetData(
     ss.getSheetByName("Incidents").getDataRange().getValues(),
@@ -14,11 +61,16 @@ function getStudents(user) {
     const row = studentsRaw[i];
     const studentObj = serializeRow(row, headers);
 
+    // Check Wali status from mapped users
+    const waliUsername = String(studentObj.WaliUsername || "").trim();
+    const waliStatus = String(userStatusMap[waliUsername] || "")
+      .toLowerCase()
+      .trim();
+
     // Calculate Score
     const studentIncidents = allIncidents.filter(
       (inc) => inc.StudentID === studentObj.StudentID,
     );
-    // Violations SUBTRACT points, other types ADD points
     const totalScore = studentIncidents.reduce((sum, inc) => {
       const points = Number(inc.Points) || 0;
       if (inc.IncidentType === "Violation") {
@@ -29,7 +81,12 @@ function getStudents(user) {
     studentObj.TotalScore = totalScore;
 
     // Set Status Label
-    if (totalScore >= 80) {
+    // Case-insensitive check for inactive status
+    const normalizedWaliStatus = String(waliStatus || "").toLowerCase();
+    if (normalizedWaliStatus === "inactive") {
+      studentObj.StatusLabel = "NON-AKTIF";
+      studentObj.StatusColor = "bg-gray-400 text-white";
+    } else if (totalScore >= 80) {
       studentObj.StatusLabel = "SANTRI UNGGUL";
       studentObj.StatusColor = "bg-green-500 text-white";
     } else if (totalScore >= 50) {
@@ -162,7 +219,6 @@ function getStudentAnalytics(studentId) {
       const d = new Date(inc.DateOfIncident);
       if (d >= weekStart && d < weekEnd) {
         const points = Number(inc.Points) || 0;
-        // Violations SUBTRACT points (negative impact), show as negative value
         if (inc.IncidentType === "Violation") {
           incidentPoints[weeks - 1 - i] -= points;
         } else {
@@ -178,11 +234,8 @@ function getStudentAnalytics(studentId) {
   };
 }
 
-// ========== SECTION: STUDENT REPORT ==========
 function getStudentReportData(studentId) {
   const ss = getSpreadsheet_();
-
-  // 1. Data Profil
   const studentSheet = getSheet_("Students");
   const studentData = studentSheet.getDataRange().getValues();
   const studentHeaders = studentData[0];
@@ -195,15 +248,12 @@ function getStudentReportData(studentId) {
   }
   if (!studentObj) return { ok: false, message: "Santri tidak ditemukan" };
 
-  // 2. Rekap Hafalan
   const memos = normalizeSheetData(
     getSheet_("MemorizationLogs").getDataRange().getValues(),
   ).filter((m) => m.StudentID === studentId);
 
-  // Hitung total halaman/juz (estimasi sederhana atau bisa dibuat lebih kompleks)
   const totalSetoran = memos.length;
 
-  // Grouping Hafalan per Kategori
   const hafalanKategori = {
     "Setoran Baru": memos.filter((m) => m.Category === "Setoran Baru").length,
     "Muroja'ah": memos.filter((m) => m.Category === "Muroja'ah").length,
@@ -212,12 +262,10 @@ function getStudentReportData(studentId) {
     ).length,
   };
 
-  // 3. Rekap Perilaku
   const incidents = normalizeSheetData(
     getSheet_("Incidents").getDataRange().getValues(),
   ).filter((inc) => inc.StudentID === studentId);
 
-  // Violations SUBTRACT points, other types ADD points
   const totalSkor = incidents.reduce((sum, inc) => {
     const points = Number(inc.Points) || 0;
     if (inc.IncidentType === "Violation") {
@@ -232,7 +280,6 @@ function getStudentReportData(studentId) {
     (inc) => inc.IncidentType === "Improvement",
   ).length;
 
-  // 4. Rekap Kehadiran
   let statsHadir = { sakit: 0, izin: 0, alpha: 0 };
   const attSheet = ss.getSheetByName("Attendance");
   if (attSheet) {
@@ -245,7 +292,6 @@ function getStudentReportData(studentId) {
     statsHadir.alpha = attendance.filter((a) => a.Type === "Alpha").length;
   }
 
-  // 5. Penilaian Akhir (Logika Sederhana)
   let predikat = "Cukup";
   if (totalSkor >= 100 && pelanggaran === 0) predikat = "Istimewa";
   else if (totalSkor >= 70) predikat = "Sangat Baik";

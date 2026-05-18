@@ -236,12 +236,13 @@ function updateUser(userId, userData, currentUser) {
 
     // Update fields
     const updatedRow = [...currentRow];
-    USER_HEADERS.forEach((header, index) => {
+    USER_HEADERS.forEach((header) => {
       if (
         userData[header] !== undefined &&
         header !== "UserID" &&
         header !== "CreatedAt"
       ) {
+        const colIndex = headers.indexOf(header); // Use actual column index from sheet
         if (header === "Password" && userData.Password) {
           // Handle password update
           const salt = Utilities.getUuid().substring(0, 8);
@@ -249,9 +250,9 @@ function updateUser(userId, userData, currentUser) {
           updatedRow[headers.indexOf("Salt")] = salt;
           updatedRow[headers.indexOf("PasswordHash")] = passwordHash;
         } else if (header === "UpdatedAt") {
-          updatedRow[index] = new Date().toISOString();
+          updatedRow[colIndex] = new Date().toISOString();
         } else if (header !== "Salt" && header !== "PasswordHash") {
-          updatedRow[index] = userData[header];
+          updatedRow[colIndex] = userData[header];
         }
       }
     });
@@ -261,6 +262,11 @@ function updateUser(userId, userData, currentUser) {
 
     // Write back to sheet
     sheet.getRange(userIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
+
+    // Sync status to Student records only for Wali users
+    if (userData.Status && currentUserObj.Role === "Wali") {
+      syncStudentStatus(currentUserObj.Username, userData.Status);
+    }
 
     // Return updated user data without sensitive info
     const updatedUser = serializeRow(updatedRow, headers);
