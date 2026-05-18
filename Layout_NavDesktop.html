@@ -115,8 +115,16 @@
             @click="currentTab = 'users'; fetchUsers()"
             :class="currentTab === 'users' ? 'nav-item active' : 'nav-item'"
           >
-            <span class="nav-icon">⚙️</span>
+            <span class="nav-icon">👥</span>
             <span class="nav-label">Manajemen User</span>
+          </button>
+
+          <button
+            @click="currentTab = 'settings'; loadSettings()"
+            :class="currentTab === 'settings' ? 'nav-item active' : 'nav-item'"
+          >
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">Pengaturan</span>
           </button>
         </div>
       </template>

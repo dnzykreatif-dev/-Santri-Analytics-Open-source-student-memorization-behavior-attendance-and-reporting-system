@@ -3,7 +3,7 @@ function doGet(e) {
 
   return template
     .evaluate()
-    .setTitle("Monitor Santri")
+    .setTitle("Santri Analytics")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag("viewport", "width=device-width, initial-scale=1");
 }
@@ -615,6 +615,19 @@ function deletePulangBulanan(pulangId, currentUser) {
       success: false,
       message: err.message,
     };
+  }
+}
+
+function handleApiCall(action, payload, currentUser) {
+  switch (action) {
+    case "getAppSettings":
+      return getAppSettings();
+    case "updateAppSettings":
+      return updateAppSettings(payload);
+    case "uploadSettingFile":
+      return uploadSettingFile(payload.fileData, payload.fileType);
+    default:
+      return { ok: false, message: "Unknown action: " + action };
   }
 }
 

@@ -1722,6 +1722,113 @@
           .deletePulangBulanan(item.PulangID, this.user);
       },
 
+      // ===== SETTINGS =====
+      settingsForm: {
+        pondok_name: "",
+        app_name: "",
+        pondok_address: "",
+        whatsapp_admin: "",
+        tahun_ajaran: "",
+        mudir_name: "",
+        theme_color: "emerald",
+        logo_url: "",
+        banner_url: "",
+        feature_hafalan: true,
+        feature_raport: true,
+        feature_ranking: true,
+        feature_perilaku: true,
+      },
+      isSavingSettings: false,
+
+      loadSettings() {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res && res.ok && res.data) {
+              Object.assign(this.settingsForm, res.data);
+              this.applyThemeColor(res.data.theme_color || "emerald");
+            }
+          })
+          .withFailureHandler((err) => {
+            console.error("Gagal memuat pengaturan:", err);
+          })
+          .getSettings();
+      },
+
+      async saveSettings() {
+        this.isSavingSettings = true;
+        try {
+          const res = await new Promise((resolve, reject) => {
+            google.script.run
+              .withSuccessHandler(resolve)
+              .withFailureHandler(reject)
+              .saveSettings(this.settingsForm, this.user);
+          });
+
+          if (res && res.ok) {
+            this.showToast(
+              res.message || "Pengaturan berhasil disimpan.",
+              "success",
+            );
+            this.applyThemeColor(this.settingsForm.theme_color);
+          } else {
+            this.showToast(
+              res.message || "Gagal menyimpan pengaturan.",
+              "error",
+            );
+          }
+        } catch (err) {
+          this.showToast(err.message || "Gagal menyimpan pengaturan.", "error");
+        } finally {
+          this.isSavingSettings = false;
+        }
+      },
+
+      applyThemeColor(color) {
+        const colorMap = {
+          emerald: { primary: "#10b981", bg: "#ecfdf5", text: "#065f46" },
+          blue: { primary: "#3b82f6", bg: "#eff6ff", text: "#1e40af" },
+          orange: { primary: "#f97316", bg: "#fff7ed", text: "#9a3412" },
+          purple: { primary: "#8b5cf6", bg: "#f5f3ff", text: "#5b21b6" },
+          red: { primary: "#ef4444", bg: "#fef2f2", text: "#991b1b" },
+          default: { primary: "#10b981", bg: "#ecfdf5", text: "#065f46" },
+        };
+        const theme = colorMap[color] || colorMap.default;
+        document.documentElement.style.setProperty(
+          "--color-primary",
+          theme.primary,
+        );
+        document.documentElement.style.setProperty(
+          "--color-primary-bg",
+          theme.bg,
+        );
+        document.documentElement.style.setProperty(
+          "--color-primary-text",
+          theme.text,
+        );
+      },
+
+      async uploadImage(file, fieldName) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64 = e.target.result.split(",")[1];
+          google.script.run
+            .withSuccessHandler((res) => {
+              if (res && res.ok && res.data) {
+                this.settingsForm[fieldName] = res.data.url;
+                this.showToast("Gambar berhasil diupload.", "success");
+              } else {
+                this.showToast(res.message || "Gagal upload gambar.", "error");
+              }
+            })
+            .withFailureHandler((err) => {
+              this.showToast("Gagal upload gambar.", "error");
+            })
+            .uploadImage(base64, file.name, fieldName);
+        };
+        reader.readAsDataURL(file);
+      },
+
       // ===== CLEANUP =====
       destroy() {
         if (this.charts.memo) {
