@@ -219,7 +219,13 @@ function getDashboardSummary(user, filters = {}) {
       .forEach((inc) => {
         const incDate = new Date(inc.DateOfIncident);
         if (incDate >= thirtyDaysAgo) {
-          cumulativeScore += parseInt(inc.Points) || 0;
+          const points = parseInt(inc.Points) || 0;
+          // Violations SUBTRACT points, other types ADD points
+          if (inc.IncidentType === "Violation") {
+            cumulativeScore -= points;
+          } else {
+            cumulativeScore += points;
+          }
           const dateKey = incDate.toISOString().split("T")[0];
           dailyScores[dateKey] = Math.max(0, Math.min(100, cumulativeScore));
         }
@@ -264,7 +270,13 @@ function getDashboardSummary(user, filters = {}) {
         studentIncidents.forEach((inc) => {
           const incDate = new Date(inc.DateOfIncident);
           if (incDate <= new Date(dateKey + "T23:59:59")) {
-            studentScore += parseInt(inc.Points) || 0;
+            const points = parseInt(inc.Points) || 0;
+            // Violations SUBTRACT points, other types ADD points
+            if (inc.IncidentType === "Violation") {
+              studentScore -= points;
+            } else {
+              studentScore += points;
+            }
           }
         });
         studentScore = Math.max(0, Math.min(100, studentScore));

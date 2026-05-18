@@ -31,10 +31,14 @@ function generateStudentReportPdf(id, note) {
       getSheet_("Incidents").getDataRange().getValues(),
     );
     const studentIncidents = incidents.filter((inc) => inc.StudentID === id);
-    const totalScore = studentIncidents.reduce(
-      (sum, inc) => sum + (Number(inc.Points) || 0),
-      100,
-    );
+    // Violations SUBTRACT points, other types ADD points
+    const totalScore = studentIncidents.reduce((sum, inc) => {
+      const points = Number(inc.Points) || 0;
+      if (inc.IncidentType === "Violation") {
+        return sum - points;
+      }
+      return sum + points;
+    }, 100);
 
     // 3. Copy Template
     const template = DriveApp.getFileById(REPORT_TEMPLATE_ID);
@@ -123,10 +127,14 @@ function getStudentFullReport(id) {
     );
 
     // Calculate total score
-    const totalScore = studentIncidents.reduce(
-      (sum, inc) => sum + (Number(inc.Points) || 0),
-      100,
-    );
+    // Violations SUBTRACT points, other types ADD points
+    const totalScore = studentIncidents.reduce((sum, inc) => {
+      const points = Number(inc.Points) || 0;
+      if (inc.IncidentType === "Violation") {
+        return sum - points;
+      }
+      return sum + points;
+    }, 100);
 
     // Get raport data (last report)
     const raportData = {
@@ -181,10 +189,14 @@ function sendReportToEmail(id, note, email) {
         const studentIncidents = allIncidents.filter(
           (inc) => inc.StudentID === id,
         );
-        studentTotalScore = studentIncidents.reduce(
-          (sum, inc) => sum + (Number(inc.Points) || 0),
-          100,
-        );
+        // Violations SUBTRACT points, other types ADD points
+        studentTotalScore = studentIncidents.reduce((sum, inc) => {
+          const points = Number(inc.Points) || 0;
+          if (inc.IncidentType === "Violation") {
+            return sum - points;
+          }
+          return sum + points;
+        }, 100);
 
         if (studentTotalScore >= 80) studentStatusLabel = "SANTRI UNGGUL";
         else if (studentTotalScore >= 50) studentStatusLabel = "SANTRI NORMAL";
