@@ -233,20 +233,26 @@ function getDashboardSummary(user, filters = {}) {
       .forEach((inc) => {
         const incDate = new Date(inc.DateOfIncident);
         if (incDate >= thirtyDaysAgo) {
-          const points = parseInt(inc.Points) || 0;
-          // Violations SUBTRACT points, other types ADD points
-          if (inc.IncidentType === "Violation") {
-            cumulativeScore -= points;
-          } else {
-            cumulativeScore += points;
-          }
+          // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
+          cumulativeScore += parseInt(inc.Points) || 0;
+          // Clamp score between 0 and 100
+          cumulativeScore = Math.min(100, Math.max(0, cumulativeScore));
           const dateKey = incDate.toISOString().split("T")[0];
-          dailyScores[dateKey] = Math.max(0, Math.min(100, cumulativeScore));
+          dailyScores[dateKey] = cumulativeScore;
         }
       });
 
     // Get the latest score
     const latestScore = Math.max(0, Math.min(100, cumulativeScore));
+    // Debug logging
+    Logger.log(
+      "getDashboardSummary - StudentID: " +
+        student.StudentID +
+        ", Total Incidents: " +
+        studentIncidents.length +
+        ", LatestScore: " +
+        latestScore,
+    );
     if (student.Name) {
       studentScores[student.StudentID] = {
         name: student.Name,
@@ -284,16 +290,12 @@ function getDashboardSummary(user, filters = {}) {
         studentIncidents.forEach((inc) => {
           const incDate = new Date(inc.DateOfIncident);
           if (incDate <= new Date(dateKey + "T23:59:59")) {
-            const points = parseInt(inc.Points) || 0;
-            // Violations SUBTRACT points, other types ADD points
-            if (inc.IncidentType === "Violation") {
-              studentScore -= points;
-            } else {
-              studentScore += points;
-            }
+            // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
+            studentScore += parseInt(inc.Points) || 0;
           }
         });
-        studentScore = Math.max(0, Math.min(100, studentScore));
+        // Clamp score between 0 and 100
+        studentScore = Math.min(100, Math.max(0, studentScore));
         totalScore += studentScore;
         studentCount++;
       });

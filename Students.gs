@@ -71,13 +71,26 @@ function getStudents(user) {
     const studentIncidents = allIncidents.filter(
       (inc) => inc.StudentID === studentObj.StudentID,
     );
-    const totalScore = studentIncidents.reduce((sum, inc) => {
-      const points = Number(inc.Points) || 0;
-      if (inc.IncidentType === "Violation") {
-        return sum - points;
-      }
-      return sum + points;
-    }, 100);
+    // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
+    const totalScore = Math.min(
+      100,
+      Math.max(
+        0,
+        studentIncidents.reduce(
+          (sum, inc) => sum + (Number(inc.Points) || 0),
+          100,
+        ),
+      ),
+    );
+    // Debug logging
+    Logger.log(
+      "getStudents - StudentID: " +
+        studentObj.StudentID +
+        ", Total Incidents: " +
+        studentIncidents.length +
+        ", TotalScore: " +
+        totalScore,
+    );
     studentObj.TotalScore = totalScore;
 
     // Set Status Label
@@ -218,12 +231,8 @@ function getStudentAnalytics(studentId) {
     studentIncidents.forEach((inc) => {
       const d = new Date(inc.DateOfIncident);
       if (d >= weekStart && d < weekEnd) {
-        const points = Number(inc.Points) || 0;
-        if (inc.IncidentType === "Violation") {
-          incidentPoints[weeks - 1 - i] -= points;
-        } else {
-          incidentPoints[weeks - 1 - i] += points;
-        }
+        // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
+        incidentPoints[weeks - 1 - i] += Number(inc.Points) || 0;
       }
     });
   }
@@ -266,13 +275,23 @@ function getStudentReportData(studentId) {
     getSheet_("Incidents").getDataRange().getValues(),
   ).filter((inc) => inc.StudentID === studentId);
 
-  const totalSkor = incidents.reduce((sum, inc) => {
-    const points = Number(inc.Points) || 0;
-    if (inc.IncidentType === "Violation") {
-      return sum - points;
-    }
-    return sum + points;
-  }, 100);
+  // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
+  const totalSkor = Math.min(
+    100,
+    Math.max(
+      0,
+      incidents.reduce((sum, inc) => sum + (Number(inc.Points) || 0), 100),
+    ),
+  );
+  // Debug logging
+  Logger.log(
+    "getStudentReportData - StudentID: " +
+      studentId +
+      ", Total Incidents: " +
+      incidents.length +
+      ", TotalSkor: " +
+      totalSkor,
+  );
   const pelanggaran = incidents.filter(
     (inc) => inc.IncidentType === "Violation",
   ).length;

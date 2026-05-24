@@ -31,14 +31,26 @@ function generateStudentReportPdf(id, note) {
       getSheet_("Incidents").getDataRange().getValues(),
     );
     const studentIncidents = incidents.filter((inc) => inc.StudentID === id);
-    // Violations SUBTRACT points, other types ADD points
-    const totalScore = studentIncidents.reduce((sum, inc) => {
-      const points = Number(inc.Points) || 0;
-      if (inc.IncidentType === "Violation") {
-        return sum - points;
-      }
-      return sum + points;
-    }, 100);
+    // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
+    const totalScore = Math.min(
+      100,
+      Math.max(
+        0,
+        studentIncidents.reduce(
+          (sum, inc) => sum + (Number(inc.Points) || 0),
+          100,
+        ),
+      ),
+    );
+    // Debug logging
+    Logger.log(
+      "generateStudentReportPdf - StudentID: " +
+        id +
+        ", Total Incidents: " +
+        studentIncidents.length +
+        ", TotalScore: " +
+        totalScore,
+    );
 
     // 3. Copy Template
     const template = DriveApp.getFileById(REPORT_TEMPLATE_ID);
@@ -127,14 +139,26 @@ function getStudentFullReport(id) {
     );
 
     // Calculate total score
-    // Violations SUBTRACT points, other types ADD points
-    const totalScore = studentIncidents.reduce((sum, inc) => {
-      const points = Number(inc.Points) || 0;
-      if (inc.IncidentType === "Violation") {
-        return sum - points;
-      }
-      return sum + points;
-    }, 100);
+    // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
+    const totalScore = Math.min(
+      100,
+      Math.max(
+        0,
+        studentIncidents.reduce(
+          (sum, inc) => sum + (Number(inc.Points) || 0),
+          100,
+        ),
+      ),
+    );
+    // Debug logging
+    Logger.log(
+      "getStudentFullReport - StudentID: " +
+        id +
+        ", Total Incidents: " +
+        studentIncidents.length +
+        ", TotalScore: " +
+        totalScore,
+    );
 
     // Get raport data (last report)
     const raportData = {
@@ -189,14 +213,26 @@ function sendReportToEmail(id, note, email) {
         const studentIncidents = allIncidents.filter(
           (inc) => inc.StudentID === id,
         );
-        // Violations SUBTRACT points, other types ADD points
-        studentTotalScore = studentIncidents.reduce((sum, inc) => {
-          const points = Number(inc.Points) || 0;
-          if (inc.IncidentType === "Violation") {
-            return sum - points;
-          }
-          return sum + points;
-        }, 100);
+        // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
+        studentTotalScore = Math.min(
+          100,
+          Math.max(
+            0,
+            studentIncidents.reduce(
+              (sum, inc) => sum + (Number(inc.Points) || 0),
+              100,
+            ),
+          ),
+        );
+        // Debug logging
+        Logger.log(
+          "sendReportToEmail - StudentID: " +
+            id +
+            ", Total Incidents: " +
+            studentIncidents.length +
+            ", studentTotalScore: " +
+            studentTotalScore,
+        );
 
         if (studentTotalScore >= 80) studentStatusLabel = "SANTRI UNGGUL";
         else if (studentTotalScore >= 50) studentStatusLabel = "SANTRI NORMAL";

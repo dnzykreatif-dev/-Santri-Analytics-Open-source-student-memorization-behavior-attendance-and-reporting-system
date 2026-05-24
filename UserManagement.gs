@@ -342,19 +342,50 @@ function hashPasswordWithSalt(password, salt) {
 }
 
 /**
+ * Normalize phone number to standard format (8xxxxxxxxxx)
+ * Handles: 08xxxxx, 8xxxxx, +628xxxxx, 628xxxxx, 62xxxxx
+ * @param {string} phone - Phone number in any format
+ * @returns {string} - Normalized phone number starting with 8
+ */
+function normalizePhoneNumber(phone) {
+  if (!phone) return "";
+  let cleaned = String(phone || "").replace(/[\s\-\(\)]/g, "");
+  // Remove leading zeros and country code
+  cleaned = cleaned.replace(/^(\+?0?62|62)/, "");
+  cleaned = cleaned.replace(/^0/, "");
+  return cleaned;
+}
+
+/**
  * Update login function to use salt
+ * Supports flexible phone number login for Wali role:
+ * - 08xxxxxxxx (Indonesian format with 0)
+ * - 8xxxxxxxx (without leading 0)
+ * - +628xxxxxxxx (with country code and +)
+ * - 628xxxxxxxx (with country code without +)
  */
 function loginWithSalt(username, password) {
   const sheet = getSheet_(SHEET_USERS);
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const inputUsername = String(username || "").trim();
+  const inputNormalized = normalizePhoneNumber(inputUsername);
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const dbUsername = String(row[headers.indexOf("Username")] || "").trim();
+    const dbRole = String(row[headers.indexOf("Role")] || "").trim();
 
-    if (dbUsername === inputUsername) {
+    // Check direct match
+    let isMatch = dbUsername === inputUsername;
+
+    // For Wali role, also check normalized phone number match
+    if (!isMatch && dbRole === "Wali" && inputNormalized) {
+      const dbNormalized = normalizePhoneNumber(dbUsername);
+      isMatch = dbNormalized === inputNormalized;
+    }
+
+    if (isMatch) {
       const salt = row[headers.indexOf("Salt")] || "";
       const dbPasswordHash = row[headers.indexOf("PasswordHash")] || "";
       const hashedInput = hashPasswordWithSalt(password || "", salt);
