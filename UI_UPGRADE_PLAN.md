@@ -49,6 +49,8 @@ Target akhir:
 
 Tujuan: membuat dasar visual konsisten tanpa mengubah layout besar.
 
+Status: selesai pada tahap awal fondasi. Layer `app-*` sudah ditambahkan di `Style.html` sebagai jembatan untuk upgrade login, shell, dashboard, dan list mobile tanpa menghapus class lama.
+
 Rencana:
 
 - Tambahkan token CSS di `Style.html`:
@@ -71,6 +73,10 @@ Rencana:
 Commit target:
 
 `Add UI design tokens and shared components`
+
+Commit implementasi:
+
+- Menunggu commit setelah validasi.
 
 ## Tahap 2: Upgrade Login
 

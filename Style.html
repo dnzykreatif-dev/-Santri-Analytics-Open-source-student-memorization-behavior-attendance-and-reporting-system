@@ -2582,4 +2582,315 @@
     outline: none;
     box-shadow: 0 0 0 3px rgba(31, 122, 92, 0.2);
   }
+
+  /* ========================================
+     UI UPGRADE FOUNDATION
+     Stable app-* component aliases for staged redesign.
+  ======================================== */
+  :root {
+    --app-primary: var(--color-primary);
+    --app-primary-soft: rgba(31, 122, 92, 0.1);
+    --app-primary-ring: rgba(31, 122, 92, 0.18);
+    --app-accent: var(--color-accent);
+    --app-surface: var(--color-bg-card);
+    --app-surface-solid: #ffffff;
+    --app-page: var(--color-bg);
+    --app-border: rgba(216, 195, 165, 0.58);
+    --app-border-strong: rgba(197, 173, 142, 0.78);
+    --app-text: var(--color-text);
+    --app-muted: var(--color-text-secondary);
+    --app-faint: var(--color-text-muted);
+    --app-success: var(--color-success);
+    --app-warning: var(--color-warning);
+    --app-danger: var(--color-error);
+    --app-info: var(--color-info);
+    --app-radius-sm: var(--radius-sm);
+    --app-radius-md: var(--radius-md);
+    --app-radius-lg: var(--radius-lg);
+    --app-radius-xl: var(--radius-xl);
+    --app-radius-2xl: var(--radius-2xl);
+    --app-shadow-sm: var(--shadow-sm);
+    --app-shadow-md: var(--shadow-md);
+    --app-shadow-lg: var(--shadow-lg);
+    --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .app-card,
+  .bento-card {
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius-2xl);
+    box-shadow: var(--app-shadow-md);
+  }
+
+  .app-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .app-card-muted {
+    background: linear-gradient(180deg, #ffffff, #fbf8f1);
+  }
+
+  .app-card-tight {
+    border-radius: var(--app-radius-xl);
+    box-shadow: var(--app-shadow-sm);
+  }
+
+  .app-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    border-radius: var(--app-radius-lg);
+    border: 1px solid transparent;
+    font-size: 0.875rem;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      transform var(--transition-base),
+      box-shadow var(--transition-base),
+      background var(--transition-base),
+      border-color var(--transition-base),
+      color var(--transition-base);
+  }
+
+  .app-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--app-shadow-md);
+  }
+
+  .app-btn:active {
+    transform: scale(0.98);
+  }
+
+  .app-btn:disabled {
+    opacity: 0.62;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .app-btn-primary {
+    background: linear-gradient(135deg, var(--app-primary), var(--color-primary-light));
+    color: #ffffff;
+    border-color: rgba(15, 95, 74, 0.22);
+    box-shadow: 0 12px 24px rgba(31, 122, 92, 0.18);
+  }
+
+  .app-btn-soft {
+    background: #ffffff;
+    color: var(--app-primary);
+    border-color: var(--app-border);
+  }
+
+  .app-btn-ghost {
+    background: transparent;
+    color: var(--app-muted);
+    border-color: transparent;
+  }
+
+  .app-btn-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--app-danger);
+    border-color: rgba(239, 68, 68, 0.18);
+  }
+
+  .app-input,
+  .app-select,
+  .app-textarea {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius-lg);
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--app-text);
+    padding: 0.72rem 0.9rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    outline: none;
+    transition:
+      border-color var(--transition-base),
+      box-shadow var(--transition-base),
+      background var(--transition-base);
+  }
+
+  .app-textarea {
+    min-height: 96px;
+    resize: vertical;
+  }
+
+  .app-input:focus,
+  .app-select:focus,
+  .app-textarea:focus {
+    border-color: var(--app-primary);
+    background: #ffffff;
+    box-shadow: 0 0 0 4px var(--app-primary-ring);
+  }
+
+  .app-label {
+    display: block;
+    margin-bottom: 0.45rem;
+    color: var(--app-muted);
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .app-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-height: 24px;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .app-badge-primary {
+    background: var(--app-primary-soft);
+    color: var(--app-primary);
+  }
+
+  .app-badge-success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+  }
+
+  .app-badge-warning {
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+  }
+
+  .app-badge-danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+  }
+
+  .app-badge-info {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+  }
+
+  .app-empty-state {
+    display: flex;
+    min-height: 180px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    border: 1px dashed var(--app-border-strong);
+    border-radius: var(--app-radius-2xl);
+    background: rgba(255, 255, 255, 0.56);
+    padding: 2rem;
+    text-align: center;
+    color: var(--app-muted);
+  }
+
+  .app-empty-icon {
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--app-radius-xl);
+    background: var(--app-primary-soft);
+    color: var(--app-primary);
+    font-size: 1.25rem;
+  }
+
+  .kpi-card {
+    background: linear-gradient(180deg, #ffffff, #fbf8f1);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius-2xl);
+    box-shadow: var(--app-shadow-md);
+    transition:
+      transform var(--transition-base),
+      box-shadow var(--transition-base);
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--app-shadow-lg);
+  }
+
+  .kpi-icon-chip {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--app-radius-lg);
+    background: var(--app-primary-soft);
+    color: var(--app-primary);
+  }
+
+  .mobile-list-card {
+    background: #ffffff;
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius-xl);
+    box-shadow: var(--app-shadow-sm);
+    padding: 1rem;
+  }
+
+  .mobile-list-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .mobile-list-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid rgba(216, 195, 165, 0.44);
+  }
+
+  .mobile-list-card-actions > * {
+    flex: 1;
+  }
+
+  .app-filter-stack {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .app-bottom-safe {
+    padding-bottom: calc(5rem + var(--app-safe-bottom));
+  }
+
+  @media (max-width: 768px) {
+    body {
+      background:
+        radial-gradient(circle at 20% 0%, rgba(31, 122, 92, 0.08), transparent 22rem),
+        var(--app-page);
+    }
+
+    .app-card,
+    .bento-card,
+    .card,
+    .chart-card {
+      border-radius: var(--app-radius-xl);
+    }
+
+    .app-btn {
+      min-height: 46px;
+      border-radius: var(--app-radius-lg);
+    }
+
+    .app-filter-stack {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
