@@ -80,6 +80,12 @@
       latestBehaviorVisibleCount: 5,
       dashboardBehaviorFilter: "all",
       dashboardBehaviorVisibleCount: 5,
+      memoFilter: "all",
+      memoVisibleCount: 5,
+      latestMemoFilter: "all",
+      latestMemoVisibleCount: 5,
+      dashboardMemoFilter: "all",
+      dashboardMemoVisibleCount: 5,
       fullStudentReport: false,
       teacherNote: "",
       parentEmail: "",
@@ -447,6 +453,63 @@
           0,
           this.globalBehaviorVisibleCount,
         );
+      },
+
+      get filteredStudentHistory() {
+        const history = this.studentHistory || [];
+        if (this.memoFilter === "setoran") {
+          return history.filter((log) => log.Category === "Setoran Baru");
+        }
+        if (this.memoFilter === "murojaah") {
+          return history.filter((log) => log.Category === "Muroja'ah");
+        }
+        return history;
+      },
+
+      get visibleStudentHistory() {
+        return this.filteredStudentHistory.slice(0, this.memoVisibleCount);
+      },
+
+      get hasMoreStudentHistory() {
+        return this.filteredStudentHistory.length > this.memoVisibleCount;
+      },
+
+      get filteredLatestLogs() {
+        const logs = this.summary.recentLogs || [];
+        if (this.latestMemoFilter === "hafalan") {
+          return logs.filter((log) => log.Category !== "Keterangan");
+        }
+        if (this.latestMemoFilter === "keterangan") {
+          return logs.filter((log) => log.Category === "Keterangan");
+        }
+        return logs;
+      },
+
+      get visibleLatestLogs() {
+        return this.filteredLatestLogs.slice(0, this.latestMemoVisibleCount);
+      },
+
+      get hasMoreLatestLogs() {
+        return this.filteredLatestLogs.length > this.latestMemoVisibleCount;
+      },
+
+      get filteredDashboardLogs() {
+        const logs = this.summary.recentLogs || [];
+        if (this.dashboardMemoFilter === "hafalan") {
+          return logs.filter((log) => log.Category !== "Keterangan");
+        }
+        if (this.dashboardMemoFilter === "keterangan") {
+          return logs.filter((log) => log.Category === "Keterangan");
+        }
+        return logs;
+      },
+
+      get visibleDashboardLogs() {
+        return this.filteredDashboardLogs.slice(0, this.dashboardMemoVisibleCount);
+      },
+
+      get hasMoreDashboardLogs() {
+        return this.filteredDashboardLogs.length > this.dashboardMemoVisibleCount;
       },
 
       get hasMoreRecentIncidents() {
@@ -886,6 +949,8 @@
         this.studentIncidents = [];
         this.behaviorFilter = "all";
         this.behaviorVisibleCount = 5;
+        this.memoFilter = "all";
+        this.memoVisibleCount = 5;
         this.refreshStudentDetail();
         this.loadFullStudentReport(student.StudentID);
       },

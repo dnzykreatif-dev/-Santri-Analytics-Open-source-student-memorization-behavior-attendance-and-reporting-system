@@ -278,33 +278,88 @@
   <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <!-- Recent Hafalan -->
     <div class="bento-card p-6 bg-white">
-      <h3 class="font-bold mb-4 flex items-center gap-2">
-        <span class="w-2 h-2 bg-green-500 rounded-full"></span> Hafalan Terbaru
-      </h3>
+      <div class="flex flex-col gap-3 mb-4">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="font-bold flex items-center gap-2">
+            <span class="w-2 h-2 bg-green-500 rounded-full"></span> Hafalan
+            Terbaru
+          </h3>
+          <span
+            class="text-[10px] font-bold text-gray-400"
+            x-text="filteredDashboardLogs.length + ' aktivitas'"
+          ></span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            @click="dashboardMemoFilter = 'all'; dashboardMemoVisibleCount = 5"
+            class="px-3 py-1 rounded-full text-[10px] font-bold border"
+            :class="dashboardMemoFilter === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200'"
+          >
+            Semua
+          </button>
+          <button
+            type="button"
+            @click="dashboardMemoFilter = 'hafalan'; dashboardMemoVisibleCount = 5"
+            class="px-3 py-1 rounded-full text-[10px] font-bold border"
+            :class="dashboardMemoFilter === 'hafalan' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-500 border-gray-200'"
+          >
+            Hafalan
+          </button>
+          <button
+            type="button"
+            @click="dashboardMemoFilter = 'keterangan'; dashboardMemoVisibleCount = 5"
+            class="px-3 py-1 rounded-full text-[10px] font-bold border"
+            :class="dashboardMemoFilter === 'keterangan' ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-500 border-gray-200'"
+          >
+            Keterangan
+          </button>
+        </div>
+      </div>
       <div class="space-y-3">
-        <template x-for="log in summary.recentLogs">
+        <template x-if="filteredDashboardLogs.length === 0">
+          <p class="text-sm text-gray-400 italic">Belum ada aktivitas hafalan</p>
+        </template>
+        <template x-for="log in visibleDashboardLogs" :key="log.LogID">
           <div
             class="flex justify-between items-center p-3 bg-gray-50 rounded-xl"
           >
             <div>
-              <p class="font-medium" x-text="log.Surah"></p>
+              <p
+                class="font-medium"
+                x-text="log.Category === 'Keterangan' ? (log.StudentName || 'Santri') : log.Surah"
+              ></p>
               <div class="flex gap-2 items-center">
                 <p
                   class="text-[10px] font-bold text-[#80A1C1]"
-                  x-text="log.Category"
+                  x-text="log.Category === 'Keterangan' ? log.Type : log.Category"
                 ></p>
                 <p
                   class="text-[10px] text-gray-400"
                   x-text="formatDate(log.DateLogged)"
                 ></p>
               </div>
+              <p
+                x-show="log.Category === 'Keterangan'"
+                class="text-xs text-gray-500 mt-1 italic"
+                x-text="log.Notes"
+              ></p>
             </div>
             <span
-              class="px-2 py-1 text-xs rounded-lg bg-green-100 text-green-700"
-              x-text="log.Status"
+              class="px-2 py-1 text-xs rounded-lg"
+              :class="log.Category === 'Keterangan' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'"
+              x-text="log.Category === 'Keterangan' ? 'Info' : log.Status"
             ></span>
           </div>
         </template>
+        <button
+          x-show="hasMoreDashboardLogs"
+          type="button"
+          @click="dashboardMemoVisibleCount += 5"
+          class="w-full py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200"
+        >
+          Muat Lagi
+        </button>
       </div>
     </div>
     <!-- Recent Incidents -->

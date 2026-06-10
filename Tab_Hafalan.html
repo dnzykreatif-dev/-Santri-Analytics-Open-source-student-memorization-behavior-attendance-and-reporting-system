@@ -201,11 +201,50 @@
 
       <!-- RIGHT: RECENT LOGS -->
       <div class="bg-gray-50 rounded-2xl p-6">
-        <h4 class="text-sm font-bold text-gray-400 mb-4 uppercase">
-          5 Aktivitas Terakhir
-        </h4>
+        <div class="flex flex-col gap-3 mb-4">
+          <div class="flex items-center justify-between gap-3">
+            <h4 class="text-sm font-bold text-gray-400 uppercase">
+              Aktivitas Terakhir
+            </h4>
+            <span
+              class="text-[10px] font-bold text-gray-400"
+              x-text="filteredLatestLogs.length + ' aktivitas'"
+            ></span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              @click="latestMemoFilter = 'all'; latestMemoVisibleCount = 5"
+              class="px-3 py-1 rounded-full text-[10px] font-bold border"
+              :class="latestMemoFilter === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200'"
+            >
+              Semua
+            </button>
+            <button
+              type="button"
+              @click="latestMemoFilter = 'hafalan'; latestMemoVisibleCount = 5"
+              class="px-3 py-1 rounded-full text-[10px] font-bold border"
+              :class="latestMemoFilter === 'hafalan' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-500 border-gray-200'"
+            >
+              Hafalan
+            </button>
+            <button
+              type="button"
+              @click="latestMemoFilter = 'keterangan'; latestMemoVisibleCount = 5"
+              class="px-3 py-1 rounded-full text-[10px] font-bold border"
+              :class="latestMemoFilter === 'keterangan' ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-500 border-gray-200'"
+            >
+              Keterangan
+            </button>
+          </div>
+        </div>
         <div class="space-y-3">
-          <template x-for="log in summary.recentLogs" :key="log.LogID">
+          <template x-if="filteredLatestLogs.length === 0">
+            <p class="text-sm text-gray-400 italic">
+              Belum ada aktivitas hafalan.
+            </p>
+          </template>
+          <template x-for="log in visibleLatestLogs" :key="log.LogID">
             <div
               class="bg-white p-4 rounded-xl shadow-sm text-sm border border-gray-100"
             >
@@ -269,6 +308,14 @@
               </div>
             </div>
           </template>
+          <button
+            x-show="hasMoreLatestLogs"
+            type="button"
+            @click="latestMemoVisibleCount += 5"
+            class="w-full py-2 rounded-xl bg-white text-gray-600 text-xs font-bold hover:bg-gray-100 border border-gray-100"
+          >
+            Muat Lagi
+          </button>
         </div>
       </div>
     </div>
