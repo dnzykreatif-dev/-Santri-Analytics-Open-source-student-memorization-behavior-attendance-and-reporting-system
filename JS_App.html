@@ -67,6 +67,7 @@
       },
       currentTab: "dashboard",
       error: "",
+      loginRole: "",
       showAddStudent: false,
       showDetailModal: false,
       selectedStudent: null,
@@ -652,7 +653,55 @@
       },
 
       // ===== AUTH ACTIONS =====
+      selectLoginRole(role) {
+        this.loginRole = role;
+        this.loginForm.username = "";
+        this.loginForm.password = "";
+        this.error = "";
+      },
+
+      resetLoginRole() {
+        this.loginRole = "";
+        this.loginForm.username = "";
+        this.loginForm.password = "";
+        this.error = "";
+      },
+
+      loginRoleLabel() {
+        const labels = {
+          admin: "Mudir / Admin",
+          ustadz: "Ustadz",
+          wali: "Wali Santri",
+        };
+        return labels[this.loginRole] || "Pengguna";
+      },
+
+      loginRoleIcon() {
+        const icons = {
+          admin: "A",
+          ustadz: "U",
+          wali: "W",
+        };
+        return icons[this.loginRole] || "-";
+      },
+
+      loginIdentityLabel() {
+        if (this.loginRole === "wali") return "No. HP / Username Wali";
+        if (this.loginRole === "ustadz") return "Username Ustadz";
+        return "Username Mudir / Admin";
+      },
+
+      loginIdentityPlaceholder() {
+        if (this.loginRole === "wali") return "08xxxxxxxxxx atau username";
+        if (this.loginRole === "ustadz") return "username ustadz";
+        return "username admin";
+      },
+
       handleLogin() {
+        if (!this.loginRole) {
+          this.error = "Pilih role login terlebih dahulu";
+          return;
+        }
         if (!this.loginForm.username || !this.loginForm.password) {
           this.error = "Username dan Password harus diisi";
           return;
@@ -713,6 +762,7 @@
       logout() {
         this.isLoggedIn = false;
         this.user = { Username: "", Role: "" };
+        this.resetLoginRole();
         sessionStorage.removeItem("user");
       },
 

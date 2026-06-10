@@ -82,6 +82,8 @@ Commit implementasi:
 
 Tujuan: login lebih jelas untuk Mudir/Admin, Ustadz, dan Wali.
 
+Status: selesai pada tahap awal. Login sudah dibuat dua tahap berbasis pilihan role di frontend. Role pilihan dipakai untuk label, placeholder, dan input mode; otorisasi tetap mengikuti role yang dikembalikan backend setelah login.
+
 Rencana:
 
 - Ubah `Layout_Login.html` menjadi login dua tahap:
@@ -101,6 +103,10 @@ Rencana:
 Commit target:
 
 `Upgrade role-based login experience`
+
+Commit implementasi:
+
+- Menunggu commit setelah validasi.
 
 ## Tahap 3: App Shell Mobile/Desktop
 
