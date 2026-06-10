@@ -6,8 +6,14 @@
   class="space-y-6"
 >
   <div class="bento-card p-6 bg-white">
-    <div class="flex justify-between items-center mb-6">
-      <h3 class="font-bold text-xl text-gray-800">Daftar Kasus Perilaku</h3>
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+      <div>
+        <h3 class="font-bold text-xl text-gray-800">Daftar Kasus Perilaku</h3>
+        <p
+          class="text-xs text-gray-400 mt-1"
+          x-text="filteredRecentIncidents.length + ' catatan ditampilkan berdasarkan filter'"
+        ></p>
+      </div>
       <button
         @click="currentTab = 'pelanggaran'"
         class="bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm"
@@ -15,13 +21,39 @@
         + Tambah Catatan
       </button>
     </div>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button
+        type="button"
+        @click="globalBehaviorFilter = 'all'; globalBehaviorVisibleCount = 5"
+        class="px-3 py-1 rounded-full text-xs font-bold border"
+        :class="globalBehaviorFilter === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200'"
+      >
+        Semua
+      </button>
+      <button
+        type="button"
+        @click="globalBehaviorFilter = 'Violation'; globalBehaviorVisibleCount = 5"
+        class="px-3 py-1 rounded-full text-xs font-bold border"
+        :class="globalBehaviorFilter === 'Violation' ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-500 border-gray-200'"
+      >
+        Pelanggaran
+      </button>
+      <button
+        type="button"
+        @click="globalBehaviorFilter = 'Improvement'; globalBehaviorVisibleCount = 5"
+        class="px-3 py-1 rounded-full text-xs font-bold border"
+        :class="globalBehaviorFilter === 'Improvement' ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-500 border-gray-200'"
+      >
+        Prestasi
+      </button>
+    </div>
     <div class="space-y-4">
-      <template x-if="summary.recentIncidents.length === 0">
+      <template x-if="filteredRecentIncidents.length === 0">
         <p class="text-center text-gray-400 py-10">
           Belum ada catatan perilaku.
         </p>
       </template>
-      <template x-for="inc in summary.recentIncidents" :key="inc.IncidentID">
+      <template x-for="inc in visibleRecentIncidents" :key="inc.IncidentID">
         <div
           class="p-4 border border-gray-100 rounded-xl hover:bg-red-50 transition-all border-l-4"
           :class="inc.IncidentType === 'Violation' ? 'border-red-400' : 'border-green-400'"
@@ -73,6 +105,14 @@
           </div>
         </div>
       </template>
+      <button
+        x-show="hasMoreRecentIncidents"
+        type="button"
+        @click="globalBehaviorVisibleCount += 5"
+        class="w-full py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200"
+      >
+        Muat Lagi
+      </button>
     </div>
   </div>
 </div>

@@ -73,6 +73,11 @@
       studentDetailTab: "hafalan",
       studentHistory: [],
       studentIncidents: [],
+      behaviorFilter: "all",
+      behaviorVisibleCount: 5,
+      globalBehaviorFilter: "all",
+      globalBehaviorVisibleCount: 5,
+      latestBehaviorVisibleCount: 5,
       fullStudentReport: false,
       teacherNote: "",
       parentEmail: "",
@@ -403,6 +408,63 @@
           );
         }
         return filtered;
+      },
+
+      get filteredStudentIncidents() {
+        const incidents = this.studentIncidents || [];
+        if (this.behaviorFilter === "Violation") {
+          return incidents.filter((inc) => inc.IncidentType === "Violation");
+        }
+        if (this.behaviorFilter === "Improvement") {
+          return incidents.filter((inc) => inc.IncidentType === "Improvement");
+        }
+        return incidents;
+      },
+
+      get visibleStudentIncidents() {
+        return this.filteredStudentIncidents.slice(0, this.behaviorVisibleCount);
+      },
+
+      get hasMoreStudentIncidents() {
+        return this.filteredStudentIncidents.length > this.behaviorVisibleCount;
+      },
+
+      get filteredRecentIncidents() {
+        const incidents = this.summary.recentIncidents || [];
+        if (this.globalBehaviorFilter === "Violation") {
+          return incidents.filter((inc) => inc.IncidentType === "Violation");
+        }
+        if (this.globalBehaviorFilter === "Improvement") {
+          return incidents.filter((inc) => inc.IncidentType === "Improvement");
+        }
+        return incidents;
+      },
+
+      get visibleRecentIncidents() {
+        return this.filteredRecentIncidents.slice(
+          0,
+          this.globalBehaviorVisibleCount,
+        );
+      },
+
+      get hasMoreRecentIncidents() {
+        return (
+          this.filteredRecentIncidents.length > this.globalBehaviorVisibleCount
+        );
+      },
+
+      get visibleLatestIncidents() {
+        return (this.summary.recentIncidents || []).slice(
+          0,
+          this.latestBehaviorVisibleCount,
+        );
+      },
+
+      get hasMoreLatestIncidents() {
+        return (
+          (this.summary.recentIncidents || []).length >
+          this.latestBehaviorVisibleCount
+        );
       },
 
       // ===== INITIALIZATION =====
@@ -795,6 +857,8 @@
         this.showDetailModal = true;
         this.studentHistory = [];
         this.studentIncidents = [];
+        this.behaviorFilter = "all";
+        this.behaviorVisibleCount = 5;
         this.refreshStudentDetail();
         this.loadFullStudentReport(student.StudentID);
       },

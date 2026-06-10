@@ -85,16 +85,50 @@
 
   <!-- Right: History -->
   <div class="space-y-4">
-    <h4 class="font-bold text-red-400">Rekam Jejak Perilaku</h4>
+    <div class="flex flex-col gap-3">
+      <div class="flex items-center justify-between gap-3">
+        <h4 class="font-bold text-red-400">Rekam Jejak Perilaku</h4>
+        <span
+          class="text-[10px] font-bold text-gray-400"
+          x-text="filteredStudentIncidents.length + ' catatan'"
+        ></span>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          @click="behaviorFilter = 'all'; behaviorVisibleCount = 5"
+          class="px-3 py-1 rounded-full text-[10px] font-bold border"
+          :class="behaviorFilter === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200'"
+        >
+          Semua
+        </button>
+        <button
+          type="button"
+          @click="behaviorFilter = 'Violation'; behaviorVisibleCount = 5"
+          class="px-3 py-1 rounded-full text-[10px] font-bold border"
+          :class="behaviorFilter === 'Violation' ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-500 border-gray-200'"
+        >
+          Pelanggaran
+        </button>
+        <button
+          type="button"
+          @click="behaviorFilter = 'Improvement'; behaviorVisibleCount = 5"
+          class="px-3 py-1 rounded-full text-[10px] font-bold border"
+          :class="behaviorFilter === 'Improvement' ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-500 border-gray-200'"
+        >
+          Prestasi
+        </button>
+      </div>
+    </div>
     <div class="space-y-3">
-      <template x-if="studentIncidents.length === 0">
+      <template x-if="filteredStudentIncidents.length === 0">
         <div
           class="text-center py-8 bg-white/50 rounded-2xl border-2 border-dashed border-gray-200"
         >
           <p class="text-gray-400 text-sm">Belum ada catatan perilaku.</p>
         </div>
       </template>
-      <template x-for="inc in studentIncidents" :key="inc.IncidentID">
+      <template x-for="inc in visibleStudentIncidents" :key="inc.IncidentID">
         <div
           class="bento-card p-4 bg-white border-l-4"
           :class="{
@@ -140,6 +174,14 @@
           </div>
         </div>
       </template>
+      <button
+        x-show="hasMoreStudentIncidents"
+        type="button"
+        @click="behaviorVisibleCount += 5"
+        class="w-full py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200"
+      >
+        Muat Lagi
+      </button>
     </div>
   </div>
 </div>

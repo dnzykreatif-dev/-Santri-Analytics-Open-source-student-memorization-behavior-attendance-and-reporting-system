@@ -105,7 +105,7 @@
         </h4>
         <div class="space-y-3">
           <template
-            x-for="inc in summary.recentIncidents"
+            x-for="inc in visibleLatestIncidents"
             :key="inc.IncidentID"
           >
             <div
@@ -158,6 +158,14 @@
               </div>
             </div>
           </template>
+          <button
+            x-show="hasMoreLatestIncidents"
+            type="button"
+            @click="latestBehaviorVisibleCount += 5"
+            class="w-full py-2 rounded-xl bg-white text-gray-500 text-xs font-bold hover:bg-gray-100 border border-gray-100"
+          >
+            Muat Lagi
+          </button>
         </div>
       </div>
     </div>
