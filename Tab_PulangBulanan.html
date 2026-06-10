@@ -230,7 +230,7 @@
                   Edit
                 </button>
                 <button
-                  x-show="user && user.Role === 'Mudir'"
+                  x-show="user && (user.Role === 'Mudir' || user.Role === 'Ustadz')"
                   type="button"
                   @click="deletePulangBulananAction(item)"
                   class="px-3 py-1 rounded-lg bg-red-100 text-red-700 font-bold hover:bg-red-200"
@@ -292,7 +292,7 @@
             <template x-for="s in students" :key="s.StudentID">
               <option
                 :value="s.StudentID"
-                x-text="(s.Name || s.StudentName || s.Nama) + ' - ' + (s.Class || s.Kelas || '-')"
+                x-text="(s.Name || s.StudentName || s.Nama) + ' - ' + (s['Class/Level'] || s.Class || s.Kelas || '-')"
               ></option>
             </template>
           </select>

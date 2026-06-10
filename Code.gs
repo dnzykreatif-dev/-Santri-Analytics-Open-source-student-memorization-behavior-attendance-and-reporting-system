@@ -183,12 +183,25 @@ function PB_getOrCreateSheet_(sheetName, headers) {
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
   }
-  const lastColumn = Math.max(sheet.getLastColumn(), headers.length);
-  const firstRow = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  const actualLastColumn = sheet.getLastColumn();
+  const readColumns = Math.max(actualLastColumn, headers.length);
+  const firstRow = sheet.getRange(1, 1, 1, readColumns).getValues()[0];
   const isEmpty = firstRow.every((v) => v === "" || v === null);
   if (isEmpty) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
+  } else {
+    const existingHeaders = firstRow
+      .slice(0, actualLastColumn)
+      .map((header) => String(header || "").trim());
+    const missingHeaders = headers.filter(
+      (header) => !existingHeaders.includes(header),
+    );
+    if (missingHeaders.length > 0) {
+      sheet
+        .getRange(1, actualLastColumn + 1, 1, missingHeaders.length)
+        .setValues([missingHeaders]);
+    }
   }
   return sheet;
 }
@@ -235,13 +248,51 @@ function PB_num_(value) {
   return isNaN(n) ? 0 : n;
 }
 
+function PB_success_(data, message) {
+  return {
+    ok: true,
+    success: true,
+    data,
+    message: message || "",
+  };
+}
+
+function PB_error_(message) {
+  return {
+    ok: false,
+    success: false,
+    message: message || "Terjadi kesalahan.",
+  };
+}
+
+function PB_formatDate_(value) {
+  if (!value) return "";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return PB_text_(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return year + "-" + month + "-" + day;
+}
+
+function PB_getStudentClass_(student) {
+  if (!student) return "";
+  return (
+    student["Class/Level"] ||
+    student.Class ||
+    student.Kelas ||
+    student.ClassLevel ||
+    ""
+  );
+}
+
 // Setup Sheet Pulang Bulanan
 function setupPulangBulanan() {
   PB_getOrCreateSheet_(SHEET_PULANG_BULANAN, PULANG_BULANAN_HEADERS);
-  return {
-    success: true,
-    message: "Sheet PulangBulanan berhasil disiapkan.",
-  };
+  return PB_success_(null, "Sheet PulangBulanan berhasil disiapkan.");
 }
 
 // Helper validasi role
@@ -261,15 +312,9 @@ function PB_canViewPulang_(currentUser) {
 
 // Helper ambil data santri
 function PB_getStudentById_(studentId) {
-  let students = [];
-  if (typeof getStudents === "function") {
-    const res = getStudents();
-    if (Array.isArray(res)) {
-      students = res;
-    } else if (res && res.success && Array.isArray(res.data)) {
-      students = res.data;
-    }
-  }
+  const sheet = getSheet_("Students");
+  if (!sheet) return null;
+  const students = normalizeSheetData(sheet.getDataRange().getValues());
   return (
     students.find((s) => String(s.StudentID) === String(studentId)) || null
   );
@@ -281,12 +326,12 @@ function PB_calculateLateMinutes_(tanggalKembali, jamKembali, batasJamKembali) {
     return 0;
   }
   const batas = batasJamKembali || "17:00";
-  const kembaliDate = new Date(tanggalKembali);
+  const kembaliDate = new Date(PB_formatDate_(tanggalKembali) + "T00:00:00");
   const kembaliParts = String(jamKembali).split(":");
   kembaliDate.setHours(Number(kembaliParts[0] || 0));
   kembaliDate.setMinutes(Number(kembaliParts[1] || 0));
   kembaliDate.setSeconds(0);
-  const batasDate = new Date(tanggalKembali);
+  const batasDate = new Date(PB_formatDate_(tanggalKembali) + "T00:00:00");
   const batasParts = String(batas).split(":");
   batasDate.setHours(Number(batasParts[0] || 17));
   batasDate.setMinutes(Number(batasParts[1] || 0));
@@ -380,9 +425,9 @@ function getPulangBulananLogs(currentUser, filters) {
       Year: l.Year || "",
       PeriodLabel: l.PeriodLabel || "",
       StatusPulang: l.StatusPulang || "",
-      TanggalPulang: l.TanggalPulang || "",
+      TanggalPulang: PB_formatDate_(l.TanggalPulang),
       JamPulang: l.JamPulang || "",
-      TanggalKembali: l.TanggalKembali || "",
+      TanggalKembali: PB_formatDate_(l.TanggalKembali),
       JamKembali: l.JamKembali || "",
       StatusKembali: l.StatusKembali || "",
       KeterlambatanMenit: l.KeterlambatanMenit || 0,
@@ -402,15 +447,9 @@ function getPulangBulananLogs(currentUser, filters) {
       if (by !== ay) return by - ay;
       return bm - am;
     });
-    return {
-      success: true,
-      data: logs,
-    };
+    return PB_success_(logs, "Data pulang bulanan berhasil dimuat.");
   } catch (err) {
-    return {
-      success: false,
-      message: err.message,
-    };
+    return PB_error_(err.message);
   }
 }
 
@@ -440,7 +479,7 @@ function savePulangBulanan(payload, currentUser) {
       ? student.Name || student.StudentName || student.Nama || ""
       : PB_text_(payload.StudentName);
     const studentClass = student
-      ? student.Class || student.Kelas || ""
+      ? PB_getStudentClass_(student)
       : PB_text_(payload.Class);
     const sheet = PB_getOrCreateSheet_(
       SHEET_PULANG_BULANAN,
@@ -480,9 +519,9 @@ function savePulangBulanan(payload, currentUser) {
       Year: year,
       PeriodLabel: periodLabel,
       StatusPulang: PB_text_(payload.StatusPulang),
-      TanggalPulang: PB_text_(payload.TanggalPulang),
+      TanggalPulang: PB_formatDate_(payload.TanggalPulang),
       JamPulang: PB_text_(payload.JamPulang),
-      TanggalKembali: PB_text_(payload.TanggalKembali),
+      TanggalKembali: PB_formatDate_(payload.TanggalKembali),
       JamKembali: PB_text_(payload.JamKembali),
       StatusKembali: statusKembali,
       KeterlambatanMenit: lateMinutes,
@@ -495,16 +534,9 @@ function savePulangBulanan(payload, currentUser) {
       UpdatedAt: PB_now_(),
     };
     sheet.appendRow(PB_objectToRow_(newLog, PULANG_BULANAN_HEADERS));
-    return {
-      success: true,
-      message: "Data pulang bulanan berhasil disimpan.",
-      data: newLog,
-    };
+    return PB_success_(newLog, "Data pulang bulanan berhasil disimpan.");
   } catch (err) {
-    return {
-      success: false,
-      message: err.message,
-    };
+    return PB_error_(err.message);
   }
 }
 
@@ -531,7 +563,7 @@ function updatePulangBulanan(pulangId, payload, currentUser) {
       ? student.Name || student.StudentName || student.Nama || ""
       : PB_text_(payload.StudentName || target.StudentName);
     const studentClass = student
-      ? student.Class || student.Kelas || ""
+      ? PB_getStudentClass_(student)
       : PB_text_(payload.Class || target.Class);
     const month = PB_text_(payload.Month || target.Month);
     const year = PB_text_(payload.Year || target.Year);
@@ -564,9 +596,9 @@ function updatePulangBulanan(pulangId, payload, currentUser) {
     target.Year = year;
     target.PeriodLabel = PB_getMonthName_(month) + " " + year;
     target.StatusPulang = PB_text_(payload.StatusPulang || target.StatusPulang);
-    target.TanggalPulang = PB_text_(payload.TanggalPulang);
+    target.TanggalPulang = PB_formatDate_(payload.TanggalPulang);
     target.JamPulang = PB_text_(payload.JamPulang);
-    target.TanggalKembali = PB_text_(payload.TanggalKembali);
+    target.TanggalKembali = PB_formatDate_(payload.TanggalKembali);
     target.JamKembali = PB_text_(payload.JamKembali);
     target.StatusKembali = statusKembali;
     target.KeterlambatanMenit = lateMinutes;
@@ -578,16 +610,9 @@ function updatePulangBulanan(pulangId, payload, currentUser) {
     sheet
       .getRange(target._rowNumber, 1, 1, PULANG_BULANAN_HEADERS.length)
       .setValues([PB_objectToRow_(target, PULANG_BULANAN_HEADERS)]);
-    return {
-      success: true,
-      message: "Data pulang bulanan berhasil diperbarui.",
-      data: target,
-    };
+    return PB_success_(target, "Data pulang bulanan berhasil diperbarui.");
   } catch (err) {
-    return {
-      success: false,
-      message: err.message,
-    };
+    return PB_error_(err.message);
   }
 }
 
@@ -609,15 +634,9 @@ function deletePulangBulanan(pulangId, currentUser) {
       throw new Error("Data pulang bulanan tidak ditemukan.");
     }
     sheet.deleteRow(target._rowNumber);
-    return {
-      success: true,
-      message: "Data pulang bulanan berhasil dihapus.",
-    };
+    return PB_success_(null, "Data pulang bulanan berhasil dihapus.");
   } catch (err) {
-    return {
-      success: false,
-      message: err.message,
-    };
+    return PB_error_(err.message);
   }
 }
 
@@ -644,9 +663,8 @@ function getPulangBulananSummary(currentUser, filters) {
     const belumKembali = logs.filter(
       (l) => l.StatusKembali === "Belum Kembali",
     ).length;
-    return {
-      success: true,
-      data: {
+    return PB_success_(
+      {
         total,
         pulang,
         tidakPulang,
@@ -655,11 +673,9 @@ function getPulangBulananSummary(currentUser, filters) {
         terlambat,
         belumKembali,
       },
-    };
+      "Ringkasan pulang bulanan berhasil dimuat.",
+    );
   } catch (err) {
-    return {
-      success: false,
-      message: err.message,
-    };
+    return PB_error_(err.message);
   }
 }

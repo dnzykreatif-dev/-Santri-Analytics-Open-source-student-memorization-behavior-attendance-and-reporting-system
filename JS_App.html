@@ -1527,7 +1527,7 @@
         }
         google.script.run
           .withSuccessHandler((res) => {
-            if (res && res.success) {
+            if (res && (res.success || res.ok)) {
               this.pulangBulananLogs = res.data || [];
             } else {
               this.showToast(
@@ -1552,7 +1552,7 @@
         }
         google.script.run
           .withSuccessHandler((res) => {
-            if (res && res.success) {
+            if (res && (res.success || res.ok)) {
               this.pulangSummary = res.data || {
                 total: 0,
                 pulang: 0,
@@ -1618,7 +1618,7 @@
         );
         if (s) {
           this.pulangForm.StudentName = s.Name || s.StudentName || s.Nama || "";
-          this.pulangForm.Class = s.Class || s.Kelas || "";
+          this.pulangForm.Class = s["Class/Level"] || s.Class || s.Kelas || "";
         }
       },
 
@@ -1687,7 +1687,7 @@
         if (this.pulangEditMode) {
           google.script.run
             .withSuccessHandler((res) => {
-              if (res && res.success) {
+              if (res && (res.success || res.ok)) {
                 this.showToast(
                   res.message || "Data berhasil diperbarui.",
                   "success",
@@ -1712,7 +1712,7 @@
         } else {
           google.script.run
             .withSuccessHandler((res) => {
-              if (res && res.success) {
+              if (res && (res.success || res.ok)) {
                 this.showToast(
                   res.message || "Data berhasil disimpan.",
                   "success",
@@ -1738,7 +1738,7 @@
         }
         google.script.run
           .withSuccessHandler((res) => {
-            if (res && res.success) {
+            if (res && (res.success || res.ok)) {
               this.showToast(
                 res.message || "Data berhasil dihapus.",
                 "success",
