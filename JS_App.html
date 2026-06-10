@@ -78,6 +78,8 @@
       globalBehaviorFilter: "all",
       globalBehaviorVisibleCount: 5,
       latestBehaviorVisibleCount: 5,
+      dashboardBehaviorFilter: "all",
+      dashboardBehaviorVisibleCount: 5,
       fullStudentReport: false,
       teacherNote: "",
       parentEmail: "",
@@ -464,6 +466,31 @@
         return (
           (this.summary.recentIncidents || []).length >
           this.latestBehaviorVisibleCount
+        );
+      },
+
+      get filteredDashboardIncidents() {
+        const incidents = this.summary.recentIncidents || [];
+        if (this.dashboardBehaviorFilter === "Violation") {
+          return incidents.filter((inc) => inc.IncidentType === "Violation");
+        }
+        if (this.dashboardBehaviorFilter === "Improvement") {
+          return incidents.filter((inc) => inc.IncidentType === "Improvement");
+        }
+        return incidents;
+      },
+
+      get visibleDashboardIncidents() {
+        return this.filteredDashboardIncidents.slice(
+          0,
+          this.dashboardBehaviorVisibleCount,
+        );
+      },
+
+      get hasMoreDashboardIncidents() {
+        return (
+          this.filteredDashboardIncidents.length >
+          this.dashboardBehaviorVisibleCount
         );
       },
 

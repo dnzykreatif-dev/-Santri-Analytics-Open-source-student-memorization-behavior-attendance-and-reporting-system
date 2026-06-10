@@ -309,14 +309,52 @@
     </div>
     <!-- Recent Incidents -->
     <div class="bento-card p-6 bg-white">
-      <h3 class="font-bold mb-4 flex items-center gap-2">
-        <span class="w-2 h-2 bg-red-500 rounded-full"></span> Catatan Perilaku
-      </h3>
+      <div class="flex flex-col gap-3 mb-4">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="font-bold flex items-center gap-2">
+            <span class="w-2 h-2 bg-red-500 rounded-full"></span> Catatan
+            Perilaku
+          </h3>
+          <span
+            class="text-[10px] font-bold text-gray-400"
+            x-text="filteredDashboardIncidents.length + ' catatan'"
+          ></span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            @click="dashboardBehaviorFilter = 'all'; dashboardBehaviorVisibleCount = 5"
+            class="px-3 py-1 rounded-full text-[10px] font-bold border"
+            :class="dashboardBehaviorFilter === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200'"
+          >
+            Semua
+          </button>
+          <button
+            type="button"
+            @click="dashboardBehaviorFilter = 'Violation'; dashboardBehaviorVisibleCount = 5"
+            class="px-3 py-1 rounded-full text-[10px] font-bold border"
+            :class="dashboardBehaviorFilter === 'Violation' ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-500 border-gray-200'"
+          >
+            Pelanggaran
+          </button>
+          <button
+            type="button"
+            @click="dashboardBehaviorFilter = 'Improvement'; dashboardBehaviorVisibleCount = 5"
+            class="px-3 py-1 rounded-full text-[10px] font-bold border"
+            :class="dashboardBehaviorFilter === 'Improvement' ? 'bg-green-500 text-white border-green-500' : 'bg-white text-gray-500 border-gray-200'"
+          >
+            Prestasi
+          </button>
+        </div>
+      </div>
       <div class="space-y-3">
-        <template x-if="summary.recentIncidents.length === 0">
+        <template x-if="filteredDashboardIncidents.length === 0">
           <p class="text-sm text-gray-400 italic">Belum ada catatan perilaku</p>
         </template>
-        <template x-for="inc in summary.recentIncidents" :key="inc.IncidentID">
+        <template
+          x-for="inc in visibleDashboardIncidents"
+          :key="inc.IncidentID"
+        >
           <div
             class="p-3 bg-gray-50 rounded-xl hover:bg-red-50 transition-colors border-l-4"
             :class="inc.IncidentType === 'Violation' ? 'border-red-400' : 'border-green-400'"
@@ -368,6 +406,14 @@
             </div>
           </div>
         </template>
+        <button
+          x-show="hasMoreDashboardIncidents"
+          type="button"
+          @click="dashboardBehaviorVisibleCount += 5"
+          class="w-full py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200"
+        >
+          Muat Lagi
+        </button>
       </div>
     </div>
   </div>
