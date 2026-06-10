@@ -62,11 +62,17 @@
   </form>
 
   <div class="mt-6">
-    <h3 class="font-semibold mb-3">Link Tersimpan</h3>
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <h3 class="font-semibold">Link Tersimpan</h3>
+      <span
+        class="text-xs text-gray-400"
+        x-text="(linkLiveList || []).length + ' link'"
+      ></span>
+    </div>
     <template x-if="linkLiveList.length === 0">
       <p class="text-gray-500 italic">Belum ada link tersimpan</p>
     </template>
-    <template x-for="link in linkLiveList" :key="link.LinkID">
+    <template x-for="link in visibleLinkLiveList" :key="link.LinkID">
       <div
         class="flex justify-between items-center p-3 border rounded-md mb-2 hover:bg-gray-50"
       >
@@ -102,5 +108,19 @@
         </div>
       </div>
     </template>
+    <div class="mt-3 flex flex-col items-center gap-2">
+      <p
+        class="text-xs text-gray-400"
+        x-text="'Menampilkan ' + visibleLinkLiveList.length + ' dari ' + (linkLiveList || []).length + ' link'"
+      ></p>
+      <button
+        x-show="hasMoreLinkLiveList"
+        type="button"
+        @click="linkLiveVisibleCount += 5"
+        class="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200"
+      >
+        Muat Lagi
+      </button>
+    </div>
   </div>
 </div>

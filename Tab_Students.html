@@ -16,6 +16,7 @@
           <input
             type="text"
             x-model="searchQuery"
+            @input="studentVisibleCount = 10"
             placeholder="Cari nama santri..."
             class="text-sm border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#FAD4C0] w-48"
           />
@@ -25,6 +26,7 @@
             >
             <select
               x-model="filterClass"
+              @change="studentVisibleCount = 10"
               class="text-sm border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#FAD4C0]"
             >
               <option value="">Semua</option>
@@ -59,7 +61,7 @@
 
     <!-- CONTENT: Mobile Card View -->
     <div x-show="!loading" class="md:hidden grid grid-cols-1 gap-4">
-      <template x-for="s in filteredStudents" :key="s.StudentID">
+      <template x-for="s in visibleStudents" :key="s.StudentID">
         <div
           @click="openStudentDetail(s)"
           class="bento-card p-4 bg-white border border-gray-100 flex justify-between items-center cursor-pointer hover:bg-gray-50"
@@ -105,7 +107,7 @@
           </tr>
         </thead>
         <tbody class="divide-y">
-          <template x-for="s in filteredStudents" :key="s.StudentID">
+          <template x-for="s in visibleStudents" :key="s.StudentID">
             <tr
               class="hover:bg-gray-50/50 cursor-pointer"
               @click="openStudentDetail(s)"
@@ -141,6 +143,20 @@
           </template>
         </tbody>
       </table>
+    </div>
+    <div x-show="!loading" class="mt-4 flex flex-col items-center gap-2">
+      <p
+        class="text-xs text-gray-400"
+        x-text="'Menampilkan ' + visibleStudents.length + ' dari ' + filteredStudents.length + ' santri'"
+      ></p>
+      <button
+        x-show="hasMoreStudents"
+        type="button"
+        @click="studentVisibleCount += 10"
+        class="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200"
+      >
+        Muat Lagi
+      </button>
     </div>
   </div>
 </div>

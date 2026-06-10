@@ -103,6 +103,7 @@
       },
       searchQuery: "",
       filterClass: "",
+      studentVisibleCount: 10,
       showRegister: false,
       registerError: "",
       // === STATE LINKS ===
@@ -120,12 +121,14 @@
         Type: "Live",
       },
       editModeLinkLive: false,
+      linkLiveVisibleCount: 5,
 
       // === STATE USER MANAGEMENT ===
       users: [],
       userSearchQuery: "",
       userFilterRole: "",
       userFilterStatus: "",
+      userVisibleCount: 10,
       showAddUserModal: false,
       editModeUser: null,
       userForm: {
@@ -160,6 +163,7 @@
         { value: "12", label: "Desember" },
       ],
       pulangBulananLogs: [],
+      pulangVisibleCount: 10,
       pulangSummary: {
         total: 0,
         pulang: 0,
@@ -206,6 +210,7 @@
               this.studentLinks = res.data.links || [];
               this.linkLiveList =
                 res.data.links?.filter((l) => l.Type === "Live") || [];
+              this.linkLiveVisibleCount = 5;
             } else {
               this.showToast("Gagal memuat links", "error");
             }
@@ -398,6 +403,14 @@
         return filtered;
       },
 
+      get visibleStudents() {
+        return this.filteredStudents.slice(0, this.studentVisibleCount);
+      },
+
+      get hasMoreStudents() {
+        return this.filteredStudents.length > this.studentVisibleCount;
+      },
+
       get filteredUsers() {
         let filtered = this.users;
         if (this.userFilterRole) {
@@ -416,6 +429,30 @@
           );
         }
         return filtered;
+      },
+
+      get visibleUsers() {
+        return this.filteredUsers.slice(0, this.userVisibleCount);
+      },
+
+      get hasMoreUsers() {
+        return this.filteredUsers.length > this.userVisibleCount;
+      },
+
+      get visiblePulangBulananLogs() {
+        return (this.pulangBulananLogs || []).slice(0, this.pulangVisibleCount);
+      },
+
+      get hasMorePulangBulananLogs() {
+        return (this.pulangBulananLogs || []).length > this.pulangVisibleCount;
+      },
+
+      get visibleLinkLiveList() {
+        return (this.linkLiveList || []).slice(0, this.linkLiveVisibleCount);
+      },
+
+      get hasMoreLinkLiveList() {
+        return (this.linkLiveList || []).length > this.linkLiveVisibleCount;
       },
 
       get filteredStudentIncidents() {
@@ -874,7 +911,10 @@
         google.script.run
           .withSuccessHandler((res) => {
             this.loading = false;
-            if (res.ok) this.students = res.data.students;
+            if (res.ok) {
+              this.students = res.data.students;
+              this.studentVisibleCount = 10;
+            }
           })
           .withFailureHandler(() => {
             this.loading = false;
@@ -1453,6 +1493,7 @@
             this.loading = false;
             if (res.ok) {
               this.users = res.data.users;
+              this.userVisibleCount = 10;
               // Calculate recent users (created in last 30 days)
               const thirtyDaysAgo = new Date();
               thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -1681,6 +1722,7 @@
         if (!this.user) {
           return;
         }
+        this.pulangVisibleCount = 10;
         google.script.run
           .withSuccessHandler((res) => {
             if (res && (res.success || res.ok)) {
