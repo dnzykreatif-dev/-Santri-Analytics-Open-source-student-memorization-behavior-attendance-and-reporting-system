@@ -66,6 +66,7 @@
         attentionStudents: [],
       },
       currentTab: "dashboard",
+      mobileMoreOpen: false,
       error: "",
       loginRole: "",
       showAddStudent: false,
@@ -627,6 +628,15 @@
         }
       },
 
+      setCurrentTab(tab) {
+        this.currentTab = tab;
+        this.mobileMoreOpen = false;
+        if (tab === "dashboard") this.fetchSummary();
+        if (tab === "santri") this.fetchStudents();
+        if (tab === "users") this.fetchUsers();
+        if (tab === "pulang_bulanan") this.loadPulangBulanan();
+      },
+
       // ===== HELPER: SCROLL TO FORM =====
       scrollToForm() {
         const bentoCard = this.$el?.querySelector(".bento-card");
@@ -762,6 +772,7 @@
       logout() {
         this.isLoggedIn = false;
         this.user = { Username: "", Role: "" };
+        this.mobileMoreOpen = false;
         this.resetLoginRole();
         sessionStorage.removeItem("user");
       },

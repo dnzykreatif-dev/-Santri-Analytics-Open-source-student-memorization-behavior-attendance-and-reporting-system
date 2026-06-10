@@ -112,6 +112,8 @@ Commit implementasi:
 
 Tujuan: navigasi lebih nyaman tanpa mengganti tab logic yang sudah ada.
 
+Status: selesai pada tahap awal. Header, sidebar desktop, dan bottom navigation mobile sudah dimodernisasi dengan helper `setCurrentTab()`. Nama tab lama tetap dipakai agar kontrak halaman tidak berubah.
+
 Rencana:
 
 - Desktop:
@@ -132,6 +134,10 @@ Rencana:
 Commit target:
 
 `Modernize app shell navigation`
+
+Commit implementasi:
+
+- Menunggu commit setelah validasi.
 
 ## Tahap 4: Dashboard Refresh
 

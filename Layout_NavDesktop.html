@@ -1,202 +1,143 @@
 <!-- Layout Navigation Desktop -->
-<!-- Desktop Sidebar Navigation -->
-<div class="hidden md:flex sidebar">
-  <div class="sidebar-nav">
-    <!-- Logo Area -->
-    <div class="sidebar-header">
-      <div class="logo-icon">🏫</div>
-      <div class="logo-text">
-        <span class="logo-title">Monitor</span>
-        <span class="logo-subtitle">Santri</span>
-      </div>
-    </div>
-
-    <!-- Navigation Menu -->
-    <nav class="sidebar-nav">
-      <!-- Dashboard -->
-      <button
-        @click="currentTab = 'dashboard'; fetchSummary()"
-        :class="currentTab === 'dashboard' ? 'nav-item active' : 'nav-item'"
-      >
-        <span class="nav-icon">📊</span>
-        <span class="nav-label">Dashboard</span>
-      </button>
-
-      <!-- Santri -->
-      <button
-        @click="currentTab = 'santri'; fetchStudents()"
-        :class="currentTab === 'santri' ? 'nav-item active' : 'nav-item'"
-      >
-        <span class="nav-icon">👥</span>
-        <span class="nav-label">Santri</span>
-      </button>
-
-      <!-- Role-based menus -->
-      <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
-        <div class="nav-section">
-          <div class="nav-section-label">Menu Ustadz</div>
-
-          <!-- Input Hafalan -->
-          <button
-            @click="currentTab = 'hafalan'"
-            :class="currentTab === 'hafalan' ? 'nav-item active' : 'nav-item'"
-          >
-            <span class="nav-icon">📖</span>
-            <span class="nav-label">Input Hafalan</span>
-          </button>
-
-          <!-- Input Perilaku -->
-          <button
-            @click="currentTab = 'pelanggaran'"
-            :class="currentTab === 'pelanggaran' ? 'nav-item active' : 'nav-item'"
-          >
-            <span class="nav-icon">📋</span>
-            <span class="nav-label">Input Perilaku</span>
-          </button>
-
-          <!-- Link Hafalan -->
-          <button
-            @click="currentTab = 'link_live'"
-            :class="currentTab === 'link_live' ? 'nav-item active' : 'nav-item'"
-          >
-            <span class="nav-icon">🔗</span>
-            <span class="nav-label">Link Hafalan</span>
-          </button>
-
-          <!-- Pulang Bulanan -->
-          <button
-            @click="currentTab = 'pulang_bulanan'; loadPulangBulanan()"
-            :class="currentTab === 'pulang_bulanan' ? 'nav-item active' : 'nav-item'"
-          >
-            <span class="nav-icon">📅</span>
-            <span class="nav-label">Pulang Bulanan</span>
-          </button>
-        </div>
-      </template>
-
-      <!-- Panduan -->
-      <div class="nav-section">
-        <div class="nav-section-label">Panduan</div>
-
-        <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
-          <button
-            @click="currentTab = 'panduan'"
-            :class="currentTab === 'panduan' ? 'nav-item active' : 'nav-item'"
-          >
-            <span class="nav-icon">📚</span>
-            <span class="nav-label">Panduan Ustadz</span>
-          </button>
-        </template>
-
-        <button
-          @click="currentTab = 'panduan_wali'"
-          :class="currentTab === 'panduan_wali' ? 'nav-item active' : 'nav-item'"
-        >
-          <span class="nav-icon">👨‍👩‍👧</span>
-          <span class="nav-label">Panduan Wali</span>
-        </button>
-
-        <!-- Pulang Bulanan - Visible to all users including Wali -->
-        <button
-          @click="currentTab = 'pulang_bulanan'; loadPulangBulanan()"
-          :class="currentTab === 'pulang_bulanan' ? 'nav-item active' : 'nav-item'"
-        >
-          <span class="nav-icon">📅</span>
-          <span class="nav-label">Pulang Bulanan</span>
-        </button>
-      </div>
-
-      <!-- Admin Menu -->
-      <template x-if="user?.Role === 'Mudir' || user?.Role === 'Admin'">
-        <div class="nav-section">
-          <div class="nav-section-label">Administrator</div>
-
-          <button
-            @click="currentTab = 'users'; fetchUsers()"
-            :class="currentTab === 'users' ? 'nav-item active' : 'nav-item'"
-          >
-            <span class="nav-icon">⚙️</span>
-            <span class="nav-label">Manajemen User</span>
-          </button>
-        </div>
-      </template>
-    </nav>
-
-    <!-- User Info & Logout -->
-    <div class="sidebar-footer">
-      <div class="user-card">
-        <div class="user-avatar" x-text="user?.Name?.charAt(0) || 'U'"></div>
-        <div class="user-info">
-          <p class="user-name" x-text="user?.Name || 'User'"></p>
-          <p class="user-role" x-text="user?.Role || 'Guest'"></p>
-        </div>
-      </div>
-      <button @click="logout()" class="logout-btn">
-        <span>🚪</span> Logout
-      </button>
+<aside class="app-sidebar hidden md:flex">
+  <div class="app-sidebar-brand">
+    <div class="app-sidebar-logo">SA</div>
+    <div class="min-w-0">
+      <p class="font-black text-gray-900 leading-tight">Monitor Santri</p>
+      <p class="text-xs text-gray-500">Raudhatul Ulum</p>
     </div>
   </div>
-</div>
 
-<!-- Mobile Bottom Navigation (existing) -->
-<nav class="md:hidden flex justify-center gap-2 mb-6">
-  <button
-    @click="currentTab = 'dashboard'; fetchSummary()"
-    :class="currentTab === 'dashboard' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
-    class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
-  >
-    Dashboard
-  </button>
-  <button
-    @click="currentTab = 'santri'; fetchStudents()"
-    :class="currentTab === 'santri' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
-    class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
-  >
-    Santri
-  </button>
+  <nav class="app-sidebar-nav">
+    <button
+      type="button"
+      @click="setCurrentTab('dashboard')"
+      class="app-sidebar-item"
+      :class="{ 'is-active': currentTab === 'dashboard' }"
+    >
+      <span class="app-sidebar-icon">D</span>
+      <span>Dashboard</span>
+    </button>
 
-  <!-- Pulang Bulanan - Visible to all users including Wali -->
-  <button
-    @click="currentTab = 'pulang_bulanan'; loadPulangBulanan()"
-    :class="currentTab === 'pulang_bulanan' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
-    class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
-  >
-    Pulang
-  </button>
+    <button
+      type="button"
+      @click="setCurrentTab('santri')"
+      class="app-sidebar-item"
+      :class="{ 'is-active': currentTab === 'santri' }"
+    >
+      <span class="app-sidebar-icon">S</span>
+      <span>Santri</span>
+    </button>
 
-  <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
-    <div class="flex gap-2">
+    <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
+      <div class="app-sidebar-section">
+        <p class="app-sidebar-label">Operasional</p>
+
+        <button
+          type="button"
+          @click="setCurrentTab('hafalan')"
+          class="app-sidebar-item"
+          :class="{ 'is-active': currentTab === 'hafalan' }"
+        >
+          <span class="app-sidebar-icon">H</span>
+          <span>Input Hafalan</span>
+        </button>
+
+        <button
+          type="button"
+          @click="setCurrentTab('pelanggaran')"
+          class="app-sidebar-item"
+          :class="{ 'is-active': currentTab === 'pelanggaran' }"
+        >
+          <span class="app-sidebar-icon">P</span>
+          <span>Input Perilaku</span>
+        </button>
+
+        <button
+          type="button"
+          @click="setCurrentTab('list_perilaku')"
+          class="app-sidebar-item"
+          :class="{ 'is-active': currentTab === 'list_perilaku' }"
+        >
+          <span class="app-sidebar-icon">C</span>
+          <span>Catatan Perilaku</span>
+        </button>
+
+        <button
+          type="button"
+          @click="setCurrentTab('link_live')"
+          class="app-sidebar-item"
+          :class="{ 'is-active': currentTab === 'link_live' }"
+        >
+          <span class="app-sidebar-icon">L</span>
+          <span>Link Hafalan</span>
+        </button>
+      </div>
+    </template>
+
+    <div class="app-sidebar-section">
+      <p class="app-sidebar-label">Lainnya</p>
+
       <button
-        @click="currentTab = 'hafalan'"
-        :class="currentTab === 'hafalan' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
-        class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+        type="button"
+        @click="setCurrentTab('pulang_bulanan')"
+        class="app-sidebar-item"
+        :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
       >
-        Hafalan
+        <span class="app-sidebar-icon">B</span>
+        <span>Pulang Bulanan</span>
       </button>
+
+      <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
+        <button
+          type="button"
+          @click="setCurrentTab('panduan')"
+          class="app-sidebar-item"
+          :class="{ 'is-active': currentTab === 'panduan' }"
+        >
+          <span class="app-sidebar-icon">U</span>
+          <span>Panduan Ustadz</span>
+        </button>
+      </template>
+
       <button
-        @click="currentTab = 'pelanggaran'"
-        :class="currentTab === 'pelanggaran' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
-        class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+        type="button"
+        @click="setCurrentTab('panduan_wali')"
+        class="app-sidebar-item"
+        :class="{ 'is-active': currentTab === 'panduan_wali' }"
       >
-        Perilaku
+        <span class="app-sidebar-icon">W</span>
+        <span>Panduan Wali</span>
       </button>
     </div>
-  </template>
 
-  <template x-if="user?.Role === 'Mudir' || user?.Role === 'Admin'">
-    <button
-      @click="currentTab = 'users'; fetchUsers()"
-      :class="currentTab === 'users' ? 'bg-[#FAD4C0] shadow-inner' : 'hover:bg-gray-100'"
-      class="px-4 py-2 rounded-xl text-sm font-bold transition-all"
-    >
-      Users
+    <template x-if="user?.Role === 'Mudir' || user?.Role === 'Admin'">
+      <div class="app-sidebar-section">
+        <p class="app-sidebar-label">Administrator</p>
+        <button
+          type="button"
+          @click="setCurrentTab('users')"
+          class="app-sidebar-item"
+          :class="{ 'is-active': currentTab === 'users' }"
+        >
+          <span class="app-sidebar-icon">A</span>
+          <span>Manajemen User</span>
+        </button>
+      </div>
+    </template>
+  </nav>
+
+  <div class="app-sidebar-user">
+    <div
+      class="w-10 h-10 rounded-2xl bg-gradient-islamic text-white flex items-center justify-center font-black"
+      x-text="(user?.Name || user?.Username || 'U').charAt(0).toUpperCase()"
+    ></div>
+    <div class="min-w-0 flex-1">
+      <p class="font-black text-sm text-gray-900 truncate" x-text="user?.Name || user?.Username"></p>
+      <p class="text-xs text-gray-500 truncate" x-text="user?.Role"></p>
+    </div>
+    <button type="button" @click="logout()" class="app-sidebar-logout">
+      Out
     </button>
-  </template>
-
-  <button
-    @click="logout()"
-    class="px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-100 text-red-500 transition-all"
-  >
-    Logout
-  </button>
-</nav>
+  </div>
+</aside>

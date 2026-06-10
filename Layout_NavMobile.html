@@ -1,204 +1,159 @@
 <!-- Layout Navigation Mobile -->
-<!-- Bottom Navigation (Mobile Only) -->
-<!-- 
-  Improvements Applied:
-  1. Fixed duplicate class attribute issue by merging :class into single class binding
-  2. Added aria-label for accessibility (screen readers)
-  3. Added type="button" for semantic HTML
-  4. Extracted navigation items into a data-driven approach for maintainability
-  5. Added role="navigation" for better accessibility
--->
 <nav
-  class="md:hidden fixed bottom-4 left-4 right-4 bg-white/80 backdrop-blur-md border border-white/20 px-6 py-3 rounded-3xl flex justify-between items-center z-50 shadow-[0_8px_32px_rgba(0,0,0,0.1)]"
+  class="app-mobile-nav md:hidden"
   role="navigation"
-  aria-label="Mobile navigation"
+  aria-label="Navigasi mobile"
+  @keydown.escape.window="mobileMoreOpen = false"
 >
-  <!-- Dashboard Tab -->
-  <button
-    type="button"
-    @click="currentTab = 'dashboard'; fetchSummary()"
-    :class="currentTab === 'dashboard' ? 'nav-active' : 'text-gray-400 hover:text-gray-600'"
-    class="relative flex flex-col items-center gap-1 transition-all duration-300"
-    aria-label="Dashboard"
-    :aria-current="currentTab === 'dashboard' ? 'page' : false"
+  <div
+    x-show="mobileMoreOpen"
+    x-transition.opacity
+    class="app-mobile-more-backdrop"
+    @click="mobileMoreOpen = false"
+  ></div>
+
+  <div
+    x-show="mobileMoreOpen"
+    x-transition
+    class="app-mobile-more"
+    @click.outside="mobileMoreOpen = false"
   >
-    <svg
-      class="w-6 h-6"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-      ></path>
-    </svg>
-    <span class="text-[10px] font-bold">Home</span>
-  </button>
+    <p class="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+      Menu lainnya
+    </p>
 
-  <!-- Santri Tab -->
-  <button
-    type="button"
-    @click="currentTab = 'santri'; fetchStudents()"
-    :class="currentTab === 'santri' ? 'nav-active' : 'text-gray-400 hover:text-gray-600'"
-    class="relative flex flex-col items-center gap-1 transition-all duration-300"
-    aria-label="Data Santri"
-    :aria-current="currentTab === 'santri' ? 'page' : false"
-  >
-    <svg
-      class="w-6 h-6"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-      ></path>
-    </svg>
-    <span class="text-[10px] font-bold">Santri</span>
-  </button>
-
-  <!-- Role-based Navigation (Mudir & Ustadz only) -->
-  <template x-if="['Mudir', 'Ustadz'].includes(user?.Role)">
-    <div class="flex gap-6">
-      <!-- Hafalan Tab -->
-      <button
-        type="button"
-        @click="currentTab = 'hafalan'"
-        :class="currentTab === 'hafalan' ? 'nav-active' : 'text-gray-400 hover:text-gray-600'"
-        class="relative flex flex-col items-center gap-1 transition-all duration-300"
-        aria-label="Hafalan"
-        :aria-current="currentTab === 'hafalan' ? 'page' : false"
-      >
-        <svg
-          class="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
+    <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
+      <div class="space-y-2">
+        <button
+          type="button"
+          @click="setCurrentTab('pelanggaran')"
+          class="app-mobile-more-item"
+          :class="{ 'is-active': currentTab === 'pelanggaran' }"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-          ></path>
-        </svg>
-        <span class="text-[10px] font-bold">Hafalan</span>
-      </button>
-
-      <!-- Link Live Tab -->
-      <button
-        type="button"
-        @click="currentTab = 'link_live'"
-        :class="currentTab === 'link_live' ? 'nav-active' : 'text-gray-400 hover:text-gray-600'"
-        class="relative flex flex-col items-center gap-1 transition-all duration-300"
-        aria-label="Link Hafalan"
-        :aria-current="currentTab === 'link_live' ? 'page' : false"
-      >
-        <svg
-          class="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
+          Input Perilaku
+        </button>
+        <button
+          type="button"
+          @click="setCurrentTab('link_live')"
+          class="app-mobile-more-item"
+          :class="{ 'is-active': currentTab === 'link_live' }"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-          ></path>
-        </svg>
-        <span class="text-[10px] font-bold">Link</span>
-      </button>
-
-      <!-- Perilaku Tab -->
-      <button
-        type="button"
-        @click="currentTab = 'list_perilaku'"
-        :class="currentTab === 'list_perilaku' ? 'nav-active' : 'text-gray-400 hover:text-gray-600'"
-        class="relative flex flex-col items-center gap-1 transition-all duration-300"
-        aria-label="Perilaku"
-        :aria-current="currentTab === 'list_perilaku' ? 'page' : false"
-      >
-        <svg
-          class="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
+          Link Hafalan
+        </button>
+        <button
+          type="button"
+          @click="setCurrentTab('panduan')"
+          class="app-mobile-more-item"
+          :class="{ 'is-active': currentTab === 'panduan' }"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-          ></path>
-        </svg>
-        <span class="text-[10px] font-bold">Perilaku</span>
-      </button>
-    </div>
-  </template>
+          Panduan Ustadz
+        </button>
+      </div>
+    </template>
 
-  <!-- Users Tab (Mudir & Admin only) -->
-  <template x-if="['Mudir', 'Admin'].includes(user?.Role)">
     <button
       type="button"
-      @click="currentTab = 'users'; fetchUsers()"
-      :class="currentTab === 'users' ? 'nav-active' : 'text-gray-400 hover:text-gray-600'"
-      class="relative flex flex-col items-center gap-1 transition-all duration-300"
-      aria-label="Manajemen User"
-      :aria-current="currentTab === 'users' ? 'page' : false"
+      @click="setCurrentTab('pulang_bulanan')"
+      class="app-mobile-more-item"
+      :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
     >
-      <svg
-        class="w-6 h-6"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5 0c-.66 0-1.293-.103-1.897-.298"
-        ></path>
-      </svg>
-      <span class="text-[10px] font-bold">Users</span>
+      Pulang Bulanan
     </button>
-  </template>
 
-  <!-- Pulang Bulanan Tab - Visible to all users including Wali -->
-  <button
-    type="button"
-    @click="currentTab = 'pulang_bulanan'; loadPulangBulanan()"
-    :class="currentTab === 'pulang_bulanan' ? 'nav-active' : 'text-gray-400 hover:text-gray-600'"
-    class="relative flex flex-col items-center gap-1 transition-all duration-300"
-    aria-label="Pulang Bulanan"
-    :aria-current="currentTab === 'pulang_bulanan' ? 'page' : false"
-  >
-    <svg
-      class="w-6 h-6"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
+    <button
+      type="button"
+      @click="setCurrentTab('panduan_wali')"
+      class="app-mobile-more-item"
+      :class="{ 'is-active': currentTab === 'panduan_wali' }"
     >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-      ></path>
-    </svg>
-    <span class="text-[10px] font-bold">Pulang</span>
-  </button>
+      Panduan Wali
+    </button>
+
+    <template x-if="user?.Role === 'Mudir' || user?.Role === 'Admin'">
+      <button
+        type="button"
+        @click="setCurrentTab('users')"
+        class="app-mobile-more-item"
+        :class="{ 'is-active': currentTab === 'users' }"
+      >
+        Manajemen User
+      </button>
+    </template>
+
+    <button
+      type="button"
+      @click="logout()"
+      class="app-mobile-more-item text-red-600"
+    >
+      Keluar
+    </button>
+  </div>
+
+  <div class="app-mobile-nav-grid">
+    <button
+      type="button"
+      @click="setCurrentTab('dashboard')"
+      class="app-mobile-nav-item"
+      :class="{ 'is-active': currentTab === 'dashboard' }"
+    >
+      <span class="app-mobile-nav-icon">D</span>
+      <span>Home</span>
+    </button>
+
+    <button
+      type="button"
+      @click="setCurrentTab('santri')"
+      class="app-mobile-nav-item"
+      :class="{ 'is-active': currentTab === 'santri' }"
+    >
+      <span class="app-mobile-nav-icon">S</span>
+      <span>Santri</span>
+    </button>
+
+    <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
+      <button
+        type="button"
+        @click="setCurrentTab('hafalan')"
+        class="app-mobile-nav-item app-mobile-nav-primary"
+        :class="{ 'is-active': currentTab === 'hafalan' }"
+      >
+        <span class="app-mobile-nav-icon">H</span>
+        <span>Hafalan</span>
+      </button>
+    </template>
+
+    <template x-if="!(user?.Role === 'Mudir' || user?.Role === 'Ustadz')">
+      <button
+        type="button"
+        @click="setCurrentTab('pulang_bulanan')"
+        class="app-mobile-nav-item app-mobile-nav-primary"
+        :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
+      >
+        <span class="app-mobile-nav-icon">B</span>
+        <span>Pulang</span>
+      </button>
+    </template>
+
+    <button
+      type="button"
+      @click="setCurrentTab('list_perilaku')"
+      class="app-mobile-nav-item"
+      :class="{ 'is-active': currentTab === 'list_perilaku' }"
+    >
+      <span class="app-mobile-nav-icon">C</span>
+      <span>Catatan</span>
+    </button>
+
+    <button
+      type="button"
+      @click.stop="mobileMoreOpen = !mobileMoreOpen"
+      class="app-mobile-nav-item"
+      :class="{ 'is-active': mobileMoreOpen || ['pelanggaran', 'link_live', 'panduan', 'panduan_wali', 'users'].includes(currentTab) || ((user?.Role === 'Mudir' || user?.Role === 'Ustadz') && currentTab === 'pulang_bulanan') }"
+      aria-haspopup="menu"
+      :aria-expanded="mobileMoreOpen.toString()"
+    >
+      <span class="app-mobile-nav-icon">M</span>
+      <span>More</span>
+    </button>
+  </div>
 </nav>
