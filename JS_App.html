@@ -695,7 +695,7 @@
                     legend: { position: "bottom" },
                   },
                   scales: {
-                    y: { min: 0, max: 100 },
+                    y: { beginAtZero: false },
                   },
                 },
               });
@@ -1468,6 +1468,38 @@
             this.showToast("Gagal konversi: " + err.message, "error");
           })
           .runParentContactConversion(this.user);
+      },
+
+      runHealthCheck() {
+        this.loading = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loading = false;
+            if (res.ok) {
+              this.showToast(res.message, "success");
+              return;
+            }
+
+            const sheetIssues = res.data?.sheets
+              ?.filter((sheet) => !sheet.ok)
+              .map((sheet) => `${sheet.name}: ${sheet.message}`)
+              .join("\n");
+            const functionIssues = res.data?.functions
+              ?.filter((fn) => !fn.ok)
+              .map((fn) => `Function missing: ${fn.name}`)
+              .join("\n");
+            const details = [sheetIssues, functionIssues]
+              .filter(Boolean)
+              .join("\n");
+
+            this.showToast(res.message || "Health check gagal", "error");
+            if (details) alert(details);
+          })
+          .withFailureHandler((err) => {
+            this.loading = false;
+            this.showToast("Health check gagal: " + err.message, "error");
+          })
+          .runHealthCheck(this.user);
       },
 
       deleteUser(userId, username) {

@@ -1,88 +1,200 @@
 // Setup and initialization functions
+const CORE_SHEET_SCHEMAS = {
+  Students: [
+    "StudentID",
+    "Name",
+    "Class/Level",
+    "ParentContact",
+    "CreatedAt",
+    "WaliUsername",
+    "CatatanPembinaan",
+    "Status",
+  ],
+  MemorizationLogs: [
+    "LogID",
+    "StudentID",
+    "DateLogged",
+    "Surah",
+    "AyahStart",
+    "AyahEnd",
+    "Juz",
+    "Category",
+    "Status",
+    "TeacherID",
+    "Quality",
+  ],
+  Incidents: [
+    "IncidentID",
+    "StudentID",
+    "DateOfIncident",
+    "IncidentType",
+    "Description",
+    "Severity",
+    "Points",
+    "ReportedBy",
+    "Resolution",
+    "Category",
+  ],
+  Attendance: [
+    "AttendanceID",
+    "StudentID",
+    "DateLogged",
+    "Type",
+    "Notes",
+    "TeacherID",
+  ],
+  HafalanLinks: [
+    "LinkID",
+    "StudentID",
+    "DateAdded",
+    "Title",
+    "URL",
+    "Type",
+    "TeacherID",
+  ],
+};
+
+function setupSheetWithHeaders_(sheetName, requiredHeaders) {
+  const spreadsheet = getSpreadsheet_();
+  let sheet = spreadsheet.getSheetByName(sheetName);
+  let created = false;
+
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(sheetName);
+    created = true;
+  }
+
+  const isBlank = sheet.getLastRow() === 0 || sheet.getLastColumn() === 0;
+  if (isBlank) {
+    sheet.getRange(1, 1, 1, requiredHeaders.length).setValues([requiredHeaders]);
+    sheet.setFrozenRows(1);
+    return {
+      ok: true,
+      created,
+      addedHeaders: requiredHeaders,
+      message: "Sheet " + sheetName + " siap.",
+    };
+  }
+
+  const headers = sheet
+    .getRange(1, 1, 1, sheet.getLastColumn())
+    .getValues()[0]
+    .map((header) => String(header || "").trim());
+  const missingHeaders = requiredHeaders.filter(
+    (header) => !headers.includes(header),
+  );
+
+  if (missingHeaders.length > 0) {
+    sheet
+      .getRange(1, headers.length + 1, 1, missingHeaders.length)
+      .setValues([missingHeaders]);
+  }
+
+  sheet.setFrozenRows(1);
+  return {
+    ok: true,
+    created,
+    addedHeaders: missingHeaders,
+    message:
+      missingHeaders.length > 0
+        ? "Header " + sheetName + " diperbarui."
+        : "Sheet " + sheetName + " sudah siap.",
+  };
+}
+
+function setupCoreSheets() {
+  const results = [];
+  Object.keys(CORE_SHEET_SCHEMAS).forEach((sheetName) => {
+    results.push({
+      sheet: sheetName,
+      result: setupSheetWithHeaders_(sheetName, CORE_SHEET_SCHEMAS[sheetName]),
+    });
+  });
+
+  results.push({
+    sheet: SHEET_PULANG_BULANAN,
+    result: setupSheetWithHeaders_(
+      SHEET_PULANG_BULANAN,
+      PULANG_BULANAN_HEADERS,
+    ),
+  });
+
+  return { ok: true, data: { results }, message: "Sheet inti siap." };
+}
+
+function canManageSetup_(currentUser) {
+  return (
+    currentUser &&
+    (currentUser.Role === "Mudir" || currentUser.Role === "Admin")
+  );
+}
+
+function functionExists_(name) {
+  try {
+    return typeof eval(name) === "function";
+  } catch (e) {
+    return false;
+  }
+}
 function setupUsersSheet() {
   try {
-    const spreadsheet = getSpreadsheet_();
-    let sheet = spreadsheet.getSheetByName(SHEET_USERS);
+    const setupResult = setupSheetWithHeaders_(SHEET_USERS, USER_HEADERS);
+    const sheet = getSheet_(SHEET_USERS);
 
-    if (!sheet) {
-      // Create new Users sheet
-      sheet = spreadsheet.insertSheet(SHEET_USERS);
-      sheet.appendRow(USER_HEADERS);
+    // Format header row
+    const headerRange = sheet.getRange(1, 1, 1, USER_HEADERS.length);
+    headerRange.setBackground("#4F46E5");
+    headerRange.setFontColor("#FFFFFF");
+    headerRange.setFontWeight("bold");
 
-      // Format header row
-      const headerRange = sheet.getRange(1, 1, 1, USER_HEADERS.length);
-      headerRange.setBackground("#4F46E5");
-      headerRange.setFontColor("#FFFFFF");
-      headerRange.setFontWeight("bold");
+    // Set column widths
+    sheet.setColumnWidth(1, 100); // UserID
+    sheet.setColumnWidth(2, 150); // Name
+    sheet.setColumnWidth(3, 120); // Username
+    sheet.setColumnWidth(4, 200); // Email
+    sheet.setColumnWidth(5, 120); // Phone
+    sheet.setColumnWidth(6, 100); // Role
+    sheet.setColumnWidth(7, 100); // StudentID
+    sheet.setColumnWidth(8, 100); // Class
+    sheet.setColumnWidth(9, 100); // Salt
+    sheet.setColumnWidth(10, 200); // PasswordHash
+    sheet.setColumnWidth(11, 100); // Status
+    sheet.setColumnWidth(12, 150); // CreatedAt
+    sheet.setColumnWidth(13, 150); // UpdatedAt
+    sheet.setColumnWidth(14, 150); // LastLogin
 
-      // Set column widths
-      sheet.setColumnWidth(1, 100); // UserID
-      sheet.setColumnWidth(2, 150); // Name
-      sheet.setColumnWidth(3, 120); // Username
-      sheet.setColumnWidth(4, 200); // Email
-      sheet.setColumnWidth(5, 120); // Phone
-      sheet.setColumnWidth(6, 100); // Role
-      sheet.setColumnWidth(7, 100); // StudentID
-      sheet.setColumnWidth(8, 100); // Class
-      sheet.setColumnWidth(9, 100); // Salt
-      sheet.setColumnWidth(10, 200); // PasswordHash
-      sheet.setColumnWidth(11, 100); // Status
-      sheet.setColumnWidth(12, 150); // CreatedAt
-      sheet.setColumnWidth(13, 150); // UpdatedAt
-      sheet.setColumnWidth(14, 150); // LastLogin
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      const salt = Utilities.getUuid().substring(0, 8);
+      const passwordHash = hashPasswordWithSalt("mudir123", salt);
+      const userId = "USR" + Date.now();
+      const now = new Date().toISOString();
 
-      // Freeze header row
-      sheet.setFrozenRows(1);
+      const defaultUser = [
+        userId,
+        "Mudir Default",
+        "mudir",
+        "mudir@ponpes.com",
+        "081234567890",
+        "Mudir",
+        "",
+        "",
+        salt,
+        passwordHash,
+        "Active",
+        now,
+        now,
+        "",
+      ];
 
-      // Create default Mudir user if no users exist
-      const data = sheet.getDataRange().getValues();
-      if (data.length <= 1) {
-        const salt = Utilities.getUuid().substring(0, 8);
-        const passwordHash = hashPasswordWithSalt("mudir123", salt);
-        const userId = "USR" + Date.now();
-        const now = new Date().toISOString();
-
-        const defaultUser = [
-          userId,
-          "Mudir Default",
-          "mudir",
-          "mudir@ponpes.com",
-          "081234567890",
-          "Mudir",
-          "",
-          "",
-          salt,
-          passwordHash,
-          "Active",
-          now,
-          now,
-          "",
-        ];
-
-        sheet.appendRow(defaultUser);
-      }
-
-      return { ok: true, message: "Sheet Users berhasil dibuat." };
-    } else {
-      // Check if sheet has all required columns
-      const headers = sheet
-        .getRange(1, 1, 1, sheet.getLastColumn())
-        .getValues()[0];
-      const missingHeaders = USER_HEADERS.filter(
-        (header) => !headers.includes(header),
-      );
-
-      if (missingHeaders.length > 0) {
-        // Add missing headers
-        const newHeaders = [...headers];
-        missingHeaders.forEach((header) => newHeaders.push(header));
-        sheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]);
-
-        return { ok: true, message: "Header Users diperbarui." };
-      }
-
-      return { ok: true, message: "Sheet Users sudah ada." };
+      sheet.appendRow(defaultUser);
     }
+
+    return {
+      ok: true,
+      message: setupResult.message,
+      addedHeaders: setupResult.addedHeaders,
+    };
   } catch (e) {
     return { ok: false, message: "Error setup: " + e.message };
   }
@@ -96,6 +208,9 @@ function initializeApp() {
   const usersResult = setupUsersSheet();
   results.push({ sheet: SHEET_USERS, result: usersResult });
 
+  const coreResult = setupCoreSheets();
+  results.push({ task: "Setup core sheets", result: coreResult });
+
   return { ok: true, results };
 }
 
@@ -107,11 +222,93 @@ function setupCompleteApp() {
   const usersResult = setupUsersSheet();
   results.push({ sheet: SHEET_USERS, result: usersResult });
 
+  const coreResult = setupCoreSheets();
+  results.push({ task: "Setup core sheets", result: coreResult });
+
   // Convert parent contacts to Wali users
   const conversionResult = convertParentContactsToUsers();
   results.push({ task: "Convert parent contacts", result: conversionResult });
 
   return { ok: true, results };
+}
+
+function runHealthCheck(currentUser) {
+  if (!canManageSetup_(currentUser)) {
+    return {
+      ok: false,
+      message: "Akses ditolak. Hanya Mudir/Admin yang dapat menjalankan health check.",
+    };
+  }
+
+  try {
+    const spreadsheet = getSpreadsheet_();
+    const schemas = Object.assign({}, CORE_SHEET_SCHEMAS);
+    schemas[SHEET_USERS] = USER_HEADERS;
+    schemas[SHEET_PULANG_BULANAN] = PULANG_BULANAN_HEADERS;
+
+    const sheets = Object.keys(schemas).map((sheetName) => {
+      const sheet = spreadsheet.getSheetByName(sheetName);
+      if (!sheet) {
+        return {
+          name: sheetName,
+          ok: false,
+          missingHeaders: schemas[sheetName],
+          message: "Sheet tidak ditemukan.",
+        };
+      }
+
+      const headers =
+        sheet.getLastColumn() > 0
+          ? sheet
+              .getRange(1, 1, 1, sheet.getLastColumn())
+              .getValues()[0]
+              .map((header) => String(header || "").trim())
+          : [];
+      const missingHeaders = schemas[sheetName].filter(
+        (header) => !headers.includes(header),
+      );
+
+      return {
+        name: sheetName,
+        ok: missingHeaders.length === 0,
+        missingHeaders,
+        message:
+          missingHeaders.length === 0
+            ? "OK"
+            : "Header belum lengkap: " + missingHeaders.join(", "),
+      };
+    });
+
+    const requiredFunctions = [
+      "login",
+      "getStudents",
+      "getDashboardSummary",
+      "logMemorization",
+      "logIncident",
+      "getUsers",
+      "savePulangBulanan",
+      "updatePulangBulanan",
+      "deletePulangBulanan",
+    ];
+    const functions = requiredFunctions.map((name) => ({
+      name,
+      ok: functionExists_(name),
+    }));
+
+    const failedSheets = sheets.filter((sheet) => !sheet.ok);
+    const failedFunctions = functions.filter((fn) => !fn.ok);
+    const ok = failedSheets.length === 0 && failedFunctions.length === 0;
+
+    return {
+      ok,
+      data: { sheets, functions },
+      message: ok
+        ? "Health check OK. Aplikasi siap digunakan."
+        : "Health check menemukan masalah.",
+    };
+  } catch (e) {
+    return { ok: false, message: "Health check gagal: " + e.message };
+  }
 }
 
 // Convert all parent contacts to Wali users

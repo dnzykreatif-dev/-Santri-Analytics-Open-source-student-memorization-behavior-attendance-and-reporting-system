@@ -35,6 +35,11 @@ function logIncident(data, user) {
       return { ok: false, message: "Maksimal 2 prestasi per hari." };
   }
 
+  const normalizedPoints = normalizeIncidentPoints_(
+    data.IncidentType,
+    data.Points,
+  );
+
   incidentSheet.appendRow([
     "INC" + Date.now(),
     data.StudentID,
@@ -42,7 +47,7 @@ function logIncident(data, user) {
     data.IncidentType,
     data.Description,
     data.Severity,
-    data.Points,
+    normalizedPoints,
     user ? user.Username : "System",
     "",
     data.Category || "Umum",
@@ -58,7 +63,7 @@ function logIncident(data, user) {
       studentName: student ? student.Name : "Santri",
       type: data.IncidentType,
       desc: data.Description,
-      points: data.Points,
+      points: normalizedPoints,
     },
   };
 }
@@ -72,11 +77,15 @@ function updateIncident(incidentId, data, user) {
   }
 
   // Kolom: 4=IncidentType, 5=Desc, 6=Severity, 7=Points, 10=Category
+  const normalizedPoints = normalizeIncidentPoints_(
+    data.IncidentType,
+    data.Points,
+  );
   const rowData = [
     data.IncidentType,
     data.Description,
     data.Severity,
-    data.Points,
+    normalizedPoints,
     user ? user.Username : "System", // ReportedBy (update auditor)
     "", // Resolution
     data.Category || "Umum",
@@ -116,6 +125,7 @@ function getRecentIncidents() {
       const student = students.find((s) => s.StudentID === inc.StudentID);
       return {
         ...inc,
+        Points: getIncidentPoints_(inc),
         StudentName: student ? student.Name : "Santri Tidak Ditemukan",
       };
     })
@@ -130,7 +140,10 @@ function getStudentIncidents(studentId) {
   const incidents = data
     .slice(1)
     .filter((row) => row[1] === studentId)
-    .map((row) => serializeRow(row, headers))
+    .map((row) => {
+      const incident = serializeRow(row, headers);
+      return { ...incident, Points: getIncidentPoints_(incident) };
+    })
     .sort((a, b) => new Date(b.DateOfIncident) - new Date(a.DateOfIncident));
 
   return { ok: true, data: { incidents } };

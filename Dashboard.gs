@@ -225,25 +225,7 @@ function getDashboardSummary(user, filters = {}) {
         )
       : allIncidents.filter((inc) => inc.StudentID === student.StudentID);
 
-    let cumulativeScore = 100; // Base score
-    const dailyScores = {};
-
-    studentIncidents
-      .sort((a, b) => new Date(a.DateOfIncident) - new Date(b.DateOfIncident))
-      .forEach((inc) => {
-        const incDate = new Date(inc.DateOfIncident);
-        if (incDate >= thirtyDaysAgo) {
-          // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
-          cumulativeScore += parseInt(inc.Points) || 0;
-          // Clamp score between 0 and 100
-          cumulativeScore = Math.min(100, Math.max(0, cumulativeScore));
-          const dateKey = incDate.toISOString().split("T")[0];
-          dailyScores[dateKey] = cumulativeScore;
-        }
-      });
-
-    // Get the latest score
-    const latestScore = Math.max(0, Math.min(100, cumulativeScore));
+    const latestScore = calculateBehaviorScore_(studentIncidents);
     // Debug logging
     Logger.log(
       "getDashboardSummary - StudentID: " +
@@ -286,16 +268,10 @@ function getDashboardSummary(user, filters = {}) {
             )
           : allIncidents.filter((inc) => inc.StudentID === student.StudentID);
 
-        let studentScore = 100;
-        studentIncidents.forEach((inc) => {
-          const incDate = new Date(inc.DateOfIncident);
-          if (incDate <= new Date(dateKey + "T23:59:59")) {
-            // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
-            studentScore += parseInt(inc.Points) || 0;
-          }
-        });
-        // Clamp score between 0 and 100
-        studentScore = Math.min(100, Math.max(0, studentScore));
+        const studentScore = calculateBehaviorScore_(
+          studentIncidents,
+          new Date(dateKey + "T23:59:59"),
+        );
         totalScore += studentScore;
         studentCount++;
       });

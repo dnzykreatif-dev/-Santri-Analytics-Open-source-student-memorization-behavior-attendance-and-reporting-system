@@ -127,7 +127,10 @@ function getBehaviorLogs() {
     if (data.length <= 1) return [];
 
     const headers = data[0];
-    const incidents = data.slice(1).map((row) => serializeRow(row, headers));
+    const incidents = data.slice(1).map((row) => {
+      const incident = serializeRow(row, headers);
+      return { ...incident, Points: getIncidentPoints_(incident) };
+    });
     return incidents;
   } catch (e) {
     return [];

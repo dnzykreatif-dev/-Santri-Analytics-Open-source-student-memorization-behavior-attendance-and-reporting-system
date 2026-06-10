@@ -1,20 +1,5 @@
-// ========== SECTION: SYNC LOGIC ==========
-
-/**
- * Sync status for students linked to a specific user (Wali)
- */
-// ========== SECTION: STATUS SYNC ==========
-
 /**
  * Sync Wali status to all linked Students.
- * When a Wali's status changes to inactive, all their linked students
- * should also be marked as inactive in the Students sheet.
- *
- * The Students sheet has a "Status" column (index 7) that stores the student status.
- * This function updates that column based on the Wali's status.
- *
- * @param {string} waliUsername - The username of the Wali
- * @param {string} status - The new status (e.g., "Active" or "Inactive")
  */
 function syncStudentStatus(waliUsername, status) {
   try {
@@ -25,8 +10,7 @@ function syncStudentStatus(waliUsername, status) {
     const statusCol = headers.indexOf("Status");
 
     if (waliCol === -1) {
-      console.warn("WaliUsername column not found in Students sheet");
-      return;
+      return { ok: false, message: "Kolom WaliUsername tidak ditemukan." };
     }
 
     // If Status column doesn't exist, add it
@@ -42,13 +26,18 @@ function syncStudentStatus(waliUsername, status) {
     const actualStatusCol = currentHeaders.indexOf("Status");
 
     if (actualStatusCol === -1) {
-      console.warn("Status column could not be created in Students sheet");
-      return;
+      return { ok: false, message: "Kolom Status tidak dapat dibuat." };
     }
 
+    const cleanUsername = String(waliUsername || "")
+      .trim()
+      .toLowerCase();
     let syncedCount = 0;
     for (let i = 1; i < currentData.length; i++) {
-      if (String(currentData[i][waliCol] || "").trim() === waliUsername) {
+      const studentWali = String(currentData[i][waliCol] || "")
+        .trim()
+        .toLowerCase();
+      if (studentWali === cleanUsername) {
         // Normalize status: "inactive" -> "Inactive", "active" -> "Active"
         let normalizedStatus = "Active";
         if (status && String(status).toLowerCase() === "inactive") {
@@ -61,10 +50,39 @@ function syncStudentStatus(waliUsername, status) {
       }
     }
 
-    console.log(
-      "Synced status for " + syncedCount + " students of Wali: " + waliUsername,
-    );
+    return {
+      ok: true,
+      message: "Status tersinkron untuk " + syncedCount + " santri.",
+    };
   } catch (e) {
-    console.error("Sync status error: " + e.message);
+    return { ok: false, message: "Error sync status: " + e.message };
   }
+}
+
+function normalizeIncidentPoints_(incidentType, points) {
+  const value = Math.abs(Number(points) || 0);
+  if (incidentType === "Violation") return -value;
+  if (incidentType === "Improvement") return value;
+  return Number(points) || 0;
+}
+
+function getIncidentPoints_(incident) {
+  if (!incident) return 0;
+  return normalizeIncidentPoints_(incident.IncidentType, incident.Points);
+}
+
+function calculateBehaviorScore_(incidents, untilDate) {
+  const cutoff = untilDate ? new Date(untilDate) : null;
+  return (incidents || [])
+    .filter((incident) => {
+      if (!cutoff) return true;
+      const incidentDate = new Date(incident.DateOfIncident);
+      return !isNaN(incidentDate.getTime()) && incidentDate <= cutoff;
+    })
+    .sort(
+      (a, b) =>
+        new Date(a.DateOfIncident).getTime() -
+        new Date(b.DateOfIncident).getTime(),
+    )
+    .reduce((score, incident) => score + getIncidentPoints_(incident), 100);
 }

@@ -31,17 +31,7 @@ function generateStudentReportPdf(id, note) {
       getSheet_("Incidents").getDataRange().getValues(),
     );
     const studentIncidents = incidents.filter((inc) => inc.StudentID === id);
-    // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
-    const totalScore = Math.min(
-      100,
-      Math.max(
-        0,
-        studentIncidents.reduce(
-          (sum, inc) => sum + (Number(inc.Points) || 0),
-          100,
-        ),
-      ),
-    );
+    const totalScore = calculateBehaviorScore_(studentIncidents);
     // Debug logging
     Logger.log(
       "generateStudentReportPdf - StudentID: " +
@@ -123,7 +113,7 @@ function getStudentFullReport(id) {
     if (!studentObj) return { ok: false, message: "Santri tidak ditemukan." };
 
     // Get memos/hafalan data
-    const memosSheet = getSheet_("Memorization");
+    const memosSheet = getSheet_("MemorizationLogs");
     const memosData = memosSheet.getDataRange().getValues();
     const memosHeaders = memosData[0];
     const studentMemos = normalizeSheetData(memosData).filter(
@@ -138,18 +128,7 @@ function getStudentFullReport(id) {
       (i) => i.StudentID === id,
     );
 
-    // Calculate total score
-    // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
-    const totalScore = Math.min(
-      100,
-      Math.max(
-        0,
-        studentIncidents.reduce(
-          (sum, inc) => sum + (Number(inc.Points) || 0),
-          100,
-        ),
-      ),
-    );
+    const totalScore = calculateBehaviorScore_(studentIncidents);
     // Debug logging
     Logger.log(
       "getStudentFullReport - StudentID: " +
@@ -213,17 +192,7 @@ function sendReportToEmail(id, note, email) {
         const studentIncidents = allIncidents.filter(
           (inc) => inc.StudentID === id,
         );
-        // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
-        studentTotalScore = Math.min(
-          100,
-          Math.max(
-            0,
-            studentIncidents.reduce(
-              (sum, inc) => sum + (Number(inc.Points) || 0),
-              100,
-            ),
-          ),
-        );
+        studentTotalScore = calculateBehaviorScore_(studentIncidents);
         // Debug logging
         Logger.log(
           "sendReportToEmail - StudentID: " +

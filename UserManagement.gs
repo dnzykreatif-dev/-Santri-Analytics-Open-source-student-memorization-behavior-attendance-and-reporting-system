@@ -243,19 +243,29 @@ function updateUser(userId, userData, currentUser) {
         header !== "CreatedAt"
       ) {
         const colIndex = headers.indexOf(header); // Use actual column index from sheet
-        if (header === "Password" && userData.Password) {
-          // Handle password update
-          const salt = Utilities.getUuid().substring(0, 8);
-          const passwordHash = hashPasswordWithSalt(userData.Password, salt);
-          updatedRow[headers.indexOf("Salt")] = salt;
-          updatedRow[headers.indexOf("PasswordHash")] = passwordHash;
-        } else if (header === "UpdatedAt") {
+        if (colIndex === -1) return;
+        if (header === "UpdatedAt") {
           updatedRow[colIndex] = new Date().toISOString();
         } else if (header !== "Salt" && header !== "PasswordHash") {
           updatedRow[colIndex] = userData[header];
         }
       }
     });
+
+    if (userData.Password) {
+      const saltIndex = headers.indexOf("Salt");
+      const hashIndex = headers.indexOf("PasswordHash");
+      if (saltIndex === -1 || hashIndex === -1) {
+        return {
+          ok: false,
+          message: "Kolom Salt atau PasswordHash tidak ditemukan.",
+        };
+      }
+      const salt = Utilities.getUuid().substring(0, 8);
+      const passwordHash = hashPasswordWithSalt(userData.Password, salt);
+      updatedRow[saltIndex] = salt;
+      updatedRow[hashIndex] = passwordHash;
+    }
 
     // Update UpdatedAt
     updatedRow[headers.indexOf("UpdatedAt")] = new Date().toISOString();

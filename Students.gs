@@ -1,40 +1,3 @@
-/**
- * Sync user status to related Student records
- * Called when a user's status is changed in UserManagement
- */
-function syncStudentStatus(waliUsername, status) {
-  try {
-    const sheet = getSheet_("Students");
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const waliCol = headers.indexOf("WaliUsername");
-
-    if (waliCol === -1)
-      return { ok: false, message: "Kolom WaliUsername tidak ditemukan" };
-
-    const cleanUsername = String(waliUsername || "")
-      .trim()
-      .toLowerCase();
-    let updated = 0;
-
-    for (let i = 1; i < data.length; i++) {
-      const studentWali = String(data[i][waliCol] || "")
-        .trim()
-        .toLowerCase();
-      if (studentWali === cleanUsername) {
-        // Student found, status is synced via dynamic calculation in getStudents
-        // No need to update column, just confirm match
-        updated++;
-      }
-    }
-
-    logAction(waliUsername, "SYNC_STATUS", "Status changed to: " + status);
-    return { ok: true, message: `Sync status untuk ${updated} santri` };
-  } catch (e) {
-    return { ok: false, message: "Error: " + e.message };
-  }
-}
-
 function getStudents(user) {
   const ss = getSpreadsheet_();
   const sheet = getSheet_("Students");
@@ -67,21 +30,10 @@ function getStudents(user) {
       .toLowerCase()
       .trim();
 
-    // Calculate Score
     const studentIncidents = allIncidents.filter(
       (inc) => inc.StudentID === studentObj.StudentID,
     );
-    // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
-    const totalScore = Math.min(
-      100,
-      Math.max(
-        0,
-        studentIncidents.reduce(
-          (sum, inc) => sum + (Number(inc.Points) || 0),
-          100,
-        ),
-      ),
-    );
+    const totalScore = calculateBehaviorScore_(studentIncidents);
     // Debug logging
     Logger.log(
       "getStudents - StudentID: " +
@@ -186,6 +138,10 @@ function getStudentDetailData(studentId) {
     getSheet_("Incidents").getDataRange().getValues(),
   )
     .filter((i) => String(i.StudentID) === String(studentId))
+    .map((incident) => ({
+      ...incident,
+      Points: getIncidentPoints_(incident),
+    }))
     .sort((a, b) => new Date(b.DateOfIncident) - new Date(a.DateOfIncident));
 
   return { ok: true, data: { memos, incidents } };
@@ -231,8 +187,7 @@ function getStudentAnalytics(studentId) {
     studentIncidents.forEach((inc) => {
       const d = new Date(inc.DateOfIncident);
       if (d >= weekStart && d < weekEnd) {
-        // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
-        incidentPoints[weeks - 1 - i] += Number(inc.Points) || 0;
+        incidentPoints[weeks - 1 - i] += getIncidentPoints_(inc);
       }
     });
   }
@@ -275,14 +230,7 @@ function getStudentReportData(studentId) {
     getSheet_("Incidents").getDataRange().getValues(),
   ).filter((inc) => inc.StudentID === studentId);
 
-  // Points SUDAH mengandung tanda: negatif untuk Violation, positif untuk Improvement
-  const totalSkor = Math.min(
-    100,
-    Math.max(
-      0,
-      incidents.reduce((sum, inc) => sum + (Number(inc.Points) || 0), 100),
-    ),
-  );
+  const totalSkor = calculateBehaviorScore_(incidents);
   // Debug logging
   Logger.log(
     "getStudentReportData - StudentID: " +
@@ -315,7 +263,7 @@ function getStudentReportData(studentId) {
   if (totalSkor >= 100 && pelanggaran === 0) predikat = "Istimewa";
   else if (totalSkor >= 70) predikat = "Sangat Baik";
   else if (totalSkor >= 40) predikat = "Baik";
-  else if (totalSkor < 0) predikat = "Perlu Bimbingan";
+  else if (totalSkor < 40) predikat = "Perlu Bimbingan";
 
   return {
     ok: true,
