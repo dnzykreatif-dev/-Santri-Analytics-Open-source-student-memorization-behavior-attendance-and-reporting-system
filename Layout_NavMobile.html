@@ -56,8 +56,19 @@
 
     <button
       type="button"
+      @click="setCurrentTab('informasi_pesantren')"
+      class="app-mobile-more-item"
+      :class="{ 'is-active': currentTab === 'informasi_pesantren' }"
+    >
+      <span class="app-mobile-more-icon" x-html="navIcon('info')"></span>
+      Sistem Informasi
+    </button>
+
+    <button
+      type="button"
       @click="setCurrentTab('pulang_bulanan')"
       class="app-mobile-more-item"
+      x-show="user?.Role !== 'Wali'"
       :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
     >
       <span class="app-mobile-more-icon" x-html="navIcon('pulang_bulanan')"></span>
@@ -117,6 +128,18 @@
       <span>Santri</span>
     </button>
 
+    <template x-if="user?.Role === 'Wali'">
+      <button
+        type="button"
+        @click="setCurrentTab('informasi_pesantren')"
+        class="app-mobile-nav-item app-mobile-nav-primary"
+        :class="{ 'is-active': currentTab === 'informasi_pesantren' }"
+      >
+        <span class="app-mobile-nav-icon" x-html="navIcon('info')"></span>
+        <span>Info</span>
+      </button>
+    </template>
+
     <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
       <button
         type="button"
@@ -141,11 +164,24 @@
       </button>
     </template>
 
+    <template x-if="user?.Role === 'Wali'">
+      <button
+        type="button"
+        @click="setCurrentTab('pulang_bulanan')"
+        class="app-mobile-nav-item"
+        :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
+      >
+        <span class="app-mobile-nav-icon" x-html="navIcon('pulang_bulanan')"></span>
+        <span>Pulang</span>
+      </button>
+    </template>
+
     <button
       type="button"
       @click="setCurrentTab('list_perilaku')"
       class="app-mobile-nav-item"
       :class="{ 'is-active': currentTab === 'list_perilaku' }"
+      x-show="user?.Role === 'Mudir' || user?.Role === 'Ustadz'"
     >
       <span class="app-mobile-nav-icon" x-html="navIcon('catatan')"></span>
       <span>Catatan</span>
@@ -155,7 +191,7 @@
       type="button"
       @click.stop="mobileMoreOpen = !mobileMoreOpen"
       class="app-mobile-nav-item"
-      :class="{ 'is-active': mobileMoreOpen || ['pelanggaran', 'link_live', 'panduan', 'panduan_wali', 'users'].includes(currentTab) || ((user?.Role === 'Mudir' || user?.Role === 'Ustadz') && currentTab === 'pulang_bulanan') }"
+      :class="{ 'is-active': mobileMoreOpen || ['pelanggaran', 'link_live', 'panduan', 'panduan_wali', 'users', 'informasi_pesantren'].includes(currentTab) }"
       aria-haspopup="menu"
       :aria-expanded="mobileMoreOpen.toString()"
     >

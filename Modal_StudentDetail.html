@@ -65,55 +65,63 @@
     </div>
 
     <!-- Modal Tabs -->
-    <div class="px-6 pt-4 flex gap-4 border-b bg-white">
-      <button
-        @click="studentDetailTab = 'hafalan'"
-        :class="studentDetailTab === 'hafalan' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
-        class="pb-2 px-1 font-bold text-sm transition-all"
-      >
-        Hafalan
-      </button>
-      <button
-        @click="studentDetailTab = 'pelanggaran'"
-        :class="studentDetailTab === 'pelanggaran' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
-        class="pb-2 px-1 font-bold text-sm transition-all"
-      >
-        Catatan Perilaku
-      </button>
-      <button
-        @click="studentDetailTab = 'grafik'; renderCharts();"
-        :class="studentDetailTab === 'grafik' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
-        class="pb-2 px-1 font-bold text-sm transition-all"
-      >
-        Grafik
-      </button>
-      <button
-        @click="studentDetailTab = 'laporan'"
-        :class="studentDetailTab === 'laporan' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
-        class="pb-2 px-1 font-bold text-sm transition-all"
-      >
-        Laporan
-      </button>
-      <button
-        @click="studentDetailTab = 'raport'; loadFullStudentReport(selectedStudent.StudentID)"
-        :class="studentDetailTab === 'raport' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
-        class="pb-2 px-1 font-bold text-sm transition-all"
-      >
-        📜 Raport
-      </button>
-    </div>
-    <div
-      class="px-6 pt-4 flex gap-4 border-b bg-white overflow-x-auto no-scrollbar"
-    >
-      <!-- ... tab lainnya ... -->
-
-      <button
-        @click="studentDetailTab = 'links'; loadLinks()"
-        :class="studentDetailTab === 'links' ? 'border-b-2 border-[#FAD4C0] text-black' : 'text-gray-400'"
-        class="pb-2 px-1 font-bold text-sm transition-all whitespace-nowrap"
-      >
-        🔗 Link Live
-      </button>
+    <div class="px-6 py-4 border-b bg-white">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+          Menu Detail Santri
+        </p>
+        <span class="text-xs font-bold text-gray-400">Scroll bila menu padat</span>
+      </div>
+      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        <button
+          @click="studentDetailTab = 'hafalan'"
+          :class="studentDetailTab === 'hafalan' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+          class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+        >
+          <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('hafalan')"></span>
+          Hafalan
+        </button>
+        <button
+          @click="studentDetailTab = 'pelanggaran'"
+          :class="studentDetailTab === 'pelanggaran' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+          class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+        >
+          <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('perilaku')"></span>
+          Catatan Perilaku
+        </button>
+        <button
+          @click="studentDetailTab = 'grafik'; renderCharts();"
+          :class="studentDetailTab === 'grafik' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+          class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+        >
+          <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('grafik')"></span>
+          Grafik
+        </button>
+        <button
+          @click="studentDetailTab = 'laporan'"
+          :class="studentDetailTab === 'laporan' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+          class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+        >
+          <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('laporan')"></span>
+          Laporan
+        </button>
+        <button
+          @click="studentDetailTab = 'raport'; loadFullStudentReport(selectedStudent.StudentID)"
+          :class="studentDetailTab === 'raport' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+          class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+        >
+          <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('raport')"></span>
+          Raport
+        </button>
+        <button
+          @click="studentDetailTab = 'links'; loadLinks()"
+          :class="studentDetailTab === 'links' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+          class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+        >
+          <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('link_live')"></span>
+          Link Live
+        </button>
+      </div>
     </div>
 
     <!-- Catatan Pembinaan -->

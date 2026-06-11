@@ -80,6 +80,16 @@
 
       <button
         type="button"
+        @click="setCurrentTab('informasi_pesantren')"
+        class="app-sidebar-item"
+        :class="{ 'is-active': currentTab === 'informasi_pesantren' }"
+      >
+        <span class="app-sidebar-icon" x-html="navIcon('info')"></span>
+        <span>Sistem Informasi</span>
+      </button>
+
+      <button
+        type="button"
         @click="setCurrentTab('pulang_bulanan')"
         class="app-sidebar-item"
         :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
