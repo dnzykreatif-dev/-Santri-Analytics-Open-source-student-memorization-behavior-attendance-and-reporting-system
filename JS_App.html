@@ -1011,6 +1011,7 @@
             if (res.ok) {
               this.students = res.data.students;
               this.studentVisibleCount = 10;
+              this.syncWaliStudentDetail();
             }
           })
           .withFailureHandler(() => {
@@ -1079,6 +1080,23 @@
       openStudentDetail(student) {
         if (!student || !student.StudentID) return;
 
+        if (this.user?.Role === "Wali") {
+          this.selectedStudent = { ...student };
+          this.studentDetailTab = "hafalan";
+          this.studentHistory = [];
+          this.studentIncidents = [];
+          this.behaviorFilter = "all";
+          this.behaviorVisibleCount = 5;
+          this.memoFilter = "all";
+          this.memoVisibleCount = 5;
+          this.fullStudentReport = false;
+          this.raportData = null;
+          this.showDetailModal = false;
+          this.refreshStudentDetail();
+          this.loadFullStudentReport(student.StudentID);
+          return;
+        }
+
         this.selectedStudent = { ...student };
         this.studentDetailTab = "hafalan";
         this.showDetailModal = true;
@@ -1090,6 +1108,43 @@
         this.memoVisibleCount = 5;
         this.refreshStudentDetail();
         this.loadFullStudentReport(student.StudentID);
+      },
+
+      syncWaliStudentDetail() {
+        if (this.user?.Role !== "Wali") return;
+        if (!Array.isArray(this.students) || this.students.length === 0) {
+          this.selectedStudent = null;
+          this.studentHistory = [];
+          this.studentIncidents = [];
+          this.raportData = null;
+          this.fullStudentReport = false;
+          return;
+        }
+
+        const currentId = this.selectedStudent?.StudentID || "";
+        const matched =
+          this.students.find((student) => student.StudentID === currentId) ||
+          this.students[0];
+
+        if (!matched) return;
+
+        const changed = matched.StudentID !== currentId;
+        this.selectedStudent = { ...matched };
+        this.studentDetailTab = this.studentDetailTab || "hafalan";
+        this.showDetailModal = false;
+
+        if (changed || !this.studentHistory.length || !this.studentIncidents.length) {
+          this.studentHistory = [];
+          this.studentIncidents = [];
+          this.behaviorFilter = "all";
+          this.behaviorVisibleCount = 5;
+          this.memoFilter = "all";
+          this.memoVisibleCount = 5;
+          this.fullStudentReport = false;
+          this.raportData = null;
+          this.refreshStudentDetail();
+          this.loadFullStudentReport(matched.StudentID);
+        }
       },
 
       openStudentRaport(student) {

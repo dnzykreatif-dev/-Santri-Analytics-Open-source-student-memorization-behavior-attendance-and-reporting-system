@@ -1,0 +1,125 @@
+<!-- TAB: DETAIL SANTRI WALi -->
+<div x-show="selectedStudent" x-cloak class="space-y-0">
+  <div class="p-6 border-b bg-white flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+    <div>
+      <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+        Menu Utama Wali
+      </p>
+      <h3 class="text-2xl font-black" x-text="selectedStudent?.Name"></h3>
+      <div class="flex items-center gap-2 mt-1 flex-wrap">
+        <span
+          class="text-sm text-gray-500"
+          x-text="'Kelas: ' + selectedStudent?.['Class/Level']"
+        ></span>
+        <span class="text-gray-300">•</span>
+        <span
+          :class="selectedStudent?.StatusColor"
+          class="px-2 py-0.5 rounded text-[10px] font-bold uppercase"
+          x-text="selectedStudent?.StatusLabel"
+        ></span>
+      </div>
+    </div>
+    <div class="text-left md:text-right">
+      <div class="text-xs font-bold text-gray-400 uppercase">Total Skor</div>
+      <div
+        class="text-4xl font-black text-[#80A1C1]"
+        x-text="selectedStudent?.TotalScore"
+      ></div>
+      <p class="text-xs text-gray-400 mt-1">
+        Detail ini tampil langsung sebagai menu utama wali.
+      </p>
+    </div>
+  </div>
+
+  <div class="px-6 py-4 border-b bg-white">
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+        Menu Detail Santri
+      </p>
+      <span class="text-xs font-bold text-gray-400">Scroll bila menu padat</span>
+    </div>
+    <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <button
+        @click="studentDetailTab = 'hafalan'"
+        :class="studentDetailTab === 'hafalan' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+        class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+      >
+        <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('hafalan')"></span>
+        Hafalan
+      </button>
+      <button
+        @click="studentDetailTab = 'pelanggaran'"
+        :class="studentDetailTab === 'pelanggaran' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+        class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+      >
+        <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('perilaku')"></span>
+        Catatan Perilaku
+      </button>
+      <button
+        @click="studentDetailTab = 'grafik'; renderCharts();"
+        :class="studentDetailTab === 'grafik' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+        class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+      >
+        <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('grafik')"></span>
+        Grafik
+      </button>
+      <button
+        @click="studentDetailTab = 'laporan'"
+        :class="studentDetailTab === 'laporan' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+        class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+      >
+        <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('laporan')"></span>
+        Laporan
+      </button>
+      <button
+        @click="studentDetailTab = 'raport'; loadFullStudentReport(selectedStudent.StudentID)"
+        :class="studentDetailTab === 'raport' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+        class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+      >
+        <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('raport')"></span>
+        Raport
+      </button>
+      <button
+        @click="studentDetailTab = 'links'; loadLinks()"
+        :class="studentDetailTab === 'links' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+        class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+      >
+        <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('link_live')"></span>
+        Link Live
+      </button>
+    </div>
+  </div>
+
+  <div class="px-6 py-3 bg-orange-50/50 border-b">
+    <label class="block text-[10px] font-bold text-orange-400 uppercase mb-1 tracking-widest">
+      Catatan Pembinaan
+    </label>
+    <p
+      class="text-sm italic text-orange-800"
+      x-text="selectedStudent?.CatatanPembinaan || 'Ananda dalam bimbingan intensif ustadz.'"
+    ></p>
+  </div>
+
+  <div class="p-6 bg-[#FFF5E6]">
+    <div class="p-5">
+      <div x-show="studentDetailTab === 'hafalan'" x-cloak>
+        <?!= include('Modal_Detail_Hafalan'); ?>
+      </div>
+      <div x-show="studentDetailTab === 'pelanggaran'" x-cloak>
+        <?!= include('Modal_Detail_Perilaku'); ?>
+      </div>
+      <div x-show="studentDetailTab === 'grafik'" x-cloak>
+        <?!= include('Modal_Detail_Grafik'); ?>
+      </div>
+      <div x-show="studentDetailTab === 'laporan'" x-cloak>
+        <?!= include('Modal_Detail_Laporan'); ?>
+      </div>
+      <div x-show="studentDetailTab === 'raport'" x-cloak>
+        <?!= include('Modal_Detail_Raport'); ?>
+      </div>
+      <div x-show="studentDetailTab === 'links'" x-cloak>
+        <?!= include('Modal_Detail_Links'); ?>
+      </div>
+    </div>
+  </div>
+</div>
