@@ -15,7 +15,7 @@
       class="app-sidebar-item"
       :class="{ 'is-active': currentTab === 'dashboard' }"
     >
-      <span class="app-sidebar-icon">D</span>
+      <span class="app-sidebar-icon" x-html="navIcon('dashboard')"></span>
       <span>Dashboard</span>
     </button>
 
@@ -25,7 +25,7 @@
       class="app-sidebar-item"
       :class="{ 'is-active': currentTab === 'santri' }"
     >
-      <span class="app-sidebar-icon">S</span>
+      <span class="app-sidebar-icon" x-html="navIcon('santri')"></span>
       <span>Santri</span>
     </button>
 
@@ -39,7 +39,7 @@
           class="app-sidebar-item"
           :class="{ 'is-active': currentTab === 'hafalan' }"
         >
-          <span class="app-sidebar-icon">H</span>
+          <span class="app-sidebar-icon" x-html="navIcon('hafalan')"></span>
           <span>Input Hafalan</span>
         </button>
 
@@ -49,7 +49,7 @@
           class="app-sidebar-item"
           :class="{ 'is-active': currentTab === 'pelanggaran' }"
         >
-          <span class="app-sidebar-icon">P</span>
+          <span class="app-sidebar-icon" x-html="navIcon('perilaku')"></span>
           <span>Input Perilaku</span>
         </button>
 
@@ -59,7 +59,7 @@
           class="app-sidebar-item"
           :class="{ 'is-active': currentTab === 'list_perilaku' }"
         >
-          <span class="app-sidebar-icon">C</span>
+          <span class="app-sidebar-icon" x-html="navIcon('catatan')"></span>
           <span>Catatan Perilaku</span>
         </button>
 
@@ -69,7 +69,7 @@
           class="app-sidebar-item"
           :class="{ 'is-active': currentTab === 'link_live' }"
         >
-          <span class="app-sidebar-icon">L</span>
+          <span class="app-sidebar-icon" x-html="navIcon('link_live')"></span>
           <span>Link Hafalan</span>
         </button>
       </div>
@@ -84,7 +84,7 @@
         class="app-sidebar-item"
         :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
       >
-        <span class="app-sidebar-icon">B</span>
+        <span class="app-sidebar-icon" x-html="navIcon('pulang_bulanan')"></span>
         <span>Pulang Bulanan</span>
       </button>
 
@@ -95,7 +95,7 @@
           class="app-sidebar-item"
           :class="{ 'is-active': currentTab === 'panduan' }"
         >
-          <span class="app-sidebar-icon">U</span>
+          <span class="app-sidebar-icon" x-html="navIcon('panduan')"></span>
           <span>Panduan Ustadz</span>
         </button>
       </template>
@@ -106,7 +106,7 @@
         class="app-sidebar-item"
         :class="{ 'is-active': currentTab === 'panduan_wali' }"
       >
-        <span class="app-sidebar-icon">W</span>
+        <span class="app-sidebar-icon" x-html="navIcon('panduan')"></span>
         <span>Panduan Wali</span>
       </button>
     </div>
@@ -120,7 +120,7 @@
           class="app-sidebar-item"
           :class="{ 'is-active': currentTab === 'users' }"
         >
-          <span class="app-sidebar-icon">A</span>
+          <span class="app-sidebar-icon" x-html="navIcon('users')"></span>
           <span>Manajemen User</span>
         </button>
       </div>
@@ -137,7 +137,8 @@
       <p class="text-xs text-gray-500 truncate" x-text="user?.Role"></p>
     </div>
     <button type="button" @click="logout()" class="app-sidebar-logout">
-      Out
+      <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('logout')"></span>
+      <span>Keluar</span>
     </button>
   </div>
 </aside>

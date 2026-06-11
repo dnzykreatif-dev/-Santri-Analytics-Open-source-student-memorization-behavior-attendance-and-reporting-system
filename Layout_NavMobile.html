@@ -30,6 +30,7 @@
           class="app-mobile-more-item"
           :class="{ 'is-active': currentTab === 'pelanggaran' }"
         >
+          <span class="app-mobile-more-icon" x-html="navIcon('perilaku')"></span>
           Input Perilaku
         </button>
         <button
@@ -38,6 +39,7 @@
           class="app-mobile-more-item"
           :class="{ 'is-active': currentTab === 'link_live' }"
         >
+          <span class="app-mobile-more-icon" x-html="navIcon('link_live')"></span>
           Link Hafalan
         </button>
         <button
@@ -46,6 +48,7 @@
           class="app-mobile-more-item"
           :class="{ 'is-active': currentTab === 'panduan' }"
         >
+          <span class="app-mobile-more-icon" x-html="navIcon('panduan')"></span>
           Panduan Ustadz
         </button>
       </div>
@@ -57,6 +60,7 @@
       class="app-mobile-more-item"
       :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
     >
+      <span class="app-mobile-more-icon" x-html="navIcon('pulang_bulanan')"></span>
       Pulang Bulanan
     </button>
 
@@ -66,6 +70,7 @@
       class="app-mobile-more-item"
       :class="{ 'is-active': currentTab === 'panduan_wali' }"
     >
+      <span class="app-mobile-more-icon" x-html="navIcon('panduan')"></span>
       Panduan Wali
     </button>
 
@@ -76,6 +81,7 @@
         class="app-mobile-more-item"
         :class="{ 'is-active': currentTab === 'users' }"
       >
+        <span class="app-mobile-more-icon" x-html="navIcon('users')"></span>
         Manajemen User
       </button>
     </template>
@@ -85,6 +91,7 @@
       @click="logout()"
       class="app-mobile-more-item text-red-600"
     >
+      <span class="app-mobile-more-icon" x-html="navIcon('logout')"></span>
       Keluar
     </button>
   </div>
@@ -96,7 +103,7 @@
       class="app-mobile-nav-item"
       :class="{ 'is-active': currentTab === 'dashboard' }"
     >
-      <span class="app-mobile-nav-icon">D</span>
+      <span class="app-mobile-nav-icon" x-html="navIcon('dashboard')"></span>
       <span>Home</span>
     </button>
 
@@ -106,7 +113,7 @@
       class="app-mobile-nav-item"
       :class="{ 'is-active': currentTab === 'santri' }"
     >
-      <span class="app-mobile-nav-icon">S</span>
+      <span class="app-mobile-nav-icon" x-html="navIcon('santri')"></span>
       <span>Santri</span>
     </button>
 
@@ -117,7 +124,7 @@
         class="app-mobile-nav-item app-mobile-nav-primary"
         :class="{ 'is-active': currentTab === 'hafalan' }"
       >
-        <span class="app-mobile-nav-icon">H</span>
+        <span class="app-mobile-nav-icon" x-html="navIcon('hafalan')"></span>
         <span>Hafalan</span>
       </button>
     </template>
@@ -129,7 +136,7 @@
         class="app-mobile-nav-item app-mobile-nav-primary"
         :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
       >
-        <span class="app-mobile-nav-icon">B</span>
+        <span class="app-mobile-nav-icon" x-html="navIcon('pulang_bulanan')"></span>
         <span>Pulang</span>
       </button>
     </template>
@@ -140,7 +147,7 @@
       class="app-mobile-nav-item"
       :class="{ 'is-active': currentTab === 'list_perilaku' }"
     >
-      <span class="app-mobile-nav-icon">C</span>
+      <span class="app-mobile-nav-icon" x-html="navIcon('catatan')"></span>
       <span>Catatan</span>
     </button>
 
@@ -152,7 +159,7 @@
       aria-haspopup="menu"
       :aria-expanded="mobileMoreOpen.toString()"
     >
-      <span class="app-mobile-nav-icon">M</span>
+      <span class="app-mobile-nav-icon" x-html="navIcon('more')"></span>
       <span>More</span>
     </button>
   </div>

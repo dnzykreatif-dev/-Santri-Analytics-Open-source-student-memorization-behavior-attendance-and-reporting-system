@@ -3067,6 +3067,14 @@
     box-shadow: var(--app-shadow-sm);
   }
 
+  .app-sidebar-icon svg,
+  .app-mobile-nav-icon svg,
+  .app-mobile-more-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
+
   .app-sidebar-user {
     display: flex;
     align-items: center;
@@ -3078,6 +3086,9 @@
   }
 
   .app-sidebar-logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
     padding: 0.45rem 0.6rem;
     border-radius: 12px;
     background: rgba(239, 68, 68, 0.1);
@@ -3140,8 +3151,11 @@
   }
 
   .app-mobile-nav-icon {
-    font-size: 0.8rem;
-    font-weight: 900;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .app-mobile-more-backdrop {
@@ -3176,6 +3190,17 @@
     font-size: 0.86rem;
     font-weight: 900;
     text-align: left;
+    gap: 0.7rem;
+  }
+
+  .app-mobile-more-icon {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: currentColor;
+    flex: 0 0 auto;
   }
 
   .app-mobile-more-item:hover,
