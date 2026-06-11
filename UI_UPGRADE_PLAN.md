@@ -1,5 +1,27 @@
 # UI/UX Upgrade Plan
 
+## Current Status
+
+The stabilization and first UI upgrade passes are now in place. The app shell,
+role-aware login, navigation, core list-density improvements, and student
+detail handling have all been upgraded without a large redesign.
+
+Completed in the current branch:
+
+- Role-based login flow.
+- Desktop sidebar and mobile bottom navigation modernization.
+- Professional menu icons across the app shell.
+- Visible `Sistem Informasi Pesantren` surface for quick access.
+- Wali-specific main detail view inside `Santri`.
+- Compact long-list handling for behavior, hafalan, and dashboard views.
+
+Recommended next focus:
+
+1. Finish any remaining screen-by-screen polish after smoke testing.
+2. Keep UI expansion incremental so the current stable flow stays intact.
+3. Continue preserving the current frontend/backend contract before adding new
+   feature modules.
+
 ## Referensi
 
 Referensi utama: `E:\PROJECTS\apps-script\Aplikasi TPQ anak`

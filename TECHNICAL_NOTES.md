@@ -63,3 +63,108 @@ Before adding major features or UI/UX changes, run:
 
 Keep future frontend calls aligned with existing Apps Script functions or add a
 small compatibility wrapper so older UI paths continue to work.
+
+## Recent Stabilization and UX Work
+
+This section records the work completed during the `codex/stabilize-santri-analytics`
+branch so the next chat has a single source of truth.
+
+### 1. Runtime and data-contract fixes
+
+- Fixed the dashboard chart reference path so the render helper is called from
+  the correct app object.
+- Ensured user password updates write both `Salt` and `PasswordHash`.
+- Consolidated student status synchronization so there is one active
+  implementation path.
+- Updated report flows to use `MemorizationLogs` consistently instead of the
+  older `Memorization` reference.
+- Preserved the frontend response shape `{ ok, data, message }` across the
+  stabilized flows.
+
+### 2. Setup and health-check hardening
+
+- Made setup idempotent for the core sheets.
+- Expanded `initializeApp()` so it validates and completes required headers
+  without deleting user data.
+- Added health-check behavior for Mudir/Admin so missing sheets and headers
+  can be detected early.
+- Kept all setup changes non-destructive to existing Google Sheet rows.
+
+### 3. Behavior score rules
+
+- Score starts at 100 and is no longer capped at 100 on the positive side.
+- Prestasi / improvement entries can push the score above 100.
+- Repeated violations can push the score below 0, so negative totals are
+  visible instead of being clamped.
+- Incident points are normalized so violation flow stays negative and
+  improvement flow stays positive.
+
+### 4. UI and navigation upgrade
+
+- Added professional icons for every main menu item.
+- Modernized desktop and mobile navigation with a stable `setCurrentTab()`
+  flow.
+- Added `Sistem Informasi Pesantren` as a visible tab and menu entry.
+- Kept mobile bottom navigation and `More` menus role-aware.
+- Added a dedicated `Tab_InformasiPesantren.html` page for static pesantren
+  information, quick actions, and announcements.
+
+### 5. Student detail experience
+
+- Refined the student detail modal into a clearer menu-like tab strip with
+  icons for hafalan, perilaku, grafik, laporan, raport, and link live.
+- Promoted the Wali experience so student detail is now the main working view
+  inside the `Santri` tab for Wali users.
+- Kept the old modal behavior for Admin and Ustadz when they click a student
+  name.
+- Added `Tab_WaliSantriDetail.html` as the Wali-oriented detail surface.
+
+### 6. Lists, forms, and long-content handling
+
+- Condensed long lists for behavior notes, dashboard note blocks, hafalan
+  lists, and other dense views so they stay readable on mobile.
+- Kept the existing `Muat Lagi` pattern for paginated scrolling behavior.
+- Improved the pulang bulanan CRUD path and summary behavior.
+
+### 7. Current frontend contract
+
+Current tab structure remains compatible with the existing shell:
+
+- `dashboard`
+- `santri`
+- `hafalan`
+- `pelanggaran`
+- `list_perilaku`
+- `link_live`
+- `pulang_bulanan`
+- `panduan`
+- `panduan_wali`
+- `users`
+- `informasi_pesantren`
+
+Student detail behavior now follows role:
+
+- Wali: detail santri acts as the main working view inside `Santri`.
+- Mudir / Ustadz: click a student name to open the modal detail surface.
+
+### 8. Files most recently added or updated
+
+- `Tab_InformasiPesantren.html`
+- `Tab_WaliSantriDetail.html`
+- `Index.html`
+- `JS_App.html`
+- `Layout_NavDesktop.html`
+- `Layout_NavMobile.html`
+- `Modal_StudentDetail.html`
+- `Tab_Students.html`
+
+### 9. Practical validation already used
+
+- Parse all `.gs` files with Node.
+- Parse `JS_App.html` after stripping the `<script>` wrapper.
+- Run `git diff --check`.
+- Verify `git status --short` is clean after commit.
+
+These notes describe the current stabilized baseline. Future UI/UX upgrades
+should build on this contract instead of reintroducing hidden menu paths or
+clamping the score logic back to 0-100.
