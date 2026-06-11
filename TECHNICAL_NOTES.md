@@ -39,6 +39,34 @@ to the end of the first row. Existing rows and existing columns are preserved.
 - Inactive Wali status is synced to linked student rows through
   `syncStudentStatus()` and also filtered from active dashboard counts.
 
+## Sistem Informasi Pesantren
+
+`Sistem Informasi Pesantren` is now a real content module backed by the
+`PesantrenInfo` sheet. The module is used for pondok information that Wali need
+to read, such as announcements, education calendars, guardian guides,
+documents, service contacts, and pondok activities.
+
+Access rules:
+
+- Mudir, Admin, and Ustadz can open `Sistem Informasi` and use
+  `Input & Kelola` to add, edit, publish, archive, or delete content.
+- Wali only sees published public content. Wali cannot access the input or
+  management panel.
+- Content appears to Wali only when `Status` is `Published` and `Audience` is
+  `Semua` or `Wali`.
+
+Input path for staff:
+
+1. Open `Sistem Informasi`.
+2. Click `Tambah Informasi` or the `Input & Kelola` section.
+3. Fill title, category, summary/content, audience, status, priority, dates,
+   optional attachment, and optional contact.
+4. Use `Published` when the item is ready for Wali. Use `Draft` while preparing
+   content, and `Archived` for old information.
+
+The sheet setup is idempotent. `initializeApp()` creates the `PesantrenInfo`
+sheet and missing headers without deleting existing rows.
+
 ## Behavior Score Rules
 
 Behavior score starts at 100 and is accumulated in chronological order without
@@ -106,8 +134,26 @@ branch so the next chat has a single source of truth.
   flow.
 - Added `Sistem Informasi Pesantren` as a visible tab and menu entry.
 - Kept mobile bottom navigation and `More` menus role-aware.
-- Added a dedicated `Tab_InformasiPesantren.html` page for static pesantren
-  information, quick actions, and announcements.
+- Added a dedicated `Tab_InformasiPesantren.html` page for pesantren
+  information, quick actions, announcements, calendar entries, guides,
+  documents, contacts, and staff-managed content.
+- Added a compact mobile drawer and tightened bottom navigation spacing so the
+  header and bottom menu do not cover the main content.
+
+### 4a. Pesantren information content management
+
+- Added `PesantrenInfo.gs` for role-aware CRUD around the `PesantrenInfo`
+  sheet.
+- Added `getPesantrenInfo`, `savePesantrenInfo`,
+  `setPesantrenInfoStatus`, and `deletePesantrenInfo`.
+- Staff see the `Input & Kelola` section by default when opening
+  `Sistem Informasi`.
+- The top action `Tambah Informasi` opens the editor directly for Mudir/Admin/
+  Ustadz.
+- The editor includes a short `Cara Input` guide so staff know that published
+  content is what Wali can read.
+- Wali see only public sections: Beranda, Pengumuman, Kalender, Panduan,
+  Dokumen, and Kontak.
 
 ### 5. Student detail experience
 

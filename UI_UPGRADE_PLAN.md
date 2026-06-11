@@ -11,9 +11,13 @@ Completed in the current branch:
 - Role-based login flow.
 - Desktop sidebar and mobile bottom navigation modernization.
 - Professional menu icons across the app shell.
-- Visible `Sistem Informasi Pesantren` surface for quick access.
+- Visible `Sistem Informasi Pesantren` surface for quick access and
+  staff-managed content.
 - Wali-specific main detail view inside `Santri`.
 - Compact long-list handling for behavior, hafalan, and dashboard views.
+- Mobile header, drawer menu, and bottom navigation spacing polish.
+- Compact `Sistem Informasi` header with clear `Tambah Informasi` and
+  `Input & Kelola` entry points for Mudir/Admin/Ustadz.
 
 Recommended next focus:
 

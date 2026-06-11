@@ -1,17 +1,29 @@
 <!-- Layout Header -->
 <header class="app-topbar">
-  <div class="min-w-0">
-    <p class="text-[11px] font-black text-[#0f5f4a] uppercase tracking-widest">
-      Santri Analytics
-    </p>
-    <h1 class="text-lg md:text-xl font-black text-gray-900 truncate">
-      Assalamu'alaykum,
-      <span x-text="user?.Name || user?.Username || 'User'"></span>
-    </h1>
-    <p class="text-xs text-gray-500">
-      <span x-text="user?.Role || '-'"></span>
-      <span class="hidden sm:inline"> - Monitor hafalan dan perilaku santri</span>
-    </p>
+  <div class="flex items-center gap-3 min-w-0">
+    <button
+      type="button"
+      @click="mobileDrawerOpen = true; mobileMoreOpen = false"
+      class="app-mobile-menu-button md:hidden"
+      aria-label="Buka menu samping"
+      :aria-expanded="mobileDrawerOpen.toString()"
+    >
+      <span x-html="navIcon('menu')"></span>
+    </button>
+
+    <div class="min-w-0">
+      <p class="text-[11px] font-black text-[#0f5f4a] uppercase tracking-widest">
+        Santri Analytics
+      </p>
+      <h1 class="text-lg md:text-xl font-black text-gray-900 truncate">
+        Assalamu'alaykum,
+        <span x-text="user?.Name || user?.Username || 'User'"></span>
+      </h1>
+      <p class="text-xs text-gray-500">
+        <span x-text="user?.Role || '-'"></span>
+        <span class="hidden sm:inline"> - Monitor hafalan dan perilaku santri</span>
+      </p>
+    </div>
   </div>
 
   <div class="flex items-center gap-2">

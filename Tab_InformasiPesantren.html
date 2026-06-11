@@ -1,3 +1,4 @@
+
 <!-- TAB: INFORMASI PESANTREN -->
 <section
   x-show="currentTab === 'informasi_pesantren'"
@@ -6,146 +7,812 @@
   x-transition:enter-end="opacity-100 translate-x-0"
   class="space-y-6"
 >
-  <div class="card app-card p-6 sm:p-7 bg-white">
-    <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-      <div class="max-w-2xl">
-        <p class="text-[11px] font-black text-[#0f5f4a] uppercase tracking-widest">
-          Sistem Informasi Pesantren
-        </p>
-        <h2 class="text-2xl md:text-3xl font-black text-gray-900 mt-1">
-          Informasi penting dari pesantren
-        </h2>
-        <p class="text-sm text-gray-500 mt-2">
-          Halaman ringkas untuk pengumuman, kontak, layanan, dan panduan inti agar wali santri tidak perlu masuk ke menu tersembunyi.
-        </p>
+  <div class="app-card app-card-tight p-5 sm:p-6 bg-white">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div class="max-w-3xl space-y-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="app-badge app-badge-primary">Sistem Informasi Pesantren</span>
+          <span class="app-badge app-badge-success" x-text="pesantrenInfoSummary.published + ' terbit'"></span>
+          <span class="app-badge app-badge-info" x-text="pesantrenInfoSummary.upcoming + ' agenda'"></span>
+          <template x-if="canManagePesantrenInfo()">
+            <span class="app-badge app-badge-warning" x-text="pesantrenInfoSummary.draft + ' draft'"></span>
+          </template>
+        </div>
+        <div>
+          <h2 class="text-2xl md:text-3xl font-black text-gray-900 leading-tight">
+            <span x-text="canManagePesantrenInfo() ? 'Input & Kelola Informasi Pondok' : 'Informasi Pondok untuk Wali'"></span>
+          </h2>
+          <p class="text-sm text-gray-500 mt-2 max-w-3xl">
+            <span x-text="canManagePesantrenInfo() ? 'Tambah pengumuman, kalender, panduan, dokumen, dan kontak yang akan dilihat wali setelah diterbitkan.' : 'Pengumuman, agenda, panduan, dokumen, dan kontak resmi pondok yang sudah diterbitkan.'"></span>
+          </p>
+        </div>
       </div>
+
       <div class="flex flex-wrap gap-2">
-        <button type="button" @click="setCurrentTab('panduan_wali')" class="app-btn app-btn-soft text-xs">
-          Panduan Wali
-        </button>
-        <button type="button" @click="setCurrentTab('pulang_bulanan')" class="app-btn app-btn-primary text-xs">
-          Pulang Bulanan
-        </button>
+        <template x-if="canManagePesantrenInfo()">
+          <button type="button" @click="setPesantrenInfoSection('kelola')" class="app-btn app-btn-primary">Tambah Informasi</button>
+        </template>
+        <button type="button" @click="loadPesantrenInfo()" class="app-btn app-btn-soft">Refresh</button>
+        <button type="button" @click="setPesantrenInfoSection('beranda')" class="app-btn app-btn-soft">Lihat Publik</button>
+        <button type="button" @click="setCurrentTab('pulang_bulanan')" class="app-btn app-btn-soft">Pulang Bulanan</button>
       </div>
     </div>
   </div>
 
   <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-    <div class="app-card app-card-muted p-5">
-      <div class="flex items-center justify-between">
+    <div class="app-card p-5">
+      <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Total Konten</p>
+      <div class="mt-3 flex items-end justify-between gap-3">
         <div>
-          <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Status</p>
-          <h3 class="text-lg font-black text-gray-900 mt-1">Aktif & Terpantau</h3>
+          <h3 class="text-3xl font-black text-gray-900" x-text="pesantrenInfoSummary.total || 0"></h3>
+          <p class="text-sm text-gray-500 mt-1" x-text="canManagePesantrenInfo() ? 'Semua konten yang tersimpan di sistem.' : 'Konten publik yang siap dibaca wali.'"></p>
         </div>
-        <div class="app-badge app-badge-success">Aktif</div>
+        <span class="app-badge app-badge-info">Aktif</span>
       </div>
-      <p class="text-sm text-gray-500 mt-3">
-        Informasi operasional pondok dan perkembangan santri dipusatkan di dashboard ini.
-      </p>
     </div>
 
     <div class="app-card p-5">
-      <div class="flex items-center justify-between">
+      <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Terbit</p>
+      <div class="mt-3 flex items-end justify-between gap-3">
         <div>
-          <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Kontak</p>
-          <h3 class="text-lg font-black text-gray-900 mt-1">Administrasi</h3>
+          <h3 class="text-3xl font-black text-gray-900" x-text="pesantrenInfoSummary.published || 0"></h3>
+          <p class="text-sm text-gray-500 mt-1">Informasi yang tampil ke wali santri.</p>
         </div>
-        <div class="app-badge app-badge-primary">Info</div>
+        <span class="app-badge app-badge-success">Published</span>
       </div>
-      <p class="text-sm text-gray-500 mt-3">
-        Hubungi ustadz pembina atau admin untuk kendala akses, data santri, atau kebutuhan laporan.
-      </p>
+    </div>
+
+    <div class="app-card p-5" x-show="canManagePesantrenInfo()">
+      <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Draft</p>
+      <div class="mt-3 flex items-end justify-between gap-3">
+        <div>
+          <h3 class="text-3xl font-black text-gray-900" x-text="pesantrenInfoSummary.draft || 0"></h3>
+          <p class="text-sm text-gray-500 mt-1">Konten yang belum diterbitkan.</p>
+        </div>
+        <span class="app-badge app-badge-warning">Draft</span>
+      </div>
     </div>
 
     <div class="app-card p-5">
-      <div class="flex items-center justify-between">
+      <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Agenda Mendatang</p>
+      <div class="mt-3 flex items-end justify-between gap-3">
         <div>
-          <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Layanan</p>
-          <h3 class="text-lg font-black text-gray-900 mt-1">Jam Layanan</h3>
+          <h3 class="text-3xl font-black text-gray-900" x-text="pesantrenInfoSummary.upcoming || 0"></h3>
+          <p class="text-sm text-gray-500 mt-1">Kalender pendidikan dan kegiatan pondok.</p>
         </div>
-        <div class="app-badge app-badge-warning">Penting</div>
+        <span class="app-badge app-badge-info">Calendar</span>
       </div>
-      <p class="text-sm text-gray-500 mt-3">
-        Gunakan menu ini untuk melihat ringkasan layanan pesantren dan akses cepat ke menu operasional.
-      </p>
-    </div>
-
-    <div class="app-card p-5">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Akses Cepat</p>
-          <h3 class="text-lg font-black text-gray-900 mt-1">Menu Wali</h3>
-        </div>
-        <div class="app-badge app-badge-info">Menu</div>
-      </div>
-      <p class="text-sm text-gray-500 mt-3">
-        Kunjungi detail santri, panduan wali, dan pulang bulanan dari jalur yang lebih mudah ditemukan.
-      </p>
     </div>
   </div>
 
-  <div class="grid gap-4 lg:grid-cols-3">
-    <div class="app-card p-5 lg:col-span-2">
-      <div class="flex items-center justify-between gap-3 mb-4">
-        <h3 class="font-black text-gray-900">Pengumuman Penting</h3>
-        <span class="app-badge app-badge-primary">Ringkas</span>
+  <div class="app-card app-card-tight p-4">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p class="text-xs font-black text-gray-400 uppercase tracking-widest" x-text="canManagePesantrenInfo() ? 'Pengaturan Informasi' : 'Bagian Informasi'"></p>
+        <h3 class="text-lg font-black text-gray-900 mt-1" x-text="canManagePesantrenInfo() ? 'Input, tinjau, lalu terbitkan' : 'Pilih informasi yang ingin dibaca'"></h3>
       </div>
-      <div class="space-y-3">
-        <div class="mobile-list-card">
-          <div class="mobile-list-card-header">
-            <div>
-              <p class="font-black text-gray-900">Pembaruan Layanan Wali</p>
-              <p class="text-sm text-gray-500 mt-1">
-                Menu informasi pesantren kini bisa diakses langsung dari navigasi utama untuk wali santri.
-              </p>
-            </div>
-            <span class="app-badge app-badge-success">Baru</span>
-          </div>
-        </div>
-        <div class="mobile-list-card">
-          <div class="mobile-list-card-header">
-            <div>
-              <p class="font-black text-gray-900">Akses Detail Santri</p>
-              <p class="text-sm text-gray-500 mt-1">
-                Klik nama santri untuk membuka detail hafalan, perilaku, grafik, laporan, dan link live.
-              </p>
-            </div>
-            <span class="app-badge app-badge-info">Info</span>
-          </div>
-        </div>
-        <div class="mobile-list-card">
-          <div class="mobile-list-card-header">
-            <div>
-              <p class="font-black text-gray-900">Komunikasi Pembinaan</p>
-              <p class="text-sm text-gray-500 mt-1">
-                Gunakan catatan pembinaan untuk menyampaikan arahan pembina kepada wali dengan lebih jelas.
-              </p>
-            </div>
-            <span class="app-badge app-badge-warning">Penting</span>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <div class="app-card p-5">
-      <div class="flex items-center justify-between gap-3 mb-4">
-        <h3 class="font-black text-gray-900">Akses Cepat</h3>
-        <span class="app-badge app-badge-primary">Shortcut</span>
-      </div>
-      <div class="space-y-2">
-        <button type="button" @click="setCurrentTab('santri')" class="app-btn app-btn-soft w-full justify-start">
-          Lihat Santri
-        </button>
-        <button type="button" @click="setCurrentTab('dashboard')" class="app-btn app-btn-soft w-full justify-start">
-          Buka Dashboard
-        </button>
-        <button type="button" @click="setCurrentTab('panduan_wali')" class="app-btn app-btn-soft w-full justify-start">
-          Baca Panduan Wali
-        </button>
-        <button type="button" @click="setCurrentTab('pulang_bulanan')" class="app-btn app-btn-soft w-full justify-start">
-          Pantau Pulang Bulanan
-        </button>
+      <div class="flex flex-wrap gap-2 pesantren-section-tabs">
+        <template x-if="canManagePesantrenInfo()">
+          <button type="button" class="app-btn text-xs" :class="pesantrenInfoSection === 'kelola' ? 'app-btn-primary' : 'app-btn-soft'" @click="setPesantrenInfoSection('kelola')">Input & Kelola</button>
+        </template>
+        <button type="button" class="app-btn text-xs" :class="pesantrenInfoSection === 'beranda' ? 'app-btn-primary' : 'app-btn-soft'" @click="setPesantrenInfoSection('beranda')">Beranda</button>
+        <button type="button" class="app-btn text-xs" :class="pesantrenInfoSection === 'pengumuman' ? 'app-btn-primary' : 'app-btn-soft'" @click="setPesantrenInfoSection('pengumuman')">Pengumuman</button>
+        <button type="button" class="app-btn text-xs" :class="pesantrenInfoSection === 'kalender' ? 'app-btn-primary' : 'app-btn-soft'" @click="setPesantrenInfoSection('kalender')">Kalender</button>
+        <button type="button" class="app-btn text-xs" :class="pesantrenInfoSection === 'panduan' ? 'app-btn-primary' : 'app-btn-soft'" @click="setPesantrenInfoSection('panduan')">Panduan</button>
+        <button type="button" class="app-btn text-xs" :class="pesantrenInfoSection === 'dokumen' ? 'app-btn-primary' : 'app-btn-soft'" @click="setPesantrenInfoSection('dokumen')">Dokumen</button>
+        <button type="button" class="app-btn text-xs" :class="pesantrenInfoSection === 'kontak' ? 'app-btn-primary' : 'app-btn-soft'" @click="setPesantrenInfoSection('kontak')">Kontak</button>
       </div>
     </div>
   </div>
+
+  <template x-if="loadingPesantrenInfo">
+    <div class="app-card p-6">
+      <div class="flex items-center gap-3 text-gray-500">
+        <div class="w-5 h-5 rounded-full border-2 border-emerald-200 border-t-emerald-600 animate-spin"></div>
+        <span class="font-semibold">Memuat informasi pesantren...</span>
+      </div>
+    </div>
+  </template>
+
+  <template x-if="!loadingPesantrenInfo">
+    <div class="space-y-6">
+      <template x-if="pesantrenInfoSection === 'beranda'">
+        <div class="grid gap-5 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)]">
+          <div class="space-y-5">
+            <div class="app-card p-5 lg:p-6">
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Sorotan</p>
+                  <h3 class="font-black text-gray-900 mt-1">Info Pinned</h3>
+                </div>
+                <span class="app-badge app-badge-warning" x-text="pesantrenPinnedItems.length"></span>
+              </div>
+
+              <template x-if="pesantrenPinnedItems.length === 0">
+                <div class="app-empty-state min-h-[160px] py-8">
+                  <div class="app-empty-icon">!</div>
+                  <p class="text-sm">Belum ada informasi yang dipin.</p>
+                </div>
+              </template>
+
+              <div class="space-y-3" x-show="pesantrenPinnedItems.length > 0">
+                <template x-for="item in pesantrenPinnedItems" :key="'home-pinned-' + item.InfoID">
+                  <div class="mobile-list-card">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                          <span :class="pesantrenInfoCategoryClass(item.Category)" x-text="item.Category"></span>
+                          <span class="app-badge app-badge-warning">Pinned</span>
+                        </div>
+                        <h4 class="font-black text-gray-900" x-text="item.Title"></h4>
+                        <p class="text-sm text-gray-500 mt-2 leading-6" x-text="item.Summary || item.Content"></p>
+                      </div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-3" x-text="formatLongDate(item.EventDate || item.DisplayDate)"></p>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div class="app-card p-5 lg:p-6">
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Terbaru</p>
+                  <h3 class="font-black text-gray-900 mt-1">Pengumuman Penting</h3>
+                </div>
+                <span class="app-badge app-badge-primary" x-text="pesantrenAnnouncementItems.length"></span>
+              </div>
+
+              <template x-if="pesantrenAnnouncementItems.length === 0">
+                <div class="text-sm text-gray-500 bg-[#FBF8F1] border border-dashed border-[#D8C3A5] rounded-2xl p-4">
+                  Belum ada pengumuman yang ditampilkan.
+                </div>
+              </template>
+
+              <div class="space-y-3" x-show="pesantrenAnnouncementItems.length > 0">
+                <template x-for="item in pesantrenAnnouncementItems" :key="'home-news-' + item.InfoID">
+                  <div class="mobile-list-card">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                          <span :class="pesantrenInfoCategoryClass(item.Category)" x-text="item.Category"></span>
+                          <span x-show="item.IsPinned" class="app-badge app-badge-warning">Pinned</span>
+                        </div>
+                        <h4 class="font-black text-gray-900" x-text="item.Title"></h4>
+                        <p class="text-sm text-gray-500 mt-2 leading-6" x-text="item.Summary || item.Content"></p>
+                      </div>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <span class="app-badge app-badge-info" x-text="formatLongDate(item.DisplayDate || item.UpdatedAt)"></span>
+                      <span class="app-badge app-badge-primary" x-text="item.Priority"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-5">
+            <div class="app-card p-5 lg:p-6">
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Agenda</p>
+                  <h3 class="font-black text-gray-900 mt-1">Mendatang</h3>
+                </div>
+                <span class="app-badge app-badge-info" x-text="pesantrenCalendarItems.length"></span>
+              </div>
+
+              <template x-if="pesantrenCalendarItems.length === 0">
+                <div class="text-sm text-gray-500 bg-[#FBF8F1] border border-dashed border-[#D8C3A5] rounded-2xl p-4">
+                  Belum ada agenda yang masuk ke kalender.
+                </div>
+              </template>
+
+              <div class="space-y-3" x-show="pesantrenCalendarItems.length > 0">
+                <template x-for="item in pesantrenCalendarItems" :key="'home-calendar-' + item.InfoID">
+                  <div class="flex items-start gap-3 p-3 rounded-2xl border border-gray-200 bg-white">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex flex-col items-center justify-center font-black shrink-0">
+                      <span class="text-[10px] uppercase tracking-widest" x-text="(item.EventDate || item.DisplayDate || '-').slice(8, 10) || '-'"></span>
+                      <span class="text-sm" x-text="(item.EventDate || item.DisplayDate || '-').slice(5, 7) || '-'"></span>
+                    </div>
+                    <div class="min-w-0">
+                      <h4 class="font-black text-gray-900" x-text="item.Title"></h4>
+                      <p class="text-sm text-gray-500 mt-1" x-text="item.Location || item.Summary || item.Content"></p>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div class="app-card p-5 lg:p-6">
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Ringkas</p>
+                  <h3 class="font-black text-gray-900 mt-1">Cara Membaca Halaman Ini</h3>
+                </div>
+                <span class="app-badge app-badge-success">Info</span>
+              </div>
+              <ul class="space-y-3 text-sm text-gray-600 leading-6">
+                <li>Pengumuman penting muncul di bagian depan dan bisa dipin agar tampil lebih dulu.</li>
+                <li>Kalender pendidikan dipakai untuk agenda, ujian, libur, dan kegiatan pondok yang perlu diketahui wali.</li>
+                <li>Panduan wali berisi aturan, alur komunikasi, dan layanan yang sering ditanyakan.</li>
+                <li>Dokumen dan kontak membantu wali membuka file atau menghubungi pengurus yang tepat.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template x-if="pesantrenInfoSection === 'pengumuman'">
+        <div class="app-card p-5 lg:p-6">
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <div>
+              <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Pengumuman</p>
+              <h3 class="text-xl font-black text-gray-900 mt-1">Informasi Terbaru</h3>
+            </div>
+            <span class="app-badge app-badge-primary" x-text="pesantrenAnnouncementItems.length + ' item'"></span>
+          </div>
+
+          <template x-if="pesantrenAnnouncementItems.length === 0">
+            <div class="app-empty-state min-h-[180px] py-10">
+              <div class="app-empty-icon">i</div>
+              <h4 class="font-black text-gray-900">Belum ada pengumuman</h4>
+              <p class="text-sm max-w-md">Silakan cek lagi nanti atau pindah ke section lain untuk melihat agenda, panduan, dan dokumen.</p>
+            </div>
+          </template>
+
+          <div class="space-y-3" x-show="pesantrenAnnouncementItems.length > 0">
+            <template x-for="item in pesantrenAnnouncementItems" :key="'announce-' + item.InfoID">
+              <article class="mobile-list-card">
+                <div class="flex flex-col gap-3">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span :class="pesantrenInfoCategoryClass(item.Category)" x-text="item.Category"></span>
+                    <span x-show="item.IsPinned" class="app-badge app-badge-warning">Pinned</span>
+                    <span :class="pesantrenInfoPriorityClass(item.Priority)" x-text="item.Priority"></span>
+                  </div>
+                  <div>
+                    <h4 class="text-lg font-black text-gray-900 leading-snug" x-text="item.Title"></h4>
+                    <p class="text-sm text-gray-500 mt-2 leading-6" x-text="item.Summary || item.Content"></p>
+                  </div>
+                  <div class="grid gap-2 sm:grid-cols-2 text-sm text-gray-600">
+                    <div class="flex items-center gap-2">
+                      <span class="text-gray-400">Terbit</span>
+                      <span class="font-semibold text-gray-900" x-text="formatLongDate(item.DisplayDate || item.UpdatedAt)"></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-gray-400">Agenda</span>
+                      <span class="font-semibold text-gray-900" x-text="formatLongDate(item.EventDate || item.DisplayDate)"></span>
+                    </div>
+                  </div>
+                  <div class="space-y-3" x-show="item.Content || item.AttachmentURL || item.ContactPhone">
+                    <div class="p-4 rounded-2xl bg-[#FBF8F1] border border-[#E6D8C5]" x-show="item.Content">
+                      <p class="text-sm text-gray-700 leading-7 whitespace-pre-line" x-text="item.Content"></p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <template x-if="item.AttachmentURL">
+                        <a :href="item.AttachmentURL" target="_blank" class="app-btn app-btn-soft text-xs">
+                          <span x-text="item.AttachmentTitle || 'Buka Lampiran'"></span>
+                        </a>
+                      </template>
+                      <template x-if="item.ContactPhone">
+                        <a :href="'https://wa.me/' + String(item.ContactPhone || '').replace(/\D/g, '')" target="_blank" class="app-btn app-btn-soft text-xs">
+                          Hubungi Kontak
+                        </a>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <template x-if="pesantrenInfoSection === 'kalender'">
+        <div class="app-card p-5 lg:p-6">
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <div>
+              <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Kalender</p>
+              <h3 class="text-xl font-black text-gray-900 mt-1">Agenda Pendidikan</h3>
+            </div>
+            <span class="app-badge app-badge-info" x-text="pesantrenCalendarItems.length + ' item'"></span>
+          </div>
+
+          <template x-if="pesantrenCalendarItems.length === 0">
+            <div class="text-sm text-gray-500 bg-[#FBF8F1] border border-dashed border-[#D8C3A5] rounded-2xl p-4">
+              Belum ada agenda yang masuk ke kalender.
+            </div>
+          </template>
+
+          <div class="space-y-3" x-show="pesantrenCalendarItems.length > 0">
+            <template x-for="item in pesantrenCalendarItems" :key="'calendar-' + item.InfoID">
+              <article class="mobile-list-card">
+                <div class="flex items-start gap-3">
+                  <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex flex-col items-center justify-center font-black shrink-0">
+                    <span class="text-[11px] uppercase tracking-widest" x-text="(item.EventDate || item.DisplayDate || '-').slice(8, 10) || '-'"></span>
+                    <span class="text-sm" x-text="(item.EventDate || item.DisplayDate || '-').slice(5, 7) || '-'"></span>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                      <span :class="pesantrenInfoCategoryClass(item.Category)" x-text="item.Category"></span>
+                      <span x-show="item.IsPinned" class="app-badge app-badge-warning">Pinned</span>
+                    </div>
+                    <h4 class="font-black text-gray-900" x-text="item.Title"></h4>
+                    <p class="text-sm text-gray-500 mt-2" x-text="item.Location || item.Summary || item.Content"></p>
+                    <p class="text-xs text-gray-400 mt-3" x-text="formatLongDate(item.EventDate || item.DisplayDate)"></p>
+                  </div>
+                </div>
+              </article>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <template x-if="pesantrenInfoSection === 'panduan'">
+        <div class="app-card p-5 lg:p-6">
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <div>
+              <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Panduan</p>
+              <h3 class="text-xl font-black text-gray-900 mt-1">Panduan Wali</h3>
+            </div>
+            <span class="app-badge app-badge-success" x-text="pesantrenGuideItems.length + ' item'"></span>
+          </div>
+
+          <template x-if="pesantrenGuideItems.length === 0">
+            <div class="text-sm text-gray-500 bg-[#FBF8F1] border border-dashed border-[#D8C3A5] rounded-2xl p-4">
+              Belum ada panduan wali yang diterbitkan.
+            </div>
+          </template>
+
+          <div class="space-y-3" x-show="pesantrenGuideItems.length > 0">
+            <template x-for="item in pesantrenGuideItems" :key="'guide-' + item.InfoID">
+              <article class="mobile-list-card">
+                <div class="flex flex-col gap-3">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span :class="pesantrenInfoCategoryClass(item.Category)" x-text="item.Category"></span>
+                    <span x-show="item.IsPinned" class="app-badge app-badge-warning">Pinned</span>
+                  </div>
+                  <div>
+                    <h4 class="font-black text-gray-900" x-text="item.Title"></h4>
+                    <p class="text-sm text-gray-500 mt-2 leading-6" x-text="item.Summary || item.Content"></p>
+                  </div>
+                  <div class="p-4 rounded-2xl bg-[#FBF8F1] border border-[#E6D8C5]" x-show="item.Content">
+                    <p class="text-sm text-gray-700 leading-7 whitespace-pre-line" x-text="item.Content"></p>
+                  </div>
+                </div>
+              </article>
+            </template>
+          </div>
+        </div>
+      </template>
+      <template x-if="pesantrenInfoSection === 'dokumen'">
+        <div class="app-card p-5 lg:p-6">
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <div>
+              <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Dokumen</p>
+              <h3 class="text-xl font-black text-gray-900 mt-1">Berkas & Edaran</h3>
+            </div>
+            <span class="app-badge app-badge-primary" x-text="pesantrenDocumentItems.length + ' item'"></span>
+          </div>
+
+          <template x-if="pesantrenDocumentItems.length === 0">
+            <div class="text-sm text-gray-500 bg-[#FBF8F1] border border-dashed border-[#D8C3A5] rounded-2xl p-4">
+              Belum ada dokumen yang dibagikan.
+            </div>
+          </template>
+
+          <div class="space-y-3" x-show="pesantrenDocumentItems.length > 0">
+            <template x-for="item in pesantrenDocumentItems" :key="'doc-' + item.InfoID">
+              <article class="mobile-list-card">
+                <div class="flex flex-col gap-3">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span :class="pesantrenInfoCategoryClass(item.Category)" x-text="item.Category"></span>
+                    <span x-show="item.IsPinned" class="app-badge app-badge-warning">Pinned</span>
+                  </div>
+                  <div>
+                    <h4 class="font-black text-gray-900" x-text="item.Title"></h4>
+                    <p class="text-sm text-gray-500 mt-2 leading-6" x-text="item.Summary || item.Content"></p>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <template x-if="item.AttachmentURL">
+                      <a :href="item.AttachmentURL" target="_blank" class="app-btn app-btn-soft text-xs">
+                        <span x-text="item.AttachmentTitle || 'Buka File'"></span>
+                      </a>
+                    </template>
+                    <template x-if="item.ContactPhone">
+                      <a :href="'https://wa.me/' + String(item.ContactPhone || '').replace(/\D/g, '')" target="_blank" class="app-btn app-btn-soft text-xs">
+                        Kontak
+                      </a>
+                    </template>
+                  </div>
+                </div>
+              </article>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <template x-if="pesantrenInfoSection === 'kontak'">
+        <div class="app-card p-5 lg:p-6">
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <div>
+              <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Kontak</p>
+              <h3 class="text-xl font-black text-gray-900 mt-1">Layanan & Kontak Penting</h3>
+            </div>
+            <span class="app-badge app-badge-success" x-text="pesantrenContactItems.length + ' item'"></span>
+          </div>
+
+          <template x-if="pesantrenContactItems.length === 0">
+            <div class="text-sm text-gray-500 bg-[#FBF8F1] border border-dashed border-[#D8C3A5] rounded-2xl p-4">
+              Belum ada kontak layanan yang ditampilkan.
+            </div>
+          </template>
+
+          <div class="space-y-3" x-show="pesantrenContactItems.length > 0">
+            <template x-for="item in pesantrenContactItems" :key="'contact-' + item.InfoID">
+              <article class="mobile-list-card">
+                <div class="flex flex-col gap-3">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span :class="pesantrenInfoCategoryClass(item.Category)" x-text="item.Category"></span>
+                    <span x-show="item.IsPinned" class="app-badge app-badge-warning">Pinned</span>
+                  </div>
+                  <div>
+                    <h4 class="font-black text-gray-900" x-text="item.ContactName || item.Title"></h4>
+                    <p class="text-sm text-gray-500 mt-2 leading-6" x-text="item.ContactPhone || item.Summary || item.Content"></p>
+                  </div>
+                  <template x-if="item.ContactPhone">
+                    <a :href="'https://wa.me/' + String(item.ContactPhone || '').replace(/\D/g, '')" target="_blank" class="app-btn app-btn-soft text-xs w-fit">
+                      Hubungi
+                    </a>
+                  </template>
+                </div>
+              </article>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <template x-if="canManagePesantrenInfo() && pesantrenInfoSection === 'kelola'">
+        <div class="grid gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+          <div class="space-y-5">
+            <div class="app-card app-card-tight p-4 bg-[#FBF8F1] border border-[#E6D8C5]">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Cara Input</p>
+                  <p class="text-sm text-gray-600 mt-1">
+                    Isi form, pilih kategori dan audiens, lalu pakai status <strong>Published</strong> agar tampil di halaman Wali.
+                  </p>
+                </div>
+                <div class="flex flex-wrap gap-2 text-xs font-black text-emerald-800">
+                  <span class="px-3 py-2 rounded-full bg-white border border-[#E6D8C5]">1. Tulis</span>
+                  <span class="px-3 py-2 rounded-full bg-white border border-[#E6D8C5]">2. Pilih Kategori</span>
+                  <span class="px-3 py-2 rounded-full bg-white border border-[#E6D8C5]">3. Terbitkan</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="app-card p-5 lg:p-6 pesantren-info-editor">
+              <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-5">
+                <div>
+                  <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Editor</p>
+                  <h3 class="text-xl font-black text-gray-900 mt-1" x-text="editModePesantrenInfo ? 'Edit Informasi' : 'Tambah Informasi Baru'"></h3>
+                  <p class="text-sm text-gray-500 mt-1">
+                    Tulis pengumuman, kalender pendidikan, panduan wali, dokumen, atau kontak pondok dari form yang konsisten.
+                  </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <span class="app-badge app-badge-info" x-text="editModePesantrenInfo ? 'Mode Edit' : 'Mode Baru'"></span>
+                  <button type="button" @click="resetPesantrenInfoForm()" class="app-btn app-btn-soft text-xs">
+                    Kosongkan Form
+                  </button>
+                </div>
+              </div>
+
+              <form @submit.prevent="submitPesantrenInfoForm" class="space-y-5">
+                <div class="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <label class="app-label">Judul Informasi</label>
+                    <input type="text" x-model="pesantrenInfoForm.Title" placeholder="Contoh: Kalender Pendidikan Semester Ganjil" class="app-input" required />
+                  </div>
+                  <div>
+                    <label class="app-label">Kategori</label>
+                    <select x-model="pesantrenInfoForm.Category" class="app-select" required>
+                      <template x-for="category in pesantrenInfoCategories" :key="'form-' + category">
+                        <option :value="category" x-text="category"></option>
+                      </template>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="app-label">Ringkasan Singkat</label>
+                  <textarea x-model="pesantrenInfoForm.Summary" rows="3" placeholder="Satu dua kalimat yang langsung menjelaskan isi informasi..." class="app-textarea"></textarea>
+                </div>
+
+                <div>
+                  <label class="app-label">Isi Informasi</label>
+                  <textarea x-model="pesantrenInfoForm.Content" rows="6" placeholder="Tuliskan isi lengkap informasi di sini." class="app-textarea" required></textarea>
+                </div>
+
+                <div class="grid gap-4 lg:grid-cols-4">
+                  <div>
+                    <label class="app-label">Audiens</label>
+                    <select x-model="pesantrenInfoForm.Audience" class="app-select">
+                      <template x-for="audience in pesantrenInfoAudiences" :key="'aud-' + audience">
+                        <option :value="audience" x-text="audience"></option>
+                      </template>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="app-label">Status</label>
+                    <select x-model="pesantrenInfoForm.Status" class="app-select">
+                      <template x-for="status in pesantrenInfoStatuses" :key="'status-' + status">
+                        <option :value="status" x-text="status"></option>
+                      </template>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="app-label">Prioritas</label>
+                    <select x-model="pesantrenInfoForm.Priority" class="app-select">
+                      <template x-for="priority in pesantrenInfoPriorities" :key="'priority-' + priority">
+                        <option :value="priority" x-text="priority"></option>
+                      </template>
+                    </select>
+                  </div>
+                  <div class="flex items-end">
+                    <label class="flex items-center gap-3 px-4 py-3 rounded-2xl border border-gray-200 bg-white w-full">
+                      <input type="checkbox" x-model="pesantrenInfoForm.IsPinned" class="w-4 h-4 text-emerald-600 rounded border-gray-300" />
+                      <div>
+                        <p class="font-black text-gray-900 text-sm">Pin di atas</p>
+                        <p class="text-xs text-gray-500">Sorot konten penting di bagian teratas.</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="grid gap-4 lg:grid-cols-4">
+                  <div>
+                    <label class="app-label">Tanggal Tampil</label>
+                    <input type="date" x-model="pesantrenInfoForm.DisplayDate" class="app-input" />
+                  </div>
+                  <div>
+                    <label class="app-label">Tanggal Agenda</label>
+                    <input type="date" x-model="pesantrenInfoForm.EventDate" class="app-input" />
+                  </div>
+                  <div>
+                    <label class="app-label">Berlaku Sampai</label>
+                    <input type="date" x-model="pesantrenInfoForm.EndDate" class="app-input" />
+                  </div>
+                  <div>
+                    <label class="app-label">Lokasi</label>
+                    <input type="text" x-model="pesantrenInfoForm.Location" placeholder="Opsional" class="app-input" />
+                  </div>
+                </div>
+
+                <div class="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <label class="app-label">Judul Lampiran</label>
+                    <input type="text" x-model="pesantrenInfoForm.AttachmentTitle" placeholder="Contoh: Kalender Pendidikan PDF" class="app-input" />
+                  </div>
+                  <div>
+                    <label class="app-label">Link Lampiran</label>
+                    <input type="url" x-model="pesantrenInfoForm.AttachmentURL" placeholder="https://..." class="app-input" />
+                  </div>
+                </div>
+
+                <div class="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <label class="app-label">Nama Kontak</label>
+                    <input type="text" x-model="pesantrenInfoForm.ContactName" placeholder="Opsional" class="app-input" />
+                  </div>
+                  <div>
+                    <label class="app-label">Nomor Kontak</label>
+                    <input type="text" x-model="pesantrenInfoForm.ContactPhone" placeholder="Opsional" class="app-input" />
+                  </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 pt-1">
+                  <button type="submit" class="app-btn app-btn-primary">
+                    <span x-text="editModePesantrenInfo ? 'Perbarui Informasi' : 'Simpan Informasi'"></span>
+                  </button>
+                  <button type="button" @click="cancelPesantrenInfoEdit()" class="app-btn app-btn-soft">Batal</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="app-card p-5 lg:p-6">
+              <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
+                <div>
+                  <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Daftar Konten</p>
+                  <h3 class="text-xl font-black text-gray-900 mt-1">Kelola Informasi Pesantren</h3>
+                </div>
+                <span class="app-badge app-badge-primary" x-text="visiblePesantrenInfoItems.length + ' tampil'"></span>
+              </div>
+
+              <template x-if="visiblePesantrenInfoItems.length === 0">
+                <div class="app-empty-state">
+                  <div class="app-empty-icon">i</div>
+                  <h4 class="font-black text-gray-900">Belum ada informasi yang cocok</h4>
+                  <p class="text-sm max-w-md">Coba ubah filter atau buat informasi pertama untuk pondok.</p>
+                  <button type="button" @click="resetPesantrenInfoForm()" class="app-btn app-btn-primary">Tambah Informasi Pertama</button>
+                </div>
+              </template>
+              <template x-for="item in visiblePesantrenInfoItems" :key="'manage-' + item.InfoID">
+                <article class="mobile-list-card mb-3 last:mb-0">
+                  <div class="mobile-list-card-header">
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <span :class="pesantrenInfoCategoryClass(item.Category)" x-text="item.Category"></span>
+                        <span :class="pesantrenInfoStatusClass(item.Status)" x-text="item.Status"></span>
+                        <span x-show="item.IsPinned" class="app-badge app-badge-warning">Pinned</span>
+                        <span :class="pesantrenInfoPriorityClass(item.Priority)" x-text="item.Priority"></span>
+                      </div>
+                      <h4 class="text-lg font-black text-gray-900 leading-snug" x-text="item.Title"></h4>
+                      <p class="text-sm text-gray-500 mt-2 leading-6" x-text="item.Summary || item.Content"></p>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-2 sm:grid-cols-2 mt-4 text-sm text-gray-600">
+                    <div class="flex items-center gap-2">
+                      <span class="text-gray-400">Tanggal</span>
+                      <span class="font-semibold text-gray-900" x-text="formatLongDate(item.EventDate || item.DisplayDate)"></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-gray-400">Audiens</span>
+                      <span class="font-semibold text-gray-900" x-text="item.Audience"></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-gray-400">Lokasi</span>
+                      <span class="font-semibold text-gray-900" x-text="item.Location || '-'"></span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-gray-400">Pembaruan</span>
+                      <span class="font-semibold text-gray-900" x-text="formatLongDate(item.UpdatedAt)"></span>
+                    </div>
+                  </div>
+
+                  <div class="space-y-3 mt-4" x-show="item.Content">
+                    <div class="p-4 rounded-2xl bg-[#FBF8F1] border border-[#E6D8C5]">
+                      <p class="text-sm text-gray-700 leading-7 whitespace-pre-line" x-text="item.Content"></p>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-2 mt-4">
+                    <template x-if="item.AttachmentURL">
+                      <a :href="item.AttachmentURL" target="_blank" class="app-btn app-btn-soft text-xs">
+                        <span x-text="item.AttachmentTitle || 'Buka Lampiran'"></span>
+                      </a>
+                    </template>
+                    <template x-if="item.ContactPhone">
+                      <a :href="'https://wa.me/' + String(item.ContactPhone || '').replace(/\D/g, '')" target="_blank" class="app-btn app-btn-soft text-xs">
+                        Hubungi Kontak
+                      </a>
+                    </template>
+
+                    <div class="flex-1"></div>
+
+                    <div class="flex flex-wrap gap-2">
+                      <button type="button" @click="editPesantrenInfo(item)" class="app-btn app-btn-soft text-xs">Edit</button>
+                      <button type="button" @click="updatePesantrenInfoStatus(item.InfoID, item.Status === 'Published' ? 'Archived' : 'Published')" class="app-btn app-btn-soft text-xs">
+                        <span x-text="item.Status === 'Published' ? 'Arsipkan' : 'Terbitkan'"></span>
+                      </button>
+                      <button type="button" @click="deletePesantrenInfoItem(item)" class="app-btn app-btn-danger text-xs">Hapus</button>
+                    </div>
+                  </div>
+                </article>
+              </template>
+
+              <div class="mt-4 flex flex-col items-center gap-2" x-show="hasMorePesantrenInfoItems">
+                <p class="text-xs text-gray-400">
+                  Menampilkan <span x-text="visiblePesantrenInfoItems.length"></span> dari
+                  <span x-text="pesantrenInfoList.length"></span> konten
+                </p>
+                <button type="button" @click="pesantrenInfoVisibleCount += 6" class="app-btn app-btn-soft text-xs">
+                  Muat Lagi
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <aside class="space-y-5">
+            <div class="app-card p-5">
+              <div class="flex flex-col gap-4">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                  <div>
+                    <h3 class="font-black text-gray-900">Filter dan Pencarian</h3>
+                    <p class="text-sm text-gray-500 mt-1">
+                      Saring konten berdasarkan kategori, status, audiens, dan pencarian agar lebih cepat ditemukan.
+                    </p>
+                  </div>
+                  <button type="button" @click="pesantrenInfoFilters = { Category: '', Status: '', Audience: '', Search: '', PinnedOnly: false }; loadPesantrenInfo()" class="app-btn app-btn-soft w-fit">
+                    Reset Filter
+                  </button>
+                </div>
+
+                <div class="app-filter-stack">
+                  <div>
+                    <label class="app-label">Cari</label>
+                    <input type="text" x-model="pesantrenInfoFilters.Search" @input.debounce.400ms="loadPesantrenInfo()" placeholder="Cari judul, isi, dokumen, atau kontak..." class="app-input" />
+                  </div>
+
+                  <div class="grid gap-3 lg:grid-cols-3">
+                    <div>
+                      <label class="app-label">Kategori</label>
+                      <select x-model="pesantrenInfoFilters.Category" @change="loadPesantrenInfo()" class="app-select">
+                        <option value="">Semua Kategori</option>
+                        <template x-for="category in pesantrenInfoCategories" :key="category">
+                          <option :value="category" x-text="category"></option>
+                        </template>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label class="app-label">Status</label>
+                      <select x-model="pesantrenInfoFilters.Status" @change="loadPesantrenInfo()" class="app-select">
+                        <option value="">Semua Status</option>
+                        <template x-for="status in pesantrenInfoStatuses" :key="status">
+                          <option :value="status" x-text="status"></option>
+                        </template>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label class="app-label">Audiens</label>
+                      <select x-model="pesantrenInfoFilters.Audience" @change="loadPesantrenInfo()" class="app-select">
+                        <option value="">Semua Audiens</option>
+                        <template x-for="audience in pesantrenInfoAudiences" :key="audience">
+                          <option :value="audience" x-text="audience"></option>
+                        </template>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="applyPesantrenInfoFilter('Category', '')" class="app-badge" :class="!pesantrenInfoFilters.Category ? 'app-badge-primary' : 'bg-white text-gray-500 border border-gray-200'">Semua</button>
+                    <template x-for="category in pesantrenInfoCategories" :key="'chip-' + category">
+                      <button type="button" @click="applyPesantrenInfoFilter('Category', category)" class="app-badge" :class="pesantrenInfoFilters.Category === category ? 'app-badge-primary' : 'bg-white text-gray-500 border border-gray-200'" x-text="category"></button>
+                    </template>
+                    <button type="button" @click="pesantrenInfoFilters.PinnedOnly = !pesantrenInfoFilters.PinnedOnly; loadPesantrenInfo()" class="app-badge" :class="pesantrenInfoFilters.PinnedOnly ? 'app-badge-warning' : 'bg-white text-gray-500 border border-gray-200'">Pinned Only</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="app-card p-5">
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Sorotan</p>
+                  <h3 class="font-black text-gray-900 mt-1">Info Pinned</h3>
+                </div>
+                <span class="app-badge app-badge-warning" x-text="pesantrenPinnedItems.length"></span>
+              </div>
+
+              <template x-if="pesantrenPinnedItems.length === 0">
+                <div class="app-empty-state min-h-[140px] py-8">
+                  <div class="app-empty-icon">!</div>
+                  <p class="text-sm">Belum ada konten yang dipin.</p>
+                </div>
+              </template>
+
+              <div class="space-y-3" x-show="pesantrenPinnedItems.length > 0">
+                <template x-for="item in pesantrenPinnedItems" :key="'pinned-' + item.InfoID">
+                  <div class="mobile-list-card">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-xs font-black text-gray-400 uppercase tracking-widest" x-text="item.Category"></p>
+                        <h4 class="font-black text-gray-900 mt-1" x-text="item.Title"></h4>
+                        <p class="text-sm text-gray-500 mt-2" x-text="item.Summary || item.Content"></p>
+                      </div>
+                      <span class="app-badge app-badge-warning">Pinned</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-3" x-text="formatLongDate(item.EventDate || item.DisplayDate)"></p>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </template>
+    </div>
+  </template>
 </section>

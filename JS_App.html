@@ -67,6 +67,7 @@
       },
       currentTab: "dashboard",
       mobileMoreOpen: false,
+      mobileDrawerOpen: false,
       error: "",
       loginRole: "",
       showAddStudent: false,
@@ -124,6 +125,58 @@
       },
       editModeLinkLive: false,
       linkLiveVisibleCount: 5,
+
+      // === STATE INFORMASI PESANTREN ===
+      pesantrenInfoList: [],
+      pesantrenInfoSummary: {
+        total: 0,
+        published: 0,
+        draft: 0,
+        archived: 0,
+        pinned: 0,
+        upcoming: 0,
+      },
+      pesantrenInfoVisibleCount: 6,
+      loadingPesantrenInfo: false,
+      pesantrenInfoCategories: [
+        "Pengumuman",
+        "Kalender Pendidikan",
+        "Kegiatan Pondok",
+        "Panduan Wali",
+        "Kontak",
+        "Dokumen",
+      ],
+      pesantrenInfoAudiences: ["Semua", "Wali", "Internal"],
+      pesantrenInfoStatuses: ["Draft", "Published", "Archived"],
+      pesantrenInfoPriorities: ["Normal", "Sedang", "Tinggi"],
+      pesantrenInfoSection: "beranda",
+      pesantrenInfoFilters: {
+        Category: "",
+        Status: "",
+        Audience: "",
+        Search: "",
+        PinnedOnly: false,
+      },
+      editModePesantrenInfo: null,
+      pesantrenInfoForm: {
+        InfoID: "",
+        Title: "",
+        Category: "Pengumuman",
+        Summary: "",
+        Content: "",
+        DisplayDate: new Date().toISOString().split("T")[0],
+        EventDate: "",
+        EndDate: "",
+        Location: "",
+        Priority: "Normal",
+        IsPinned: false,
+        Audience: "Semua",
+        Status: "Published",
+        AttachmentTitle: "",
+        AttachmentURL: "",
+        ContactName: "",
+        ContactPhone: "",
+      },
 
       // === STATE USER MANAGEMENT ===
       users: [],
@@ -457,6 +510,63 @@
         return (this.linkLiveList || []).length > this.linkLiveVisibleCount;
       },
 
+      get pesantrenPublicItems() {
+        return (this.pesantrenInfoList || []).filter((item) =>
+          this.isPesantrenPublicItem(item),
+        );
+      },
+
+      get visiblePesantrenInfoItems() {
+        return (this.pesantrenInfoList || []).slice(
+          0,
+          this.pesantrenInfoVisibleCount,
+        );
+      },
+
+      get hasMorePesantrenInfoItems() {
+        return (
+          (this.pesantrenInfoList || []).length > this.pesantrenInfoVisibleCount
+        );
+      },
+
+      get pesantrenPinnedItems() {
+        return (this.pesantrenPublicItems || [])
+          .filter((item) => item.IsPinned)
+          .slice(0, 3);
+      },
+
+      get pesantrenAnnouncementItems() {
+        return (this.pesantrenPublicItems || [])
+          .filter((item) => item.Category === "Pengumuman")
+          .slice(0, 4);
+      },
+
+      get pesantrenCalendarItems() {
+        return (this.pesantrenPublicItems || [])
+          .filter((item) =>
+            ["Kalender Pendidikan", "Kegiatan Pondok"].includes(item.Category),
+          )
+          .slice(0, 4);
+      },
+
+      get pesantrenGuideItems() {
+        return (this.pesantrenPublicItems || [])
+          .filter((item) => item.Category === "Panduan Wali")
+          .slice(0, 4);
+      },
+
+      get pesantrenDocumentItems() {
+        return (this.pesantrenPublicItems || [])
+          .filter((item) => item.Category === "Dokumen")
+          .slice(0, 4);
+      },
+
+      get pesantrenContactItems() {
+        return (this.pesantrenPublicItems || [])
+          .filter((item) => item.Category === "Kontak")
+          .slice(0, 4);
+      },
+
       get filteredStudentIncidents() {
         const incidents = this.studentIncidents || [];
         if (this.behaviorFilter === "Violation") {
@@ -631,10 +741,17 @@
       setCurrentTab(tab) {
         this.currentTab = tab;
         this.mobileMoreOpen = false;
+        this.mobileDrawerOpen = false;
         if (tab === "dashboard") this.fetchSummary();
         if (tab === "santri") this.fetchStudents();
         if (tab === "users") this.fetchUsers();
         if (tab === "pulang_bulanan") this.loadPulangBulanan();
+        if (tab === "informasi_pesantren") {
+          this.pesantrenInfoSection = this.canManagePesantrenInfo()
+            ? "kelola"
+            : "beranda";
+          this.loadPesantrenInfo();
+        }
       },
 
       // ===== HELPER: SCROLL TO FORM =====
@@ -642,6 +759,13 @@
         const bentoCard = this.$el?.querySelector(".bento-card");
         if (bentoCard) {
           bentoCard.scrollIntoView({ behavior: "smooth" });
+        }
+      },
+
+      scrollToPesantrenInfoForm() {
+        const editorCard = this.$el?.querySelector(".pesantren-info-editor");
+        if (editorCard) {
+          editorCard.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       },
 
@@ -675,6 +799,63 @@
         this.loginForm.username = "";
         this.loginForm.password = "";
         this.error = "";
+      },
+
+      canManagePesantrenInfo() {
+        return (
+          this.user &&
+          ["Mudir", "Admin", "Ustadz"].includes(this.user.Role)
+        );
+      },
+
+      setPesantrenInfoSection(section) {
+        if (section === "kelola" && !this.canManagePesantrenInfo()) {
+          return;
+        }
+
+        this.pesantrenInfoSection = section;
+
+        if (section === "kelola") {
+          this.$nextTick(() => this.scrollToPesantrenInfoForm());
+        }
+      },
+
+      isPesantrenPublicItem(item) {
+        return (
+          item &&
+          item.Status === "Published" &&
+          ["Semua", "Wali"].includes(item.Audience)
+        );
+      },
+
+      pesantrenInfoCategoryClass(category) {
+        const map = {
+          "Pengumuman": "app-badge-primary",
+          "Kalender Pendidikan": "app-badge-info",
+          "Kegiatan Pondok": "app-badge-warning",
+          "Panduan Wali": "app-badge-success",
+          "Kontak": "app-badge-danger",
+          "Dokumen": "app-badge-primary",
+        };
+        return `app-badge ${map[category] || "app-badge-primary"}`;
+      },
+
+      pesantrenInfoStatusClass(status) {
+        const map = {
+          Published: "app-badge-success",
+          Draft: "app-badge-warning",
+          Archived: "app-badge-danger",
+        };
+        return `app-badge ${map[status] || "app-badge-primary"}`;
+      },
+
+      pesantrenInfoPriorityClass(priority) {
+        const map = {
+          Tinggi: "app-badge-danger",
+          Sedang: "app-badge-warning",
+          Normal: "app-badge-info",
+        };
+        return `app-badge ${map[priority] || "app-badge-primary"}`;
       },
 
       loginRoleLabel() {
@@ -735,6 +916,8 @@
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8a2 2 0 0 1 2 2v16l-6-3-6 3V5a2 2 0 0 1 2-2z"/><path d="M9 9h6"/><path d="M9 13h6"/></svg>',
           users:
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.354a4 4 0 1 1 0 5.292M15 21H3v-1a6 6 0 0 1 12 0v1zm0 0h6v-1a6 6 0 0 0-9-5.197m13.5 0c-.66 0-1.293-.103-1.897-.298"/></svg>',
+          menu:
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>',
           more:
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>',
           logout:
@@ -809,6 +992,27 @@
         this.isLoggedIn = false;
         this.user = { Username: "", Role: "" };
         this.mobileMoreOpen = false;
+        this.mobileDrawerOpen = false;
+        this.pesantrenInfoSection = "beranda";
+        this.pesantrenInfoList = [];
+        this.pesantrenInfoFilters = {
+          Category: "",
+          Status: "",
+          Audience: "",
+          Search: "",
+          PinnedOnly: false,
+        };
+        this.pesantrenInfoSummary = {
+          total: 0,
+          published: 0,
+          draft: 0,
+          archived: 0,
+          pinned: 0,
+          upcoming: 0,
+        };
+        this.loadingPesantrenInfo = false;
+        this.editModePesantrenInfo = null;
+        this.resetPesantrenInfoForm();
         this.resetLoginRole();
         sessionStorage.removeItem("user");
       },
@@ -817,6 +1021,9 @@
       refreshData() {
         this.fetchStudents();
         this.fetchSummary();
+        if (this.currentTab === "informasi_pesantren") {
+          this.loadPesantrenInfo();
+        }
       },
 
       fetchSummary() {
@@ -837,6 +1044,205 @@
             this.showToast("Gagal memuat ringkasan data", "error");
           })
           .getDashboardSummary(this.user, this.filters);
+      },
+
+      loadPesantrenInfo() {
+        if (!this.user) return;
+
+        this.loadingPesantrenInfo = true;
+        this.pesantrenInfoVisibleCount = 6;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingPesantrenInfo = false;
+            if (res && res.ok) {
+              this.pesantrenInfoList = res.data?.items || [];
+              this.pesantrenInfoSummary = res.data?.summary || {
+                total: 0,
+                published: 0,
+                draft: 0,
+                archived: 0,
+                pinned: 0,
+                upcoming: 0,
+              };
+              this.pesantrenInfoCategories =
+                res.data?.categories || this.pesantrenInfoCategories;
+              this.pesantrenInfoAudiences =
+                res.data?.audiences || this.pesantrenInfoAudiences;
+              this.pesantrenInfoStatuses =
+                res.data?.statuses || this.pesantrenInfoStatuses;
+              this.pesantrenInfoPriorities =
+                res.data?.priorities || this.pesantrenInfoPriorities;
+            } else {
+              this.showToast(res?.message || "Gagal memuat informasi pesantren", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingPesantrenInfo = false;
+            this.showToast(
+              err.message || "Gagal memuat informasi pesantren",
+              "error",
+            );
+          })
+          .getPesantrenInfo(this.user, this.pesantrenInfoFilters);
+      },
+
+      resetPesantrenInfoForm() {
+        this.editModePesantrenInfo = null;
+        this.pesantrenInfoForm = {
+          InfoID: "",
+          Title: "",
+          Category: "Pengumuman",
+          Summary: "",
+          Content: "",
+          DisplayDate: new Date().toISOString().split("T")[0],
+          EventDate: "",
+          EndDate: "",
+          Location: "",
+          Priority: "Normal",
+          IsPinned: false,
+          Audience: "Semua",
+          Status: "Published",
+          AttachmentTitle: "",
+          AttachmentURL: "",
+          ContactName: "",
+          ContactPhone: "",
+        };
+      },
+
+      editPesantrenInfo(item) {
+        this.editModePesantrenInfo = item.InfoID;
+        this.pesantrenInfoForm = {
+          InfoID: item.InfoID || "",
+          Title: item.Title || "",
+          Category: item.Category || "Pengumuman",
+          Summary: item.Summary || "",
+          Content: item.Content || "",
+          DisplayDate: this.toInputDate(item.DisplayDate),
+          EventDate: this.toInputDate(item.EventDate),
+          EndDate: this.toInputDate(item.EndDate),
+          Location: item.Location || "",
+          Priority: item.Priority || "Normal",
+          IsPinned: !!item.IsPinned,
+          Audience: item.Audience || "Semua",
+          Status: item.Status || "Published",
+          AttachmentTitle: item.AttachmentTitle || "",
+          AttachmentURL: item.AttachmentURL || "",
+          ContactName: item.ContactName || "",
+          ContactPhone: item.ContactPhone || "",
+        };
+        this.$nextTick(() => this.scrollToPesantrenInfoForm());
+      },
+
+      cancelPesantrenInfoEdit() {
+        this.resetPesantrenInfoForm();
+      },
+
+      submitPesantrenInfoForm() {
+        if (!this.canManagePesantrenInfo()) {
+          this.showToast("Akses ditolak.", "error");
+          return;
+        }
+
+        if (
+          !this.pesantrenInfoForm.Title ||
+          !this.pesantrenInfoForm.Category ||
+          !this.pesantrenInfoForm.Content
+        ) {
+          this.showToast(
+            "Judul, kategori, dan isi informasi wajib diisi.",
+            "error",
+          );
+          return;
+        }
+
+        this.loadingPesantrenInfo = true;
+        const payload = {
+          ...this.pesantrenInfoForm,
+          IsPinned: !!this.pesantrenInfoForm.IsPinned,
+        };
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingPesantrenInfo = false;
+            if (res && res.ok) {
+              this.showToast(res.message || "Informasi tersimpan.", "success");
+              this.resetPesantrenInfoForm();
+              this.loadPesantrenInfo();
+            } else {
+              this.showToast(res?.message || "Gagal menyimpan informasi.", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingPesantrenInfo = false;
+            this.showToast(
+              err.message || "Gagal menyimpan informasi.",
+              "error",
+            );
+          })
+          .savePesantrenInfo(payload, this.user);
+      },
+
+      updatePesantrenInfoStatus(infoId, status) {
+        if (!confirm(`Ubah status informasi menjadi ${status}?`)) return;
+
+        this.loadingPesantrenInfo = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingPesantrenInfo = false;
+            if (res && res.ok) {
+              this.showToast(
+                res.message || "Status berhasil diperbarui.",
+                "success",
+              );
+              this.loadPesantrenInfo();
+            } else {
+              this.showToast(res?.message || "Gagal memperbarui status.", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingPesantrenInfo = false;
+            this.showToast(
+              err.message || "Gagal memperbarui status.",
+              "error",
+            );
+          })
+          .setPesantrenInfoStatus(infoId, status, this.user);
+      },
+
+      deletePesantrenInfoItem(item) {
+        if (!confirm(`Hapus informasi "${item.Title}"?`)) return;
+
+        this.loadingPesantrenInfo = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingPesantrenInfo = false;
+            if (res && res.ok) {
+              this.showToast(
+                res.message || "Informasi berhasil dihapus.",
+                "success",
+              );
+              this.loadPesantrenInfo();
+            } else {
+              this.showToast(res?.message || "Gagal menghapus informasi.", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingPesantrenInfo = false;
+            this.showToast(
+              err.message || "Gagal menghapus informasi.",
+              "error",
+            );
+          })
+          .deletePesantrenInfo(item.InfoID, this.user);
+      },
+
+      applyPesantrenInfoFilter(key, value) {
+        if (this.pesantrenInfoFilters[key] === value) {
+          this.pesantrenInfoFilters[key] = "";
+        } else {
+          this.pesantrenInfoFilters[key] = value;
+        }
+        this.loadPesantrenInfo();
       },
 
       destroyDashboardCharts() {
@@ -1028,6 +1434,18 @@
         return date.toLocaleDateString("id-ID", {
           day: "numeric",
           month: "short",
+        });
+      },
+
+      formatLongDate(value) {
+        if (!value) return "-";
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return value;
+        return date.toLocaleDateString("id-ID", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
         });
       },
 
