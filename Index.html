@@ -6,6 +6,8 @@
 
   <body class="min-h-screen bg-[#FFF5E6] text-[#111827] pb-20 md:pb-0">
     <div x-data="app()" x-init="init()" x-cloak>
+      <?!= include('Tab_PublicLanding'); ?>
+
       <!-- AUTHENTICATION SHELL -->
       <template x-if="!isLoggedIn">
         <div>

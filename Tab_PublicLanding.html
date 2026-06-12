@@ -1,0 +1,179 @@
+<!-- TAB: PUBLIC LANDING -->
+<section x-show="!isLoggedIn" x-cloak class="space-y-8 pb-10">
+  <div class="app-card app-card-tight overflow-hidden">
+    <div class="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
+      <div class="p-6 sm:p-8 lg:p-10">
+        <span class="app-badge app-badge-primary">Website Pondok</span>
+        <h1 class="mt-4 text-4xl md:text-5xl font-black text-gray-900 leading-[0.96]">
+          Ma'had Raudhatul Ulum
+        </h1>
+        <p class="mt-4 max-w-2xl text-base md:text-lg text-gray-600 leading-7">
+          Halaman publik resmi untuk pengumuman, kalender, dokumen, kontak, dan akses cepat ke dashboard wali santri.
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="#login" class="app-btn app-btn-primary">Masuk Dashboard</a>
+          <a href="<?!= getPublicPageUrl_(); ?>" target="_top" class="app-btn app-btn-soft">Buka Website Publik</a>
+          <button type="button" @click="loadPublicLandingInfo()" class="app-btn app-btn-soft">Refresh Informasi</button>
+        </div>
+
+        <div class="mt-6 grid gap-3 sm:grid-cols-3">
+          <div class="app-card app-card-tight p-4 bg-[#FBF8F1] border border-[#E6D8C5]">
+            <p class="text-xs font-black uppercase tracking-widest text-gray-400">Terbit</p>
+            <p class="text-2xl font-black text-gray-900 mt-2" x-text="publicLandingSummary.published || 0"></p>
+            <p class="text-xs text-gray-500 mt-1">Informasi publik aktif.</p>
+          </div>
+          <div class="app-card app-card-tight p-4 bg-[#FBF8F1] border border-[#E6D8C5]">
+            <p class="text-xs font-black uppercase tracking-widest text-gray-400">Pinned</p>
+            <p class="text-2xl font-black text-gray-900 mt-2" x-text="publicLandingSummary.pinned || 0"></p>
+            <p class="text-xs text-gray-500 mt-1">Sorotan teratas.</p>
+          </div>
+          <div class="app-card app-card-tight p-4 bg-[#FBF8F1] border border-[#E6D8C5]">
+            <p class="text-xs font-black uppercase tracking-widest text-gray-400">Agenda</p>
+            <p class="text-2xl font-black text-gray-900 mt-2" x-text="publicLandingSummary.upcoming || 0"></p>
+            <p class="text-xs text-gray-500 mt-1">Kegiatan mendatang.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-[#0f5f4a] text-white p-6 sm:p-8 lg:p-10">
+        <p class="text-xs font-black uppercase tracking-widest text-white/70">Fokus Utama</p>
+        <div class="mt-4 space-y-3">
+          <div class="rounded-2xl bg-white/10 p-4">
+            <p class="font-black">Tahfidz dan Murojaah</p>
+            <p class="text-sm text-white/80 mt-1">Setoran, kualitas, dan perkembangan hafalan.</p>
+          </div>
+          <div class="rounded-2xl bg-white/10 p-4">
+            <p class="font-black">Akademik</p>
+            <p class="text-sm text-white/80 mt-1">Nilai, raport, dan validasi periode belajar.</p>
+          </div>
+          <div class="rounded-2xl bg-white/10 p-4">
+            <p class="font-black">Informasi Pondok</p>
+            <p class="text-sm text-white/80 mt-1">Pengumuman, kontak, dokumen, dan agenda.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+    <div class="space-y-4">
+      <div class="app-card p-5">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Sorotan</p>
+            <h2 class="text-xl font-black text-gray-900 mt-1">Pinned</h2>
+          </div>
+          <span class="app-badge app-badge-warning" x-text="publicLandingPinnedItems.length"></span>
+        </div>
+
+        <template x-if="loadingPublicLanding">
+          <div class="app-empty-state min-h-[140px] py-8">Memuat informasi publik...</div>
+        </template>
+
+        <template x-if="!loadingPublicLanding && publicLandingPinnedItems.length === 0">
+          <div class="app-empty-state min-h-[140px] py-8">Belum ada informasi pinned.</div>
+        </template>
+
+        <div class="space-y-3" x-show="!loadingPublicLanding && publicLandingPinnedItems.length > 0">
+          <template x-for="item in publicLandingPinnedItems" :key="'landing-pinned-' + item.InfoID">
+            <article class="mobile-list-card">
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <span class="app-badge app-badge-primary" x-text="item.Category"></span>
+                <span class="app-badge app-badge-warning">Pinned</span>
+              </div>
+              <h3 class="text-lg font-black text-gray-900" x-text="item.Title"></h3>
+              <p class="text-sm text-gray-600 mt-2 leading-6" x-text="item.Summary || item.Content"></p>
+              <p class="text-xs text-gray-400 mt-3" x-text="formatLongDate(item.EventDate || item.DisplayDate || item.UpdatedAt)"></p>
+            </article>
+          </template>
+        </div>
+      </div>
+
+      <div class="app-card p-5">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Pengumuman</p>
+            <h2 class="text-xl font-black text-gray-900 mt-1">Informasi Terbaru</h2>
+          </div>
+          <span class="app-badge app-badge-primary" x-text="publicLandingAnnouncementItems.length"></span>
+        </div>
+
+        <template x-if="publicLandingAnnouncementItems.length === 0">
+          <div class="app-empty-state min-h-[140px] py-8">Belum ada pengumuman publik.</div>
+        </template>
+
+        <div class="space-y-3" x-show="publicLandingAnnouncementItems.length > 0">
+          <template x-for="item in publicLandingAnnouncementItems" :key="'landing-announce-' + item.InfoID">
+            <article class="mobile-list-card">
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <span class="app-badge app-badge-primary" x-text="item.Category"></span>
+                <span x-show="item.IsPinned" class="app-badge app-badge-warning">Pinned</span>
+              </div>
+              <h3 class="text-lg font-black text-gray-900" x-text="item.Title"></h3>
+              <p class="text-sm text-gray-600 mt-2 leading-6" x-text="item.Summary || item.Content"></p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <span class="app-badge app-badge-info" x-text="formatLongDate(item.DisplayDate || item.UpdatedAt)"></span>
+                <span class="app-badge app-badge-primary" x-text="item.Priority"></span>
+              </div>
+            </article>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div class="app-card p-5">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Agenda</p>
+            <h2 class="text-xl font-black text-gray-900 mt-1">Kalender Pondok</h2>
+          </div>
+          <span class="app-badge app-badge-info" x-text="publicLandingCalendarItems.length"></span>
+        </div>
+
+        <template x-if="publicLandingCalendarItems.length === 0">
+          <div class="app-empty-state min-h-[140px] py-8">Belum ada agenda publik.</div>
+        </template>
+
+        <div class="space-y-3" x-show="publicLandingCalendarItems.length > 0">
+          <template x-for="item in publicLandingCalendarItems" :key="'landing-calendar-' + item.InfoID">
+            <article class="mobile-list-card">
+              <h3 class="font-black text-gray-900" x-text="item.Title"></h3>
+              <p class="text-sm text-gray-600 mt-2 leading-6" x-text="item.Location || item.Summary || item.Content"></p>
+              <p class="text-xs text-gray-400 mt-3" x-text="formatLongDate(item.EventDate || item.DisplayDate)"></p>
+            </article>
+          </template>
+        </div>
+      </div>
+
+      <div class="app-card p-5">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Kontak</p>
+            <h2 class="text-xl font-black text-gray-900 mt-1">Layanan Pondok</h2>
+          </div>
+          <span class="app-badge app-badge-success" x-text="publicLandingContactItems.length"></span>
+        </div>
+
+        <template x-if="publicLandingContactItems.length === 0">
+          <div class="app-empty-state min-h-[140px] py-8">Belum ada kontak publik.</div>
+        </template>
+
+        <div class="space-y-3" x-show="publicLandingContactItems.length > 0">
+          <template x-for="item in publicLandingContactItems" :key="'landing-contact-' + item.InfoID">
+            <article class="mobile-list-card">
+              <h3 class="font-black text-gray-900" x-text="item.ContactName || item.Title"></h3>
+              <p class="text-sm text-gray-600 mt-2 leading-6" x-text="item.ContactPhone || item.Summary || item.Content"></p>
+              <template x-if="item.ContactPhone">
+                <a :href="'https://wa.me/' + String(item.ContactPhone || '').replace(/\D/g, '')" target="_blank" class="app-btn app-btn-soft text-xs mt-3 w-fit">
+                  Hubungi
+                </a>
+              </template>
+            </article>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

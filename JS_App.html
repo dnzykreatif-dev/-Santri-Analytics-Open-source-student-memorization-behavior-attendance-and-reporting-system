@@ -101,6 +101,16 @@
         recentIncidents: [],
         attentionStudents: [],
       },
+      publicLandingItems: [],
+      publicLandingSummary: {
+        total: 0,
+        published: 0,
+        draft: 0,
+        archived: 0,
+        pinned: 0,
+        upcoming: 0,
+      },
+      loadingPublicLanding: false,
       currentTab: "dashboard",
       mobileMoreOpen: false,
       mobileDrawerOpen: false,
@@ -592,6 +602,38 @@
         );
       },
 
+      get publicLandingPinnedItems() {
+        return (this.publicLandingItems || [])
+          .filter((item) => item.IsPinned)
+          .slice(0, 3);
+      },
+
+      get publicLandingAnnouncementItems() {
+        return (this.publicLandingItems || [])
+          .filter((item) => item.Category === "Pengumuman")
+          .slice(0, 4);
+      },
+
+      get publicLandingCalendarItems() {
+        return (this.publicLandingItems || [])
+          .filter((item) =>
+            ["Kalender Pendidikan", "Kegiatan Pondok"].includes(item.Category),
+          )
+          .slice(0, 4);
+      },
+
+      get publicLandingGuideItems() {
+        return (this.publicLandingItems || [])
+          .filter((item) => item.Category === "Panduan Wali")
+          .slice(0, 3);
+      },
+
+      get publicLandingContactItems() {
+        return (this.publicLandingItems || [])
+          .filter((item) => item.Category === "Kontak")
+          .slice(0, 4);
+      },
+
       get pesantrenPinnedItems() {
         return (this.pesantrenPublicItems || [])
           .filter((item) => item.IsPinned)
@@ -780,6 +822,9 @@
           } catch (e) {
             sessionStorage.removeItem("user");
           }
+        }
+        if (!this.isLoggedIn) {
+          this.loadPublicLandingInfo();
         }
       },
 
@@ -1062,6 +1107,16 @@
         this.user = { Username: "", Role: "" };
         this.mobileMoreOpen = false;
         this.mobileDrawerOpen = false;
+        this.publicLandingItems = [];
+        this.publicLandingSummary = {
+          total: 0,
+          published: 0,
+          draft: 0,
+          archived: 0,
+          pinned: 0,
+          upcoming: 0,
+        };
+        this.loadingPublicLanding = false;
         this.pesantrenInfoSection = "beranda";
         this.pesantrenInfoList = [];
         this.pesantrenInfoFilters = {
@@ -1100,6 +1155,7 @@
         this.resetPesantrenInfoForm();
         this.resetLoginRole();
         sessionStorage.removeItem("user");
+        this.loadPublicLandingInfo();
       },
 
       // ===== DATA FETCHING =====
@@ -1112,6 +1168,29 @@
         if (this.currentTab === "akademik") {
           this.loadAcademicSetup();
         }
+      },
+
+      loadPublicLandingInfo() {
+        this.loadingPublicLanding = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingPublicLanding = false;
+            if (res && res.ok) {
+              this.publicLandingItems = res.data?.items || [];
+              this.publicLandingSummary = res.data?.summary || {
+                total: 0,
+                published: 0,
+                draft: 0,
+                archived: 0,
+                pinned: 0,
+                upcoming: 0,
+              };
+            }
+          })
+          .withFailureHandler(() => {
+            this.loadingPublicLanding = false;
+          })
+          .getPublicPesantrenInfo({});
       },
 
       fetchSummary() {
