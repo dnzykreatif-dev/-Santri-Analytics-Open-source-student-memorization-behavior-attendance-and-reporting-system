@@ -70,6 +70,15 @@
           </button>
           <button
             type="button"
+            @click="setCurrentTab('akademik')"
+            class="app-mobile-drawer-item"
+            :class="{ 'is-active': currentTab === 'akademik' }"
+          >
+            <span class="app-mobile-more-icon" x-html="navIcon('akademik')"></span>
+            Akademik
+          </button>
+          <button
+            type="button"
             @click="setCurrentTab('pelanggaran')"
             class="app-mobile-drawer-item"
             :class="{ 'is-active': currentTab === 'pelanggaran' }"
@@ -141,6 +150,17 @@
             <span class="app-mobile-more-icon" x-html="navIcon('users')"></span>
             Manajemen User
           </button>
+          <template x-if="user?.Role === 'Admin'">
+            <button
+              type="button"
+              @click="setCurrentTab('akademik')"
+              class="app-mobile-drawer-item"
+              :class="{ 'is-active': currentTab === 'akademik' }"
+            >
+              <span class="app-mobile-more-icon" x-html="navIcon('akademik')"></span>
+              Akademik
+            </button>
+          </template>
         </div>
       </template>
     </nav>
@@ -178,6 +198,15 @@
         >
           <span class="app-mobile-more-icon" x-html="navIcon('perilaku')"></span>
           Input Perilaku
+        </button>
+        <button
+          type="button"
+          @click="setCurrentTab('akademik')"
+          class="app-mobile-more-item"
+          :class="{ 'is-active': currentTab === 'akademik' }"
+        >
+          <span class="app-mobile-more-icon" x-html="navIcon('akademik')"></span>
+          Akademik
         </button>
         <button
           type="button"
@@ -232,15 +261,27 @@
     </button>
 
     <template x-if="user?.Role === 'Mudir' || user?.Role === 'Admin'">
-      <button
-        type="button"
-        @click="setCurrentTab('users')"
-        class="app-mobile-more-item"
-        :class="{ 'is-active': currentTab === 'users' }"
-      >
-        <span class="app-mobile-more-icon" x-html="navIcon('users')"></span>
-        Manajemen User
-      </button>
+      <div class="space-y-2">
+        <button
+          type="button"
+          @click="setCurrentTab('users')"
+          class="app-mobile-more-item"
+          :class="{ 'is-active': currentTab === 'users' }"
+        >
+          <span class="app-mobile-more-icon" x-html="navIcon('users')"></span>
+          Manajemen User
+        </button>
+        <button
+          x-show="user?.Role === 'Admin'"
+          type="button"
+          @click="setCurrentTab('akademik')"
+          class="app-mobile-more-item"
+          :class="{ 'is-active': currentTab === 'akademik' }"
+        >
+          <span class="app-mobile-more-icon" x-html="navIcon('akademik')"></span>
+          Akademik
+        </button>
+      </div>
     </template>
 
     <button
@@ -362,7 +403,7 @@
       type="button"
       @click.stop="mobileMoreOpen = !mobileMoreOpen"
       class="app-mobile-nav-item"
-      :class="{ 'is-active': mobileMoreOpen || (user?.Role === 'Wali' && ['panduan_wali'].includes(currentTab)) || ((user?.Role === 'Mudir' || user?.Role === 'Ustadz') && ['pelanggaran', 'link_live', 'panduan', 'panduan_wali', 'users', 'informasi_pesantren', 'pulang_bulanan'].includes(currentTab)) || (user?.Role === 'Admin' && ['pulang_bulanan', 'panduan_wali'].includes(currentTab)) }"
+      :class="{ 'is-active': mobileMoreOpen || (user?.Role === 'Wali' && ['panduan_wali'].includes(currentTab)) || ((user?.Role === 'Mudir' || user?.Role === 'Ustadz') && ['akademik', 'pelanggaran', 'link_live', 'panduan', 'panduan_wali', 'users', 'informasi_pesantren', 'pulang_bulanan'].includes(currentTab)) || (user?.Role === 'Admin' && ['akademik', 'pulang_bulanan', 'panduan_wali'].includes(currentTab)) }"
       aria-haspopup="menu"
       :aria-expanded="mobileMoreOpen.toString()"
     >

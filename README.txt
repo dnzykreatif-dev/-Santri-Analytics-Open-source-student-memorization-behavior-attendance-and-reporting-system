@@ -2,6 +2,17 @@ Struktur folder dibuat berdasarkan file sumber yang diunggah.
 Isi file berupa placeholder awal agar setiap file mudah dikenali.
 Anda memberikan 43 file kode yang terpisah. Berikut adalah daftar file dan isi singkatnya:
 
+Pembaruan terbaru yang sudah ditambahkan di workspace ini:
+
+- Modul `Akademik` untuk raport akademik lengkap, termasuk setup periode,
+  master mapel, bobot komponen, matrix nilai, staging import, dan publish.
+- `Level` dan `Gender` pada profil santri agar mapel SMP/SMA serta
+  ikhwan/akhwat bisa difilter dengan benar.
+- `Panduan Ustadz` yang menjelaskan alur input akademik, perilaku, hafalan,
+  kehadiran, link, dan penggunaan `Sistem Informasi Pesantren`.
+- Raport santri sekarang menampilkan akademik, hafalan, perilaku, dan
+  kehadiran dalam satu tampilan yang bisa dicetak.
+
 Code.gs (Fragment 1 dari 43)
 Ini adalah bagian dari file Code.gs yang berisi fungsi-fungsi untuk mencatat dan mengambil data kehadiran santri (logAttendance, getStudentAttendance).
 

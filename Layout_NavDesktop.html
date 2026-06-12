@@ -45,6 +45,16 @@
 
         <button
           type="button"
+          @click="setCurrentTab('akademik')"
+          class="app-sidebar-item"
+          :class="{ 'is-active': currentTab === 'akademik' }"
+        >
+          <span class="app-sidebar-icon" x-html="navIcon('akademik')"></span>
+          <span>Akademik</span>
+        </button>
+
+        <button
+          type="button"
           @click="setCurrentTab('pelanggaran')"
           class="app-sidebar-item"
           :class="{ 'is-active': currentTab === 'pelanggaran' }"
@@ -133,6 +143,17 @@
           <span class="app-sidebar-icon" x-html="navIcon('users')"></span>
           <span>Manajemen User</span>
         </button>
+        <template x-if="user?.Role === 'Admin'">
+          <button
+            type="button"
+            @click="setCurrentTab('akademik')"
+            class="app-sidebar-item"
+            :class="{ 'is-active': currentTab === 'akademik' }"
+          >
+            <span class="app-sidebar-icon" x-html="navIcon('akademik')"></span>
+            <span>Akademik</span>
+          </button>
+        </template>
       </div>
     </template>
   </nav>

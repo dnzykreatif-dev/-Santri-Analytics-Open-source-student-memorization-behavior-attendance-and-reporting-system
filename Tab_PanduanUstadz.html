@@ -1,20 +1,216 @@
-<!-- Tab Panduan Ustadz -->
 <!-- TAB: PANDUAN USTADZ -->
 <div
   x-show="currentTab === 'panduan'"
-  class="bento-card p-6 bg-white space-y-4"
+  class="space-y-6"
 >
-  <h3 class="font-bold text-xl text-[#80A1C1]">Panduan Ustadz</h3>
-  <div class="text-sm space-y-2 text-gray-600">
-    <p><strong>1. Pelanggaran:</strong> Dicatat semua tanpa batas.</p>
-    <p>
-      <strong>2. Prestasi:</strong> Maksimal 2 per hari. Jika ada pelanggaran,
-      maksimal hanya 1 prestasi.
+  <div class="app-card p-6 bg-white">
+    <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+      Panduan Operasional
     </p>
-    <p>
-      <strong>3. Prinsip:</strong> Pilih yang paling menonjol, tidak perlu
-      mencatat semua aktivitas.
+    <h2 class="text-2xl font-black text-gray-900 mt-1">Panduan Ustadz</h2>
+    <p class="text-sm text-gray-500 mt-2 max-w-3xl leading-6">
+      Gunakan halaman ini sebagai alur kerja harian. Isi data secara bertahap,
+      simpan setiap perubahan, lalu cek kembali di detail santri atau halaman
+      publik Wali sebelum informasi dianggap selesai.
     </p>
-    <p><strong>4. Tujuan:</strong> Untuk pembinaan, bukan sekadar menghukum.</p>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <div class="app-card p-6 bg-white space-y-4">
+      <div>
+        <span class="app-badge app-badge-primary">Akademik</span>
+        <h3 class="text-xl font-black text-gray-900 mt-3">
+          Cara mengisi raport akademik
+        </h3>
+      </div>
+      <ol class="list-decimal pl-5 space-y-3 text-sm text-gray-700 leading-6">
+        <li>
+          Jalankan setup aplikasi terlebih dahulu sebagai Mudir/Admin agar sheet
+          akademik dibuat: <strong>AcademicPeriods</strong>,
+          <strong>AcademicSubjects</strong>, <strong>AssessmentComponents</strong>,
+          <strong>AcademicScores</strong>, dan <strong>AcademicScoreImport</strong>.
+        </li>
+        <li>
+          Buka <strong>Akademik &gt; Profil Santri</strong>. Lengkapi
+          <strong>Level</strong> SMP/SMA dan <strong>Gender</strong>
+          Ikhwan/Akhwat. Ini menentukan mapel mana yang muncul untuk santri.
+        </li>
+        <li>
+          Buka <strong>Akademik &gt; Setup</strong>, buat periode raport:
+          tahun ajaran, semester, judul, tanggal mulai, dan tanggal akhir.
+          Periode baru otomatis berstatus <strong>Draft</strong>.
+        </li>
+        <li>
+          Masih di Setup, tambahkan mata pelajaran. Pilih kategori
+          <strong>Agama</strong> atau <strong>Umum</strong>, jenjang, gender,
+          KKM, dan kelas khusus bila hanya berlaku untuk kelas tertentu.
+        </li>
+        <li>
+          Cek komponen nilai. Default sistem adalah
+          <strong>Harian 40%</strong>, <strong>Tugas 20%</strong>,
+          <strong>PTS 20%</strong>, dan <strong>PAS/PAT 20%</strong>.
+          Mudir/Admin boleh mengubah bobot sebelum nilai diinput.
+        </li>
+        <li>
+          Buka <strong>Akademik &gt; Input Nilai</strong>. Pilih periode,
+          mapel, dan kelas, lalu klik <strong>Muat Matrix</strong>. Isi nilai
+          0-100 pada setiap komponen, lalu klik <strong>Simpan Nilai</strong>.
+        </li>
+        <li>
+          Untuk input massal, isi sheet <strong>AcademicScoreImport</strong>
+          dengan StudentID/StudentName, SubjectID/SubjectName,
+          ComponentID/ComponentName, Score, Notes, dan TeacherID. Setelah itu
+          pilih periode dan klik <strong>Import Staging</strong>.
+        </li>
+        <li>
+          Setelah semua nilai lengkap, Mudir/Admin klik <strong>Publish</strong>
+          pada periode. Sistem akan menolak publish jika masih ada nilai kosong
+          atau tidak valid. Setelah publish, periode terkunci dan Wali bisa
+          melihatnya di raport santri.
+        </li>
+      </ol>
+      <div class="rounded-2xl bg-yellow-50 border border-yellow-200 p-4 text-sm text-yellow-800 leading-6">
+        Jika halaman Akademik masih menampilkan "Pilih periode" dan "Pilih mapel",
+        itu normal untuk awal. Artinya sheet sudah siap, tetapi periode dan mapel
+        belum dibuat.
+      </div>
+    </div>
+
+    <div class="app-card p-6 bg-white space-y-4">
+      <div>
+        <span class="app-badge app-badge-info">Sistem Informasi</span>
+        <h3 class="text-xl font-black text-gray-900 mt-3">
+          Cara mengelola informasi pesantren
+        </h3>
+      </div>
+      <ol class="list-decimal pl-5 space-y-3 text-sm text-gray-700 leading-6">
+        <li>
+          Buka <strong>Sistem Informasi</strong>, lalu klik
+          <strong>Tambah Informasi</strong> atau tab <strong>Input & Kelola</strong>.
+        </li>
+        <li>
+          Pilih kategori sesuai isi: Pengumuman, Kalender Pendidikan, Kegiatan
+          Pondok, Panduan Wali, Dokumen, Kontak, atau kategori yang tersedia.
+        </li>
+        <li>
+          Isi judul yang jelas, ringkasan singkat, dan konten lengkap. Untuk
+          kalender atau kegiatan, isi tanggal acara, tanggal akhir bila ada,
+          dan lokasi.
+        </li>
+        <li>
+          Atur audience. Pilih <strong>Semua</strong> atau <strong>Wali</strong>
+          jika boleh dibaca Wali. Gunakan <strong>Internal</strong> untuk
+          informasi staf.
+        </li>
+        <li>
+          Gunakan status <strong>Draft</strong> saat masih disusun,
+          <strong>Published</strong> saat siap tampil, dan
+          <strong>Archived</strong> untuk informasi lama.
+        </li>
+        <li>
+          Gunakan <strong>IsPinned</strong> hanya untuk informasi penting agar
+          tampil di bagian sorotan. Jangan terlalu banyak mem-pin informasi.
+        </li>
+        <li>
+          Setelah menyimpan, cek bagian <strong>Beranda</strong> atau
+          <strong>Lihat Publik</strong> untuk memastikan informasi tampil
+          dengan benar bagi Wali.
+        </li>
+      </ol>
+    </div>
+
+    <div class="app-card p-6 bg-white space-y-4">
+      <div>
+        <span class="app-badge app-badge-success">Hafalan & Kehadiran</span>
+        <h3 class="text-xl font-black text-gray-900 mt-3">
+          Input aktivitas harian santri
+        </h3>
+      </div>
+      <div class="text-sm text-gray-700 leading-6 space-y-3">
+        <p>
+          <strong>Input Hafalan:</strong> pilih santri, isi surah, juz, ayat
+          mulai, ayat akhir, kategori, tanggal, dan jam. Gunakan kategori yang
+          sesuai seperti Setoran Baru, Muroja'ah, Perbaikan, Tasmi', atau Ujian.
+        </p>
+        <p>
+          <strong>Keterangan S/I/A:</strong> gunakan mode Keterangan untuk
+          mencatat Sakit, Izin, atau Alpha tanpa membuat data hafalan palsu.
+          Isi catatan agar wali memahami sebab ketidakhadiran.
+        </p>
+        <p>
+          <strong>Riwayat detail:</strong> setelah menyimpan, buka detail santri
+          untuk memastikan hafalan, grafik, dan raport ikut terbarui.
+        </p>
+      </div>
+    </div>
+
+    <div class="app-card p-6 bg-white space-y-4">
+      <div>
+        <span class="app-badge app-badge-warning">Perilaku</span>
+        <h3 class="text-xl font-black text-gray-900 mt-3">
+          Aturan catatan perilaku
+        </h3>
+      </div>
+      <div class="text-sm text-gray-700 leading-6 space-y-3">
+        <p>
+          <strong>Pelanggaran:</strong> catat semua kejadian penting tanpa
+          batas, pilih tingkat severity, kategori, dan poin yang sesuai.
+        </p>
+        <p>
+          <strong>Prestasi:</strong> maksimal 2 per hari. Jika pada hari yang
+          sama ada pelanggaran, maksimal hanya 1 prestasi.
+        </p>
+        <p>
+          <strong>Prinsip:</strong> pilih kejadian yang paling menonjol. Data
+          perilaku dipakai untuk pembinaan, bukan sekadar menghukum.
+        </p>
+        <p>
+          <strong>Catatan pembinaan:</strong> tulis ringkas, objektif, dan bisa
+          dipahami Wali. Simpan catatan dari modal detail santri.
+        </p>
+      </div>
+    </div>
+
+    <div class="app-card p-6 bg-white space-y-4">
+      <div>
+        <span class="app-badge app-badge-primary">Link & Laporan</span>
+        <h3 class="text-xl font-black text-gray-900 mt-3">
+          Link hafalan, raport, dan cetak
+        </h3>
+      </div>
+      <div class="text-sm text-gray-700 leading-6 space-y-3">
+        <p>
+          Gunakan <strong>Link Hafalan</strong> untuk menyimpan tautan rekaman
+          atau live yang terkait santri. Pastikan URL dapat dibuka sebelum
+          diberikan kepada Wali.
+        </p>
+        <p>
+          Buka detail santri lalu tab <strong>Raport</strong> untuk mengecek
+          akademik, hafalan, perilaku, kehadiran, dan catatan pembinaan.
+          Gunakan tombol <strong>Cetak</strong> untuk arsip atau dibagikan.
+        </p>
+        <p>
+          Wali hanya melihat raport akademik dari periode yang sudah
+          <strong>Published</strong>. Jika masih Draft, data akademik hanya
+          untuk staf.
+        </p>
+      </div>
+    </div>
+
+    <div class="app-card p-6 bg-white space-y-4">
+      <div>
+        <span class="app-badge app-badge-danger">Checklist</span>
+        <h3 class="text-xl font-black text-gray-900 mt-3">
+          Kebiasaan sebelum data dianggap selesai
+        </h3>
+      </div>
+      <ul class="list-disc pl-5 space-y-3 text-sm text-gray-700 leading-6">
+        <li>Pastikan santri yang dipilih benar sebelum menyimpan data.</li>
+        <li>Gunakan tanggal yang benar, terutama untuk hafalan, absensi, dan agenda.</li>
+        <li>Cek ulang status Draft/Published agar Wali tidak melihat data belum final.</li>
+        <li>Refresh halaman setelah input besar atau import nilai massal.</li>
+        <li>Laporkan ke Mudir/Admin jika dropdown periode, mapel, atau santri kosong.</li>
+      </ul>
+    </div>
   </div>
 </div>

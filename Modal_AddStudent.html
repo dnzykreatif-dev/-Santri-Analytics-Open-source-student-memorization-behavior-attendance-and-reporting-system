@@ -18,6 +18,22 @@
       placeholder="Kelas"
       class="w-full mb-2 border p-2 rounded-lg"
     />
+    <select
+      x-model="newStudent.Level"
+      class="w-full mb-2 border p-2 rounded-lg bg-white"
+    >
+      <option value="">Jenjang otomatis dari kelas</option>
+      <option value="SMP">SMP</option>
+      <option value="SMA">SMA</option>
+    </select>
+    <select
+      x-model="newStudent.Gender"
+      class="w-full mb-2 border p-2 rounded-lg bg-white"
+    >
+      <option value="">Gender belum diisi</option>
+      <option value="Ikhwan">Ikhwan</option>
+      <option value="Akhwat">Akhwat</option>
+    </select>
     <input
       x-model="newStudent.ParentContact"
       placeholder="WA Orang Tua (628...)"

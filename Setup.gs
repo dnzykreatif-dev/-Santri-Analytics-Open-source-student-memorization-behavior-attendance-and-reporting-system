@@ -4,6 +4,8 @@ const CORE_SHEET_SCHEMAS = {
     "StudentID",
     "Name",
     "Class/Level",
+    "Level",
+    "Gender",
     "ParentContact",
     "CreatedAt",
     "WaliUsername",
@@ -142,6 +144,13 @@ function setupCoreSheets() {
     ),
   });
 
+  if (functionExists_("setupAcademicSheets")) {
+    results.push({
+      task: "Setup academic sheets",
+      result: setupAcademicSheets(),
+    });
+  }
+
   return { ok: true, data: { results }, message: "Sheet inti siap." };
 }
 
@@ -268,6 +277,9 @@ function runHealthCheck(currentUser) {
     const schemas = Object.assign({}, CORE_SHEET_SCHEMAS);
     schemas[SHEET_USERS] = USER_HEADERS;
     schemas[SHEET_PULANG_BULANAN] = PULANG_BULANAN_HEADERS;
+    if (functionExists_("getAcademicSheetSchemas_")) {
+      Object.assign(schemas, getAcademicSheetSchemas_());
+    }
 
     const sheets = Object.keys(schemas).map((sheetName) => {
       const sheet = spreadsheet.getSheetByName(sheetName);
@@ -309,6 +321,15 @@ function runHealthCheck(currentUser) {
       "logMemorization",
       "logIncident",
       "getUsers",
+      "getAcademicSetup",
+      "saveAcademicPeriod",
+      "setAcademicPeriodStatus",
+      "saveAcademicSubject",
+      "saveAssessmentComponent",
+      "getAcademicScoreMatrix",
+      "saveAcademicScores",
+      "importAcademicScoresFromStaging",
+      "updateStudentAcademicProfile",
       "getPesantrenInfo",
       "savePesantrenInfo",
       "setPesantrenInfoStatus",

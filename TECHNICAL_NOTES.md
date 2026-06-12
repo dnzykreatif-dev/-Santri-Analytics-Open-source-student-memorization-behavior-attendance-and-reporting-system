@@ -26,6 +26,11 @@ core operational sheets without deleting existing data:
 - `Attendance`
 - `HafalanLinks`
 - `PulangBulanan`
+- `AcademicPeriods`
+- `AcademicSubjects`
+- `AssessmentComponents`
+- `AcademicScores`
+- `AcademicScoreImport`
 
 Setup is idempotent. Missing sheets are created, and missing headers are added
 to the end of the first row. Existing rows and existing columns are preserved.
@@ -66,6 +71,52 @@ Input path for staff:
 
 The sheet setup is idempotent. `initializeApp()` creates the `PesantrenInfo`
 sheet and missing headers without deleting existing rows.
+
+## Academic Report Module
+
+The academic report module is now the dedicated flow for full student report
+cards that combine academic scores, memorization, behavior, and attendance.
+
+Key sheets:
+
+- `AcademicPeriods` for report periods and publish state.
+- `AcademicSubjects` for flexible subjects by level, gender, class, and
+  category.
+- `AssessmentComponents` for per-period/per-subject score weights.
+- `AcademicScores` for the normalized score matrix.
+- `AcademicScoreImport` for staging mass imports.
+
+Role rules:
+
+- `Mudir` and `Admin` can manage periods, subjects, weights, publish, and
+  unlock periods.
+- `Ustadz` can enter scores and import staged data, but cannot publish or edit
+  academic master data.
+- `Wali` only sees published periods in the report view.
+
+Default setup behavior:
+
+- `Students` now carries optional `Level` and `Gender` headers.
+- New academic reports seed default components at `Harian 40%`, `Tugas 20%`,
+  `PTS 20%`, and `PAS/PAT 20%`.
+- A period can only be published when required scores are present and valid
+  for the applicable student-subject combinations.
+
+Operational flow:
+
+1. Fill student `Level` and `Gender` first.
+2. Create a report period in `Akademik`.
+3. Create subjects, then components or accept the seeded defaults.
+4. Open the score matrix, fill scores, and save.
+5. Or populate `AcademicScoreImport` and use the staging import.
+6. Publish the period only after validation passes.
+
+Student report output:
+
+- `getStudentReportData(studentId, periodId, currentUser)` now returns
+  `academic` alongside `hafalan`, `behavior`, and `attendance`.
+- The report modal includes a period selector and a printable academic table.
+- Wali sees an empty state when no period has been published yet.
 
 ## Behavior Score Rules
 
@@ -165,6 +216,21 @@ branch so the next chat has a single source of truth.
   name.
 - Added `Tab_WaliSantriDetail.html` as the Wali-oriented detail surface.
 
+### 5a. Academic report feature
+
+- Added `Academic.gs` as a dedicated backend module for academic periods,
+  subjects, score components, score matrices, staging import, and publish
+  validation.
+- Added `Tab_Akademik.html` for staff-level management of the academic report
+  workflow.
+- Extended the student report modal so it now includes the academic table and
+  period selector.
+- Added `Level` and `Gender` to student setup so subject filtering can respect
+  SMP/SMA and ikhwan/akhwat rules.
+- Added `Tab_PanduanUstadz.html` content that explains academic reporting,
+  system information, behavior logging, memorization, attendance, and report
+  handling.
+
 ### 6. Lists, forms, and long-content handling
 
 - Condensed long lists for behavior notes, dashboard note blocks, hafalan
@@ -187,6 +253,7 @@ Current tab structure remains compatible with the existing shell:
 - `panduan_wali`
 - `users`
 - `informasi_pesantren`
+- `akademik`
 
 Student detail behavior now follows role:
 
@@ -196,6 +263,8 @@ Student detail behavior now follows role:
 ### 8. Files most recently added or updated
 
 - `Tab_InformasiPesantren.html`
+- `Tab_Akademik.html`
+- `Academic.gs`
 - `Tab_WaliSantriDetail.html`
 - `Index.html`
 - `JS_App.html`
@@ -210,6 +279,23 @@ Student detail behavior now follows role:
 - Parse `JS_App.html` after stripping the `<script>` wrapper.
 - Run `git diff --check`.
 - Verify `git status --short` is clean after commit.
+
+## Academic User Guide
+
+When using the academic report module in the UI:
+
+1. Open `Akademik`.
+2. If the page is empty, click `Setup` as Mudir/Admin to create the period
+   and subjects.
+3. In `Profil Santri`, fill `Level` and `Gender` for each student.
+4. In `Setup`, create or edit the period and subjects.
+5. In `Input Nilai`, select period, subject, and class, then load the matrix.
+6. Fill scores from 0 to 100 and save.
+7. For mass input, fill `AcademicScoreImport` and use `Import Staging`.
+8. Publish the period only after validation succeeds.
+
+The `Panduan Ustadz` tab now explains the same flow in a more operational,
+step-by-step format for staff.
 
 These notes describe the current stabilized baseline. Future UI/UX upgrades
 should build on this contract instead of reintroducing hidden menu paths or

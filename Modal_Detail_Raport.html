@@ -57,16 +57,103 @@
     </div>
     <div class="text-right">
       <p class="text-xs text-gray-400">Periode Laporan</p>
-      <p class="font-bold text-gray-700" x-text="raportData?.period"></p>
+      <select
+        x-show="raportData?.academic?.availablePeriods?.length"
+        x-model="selectedRaportPeriodId"
+        @change="loadFullStudentReport(selectedStudent.StudentID, selectedRaportPeriodId)"
+        class="no-print text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white"
+      >
+        <template x-for="period in raportData?.academic?.availablePeriods || []" :key="period.PeriodID">
+          <option :value="period.PeriodID" x-text="period.Title"></option>
+        </template>
+      </select>
+      <p class="font-bold text-gray-700 mt-1" x-text="raportData?.period"></p>
     </div>
   </div>
 
-  <!-- BAGIAN A: HAFALAN AL-QUR'AN -->
+  <!-- BAGIAN A: AKADEMIK -->
+  <div class="mb-6">
+    <h3 class="font-bold text-sm text-white bg-[#0f5f4a] px-3 py-2 rounded-t-lg">
+      A. Akademik
+    </h3>
+    <div class="border border-gray-200 rounded-b-lg p-4">
+      <template x-if="!raportData?.academic?.period">
+        <div class="text-center py-8 text-sm text-gray-500">
+          <p class="font-bold text-gray-700">
+            Raport akademik belum dipublikasikan.
+          </p>
+          <p class="mt-1" x-text="raportData?.academic?.summary?.message || 'Belum ada data akademik untuk periode ini.'"></p>
+        </div>
+      </template>
+
+      <template x-if="raportData?.academic?.period">
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+            <div class="bg-gray-50 rounded-lg p-3">
+              <p class="text-2xl font-black text-[#0f5f4a]" x-text="raportData?.academic?.summary?.average ?? '-'"></p>
+              <p class="text-[10px] text-gray-500 uppercase">Rata-rata</p>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3">
+              <p class="text-2xl font-black text-gray-800" x-text="raportData?.academic?.summary?.totalSubjects || 0"></p>
+              <p class="text-[10px] text-gray-500 uppercase">Mapel</p>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-3">
+              <p
+                class="text-2xl font-black"
+                :class="raportData?.academic?.summary?.complete ? 'text-green-600' : 'text-yellow-600'"
+                x-text="raportData?.academic?.summary?.complete ? 'Lengkap' : (raportData?.academic?.summary?.incompleteSubjects || 0)"
+              ></p>
+              <p class="text-[10px] text-gray-500 uppercase">Status</p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[720px] text-xs">
+              <thead>
+                <tr class="text-left text-gray-400 border-b">
+                  <th class="py-2 pr-2">Mapel</th>
+                  <th class="py-2 px-2">Kategori</th>
+                  <template x-for="component in (raportData?.academic?.subjects?.[0]?.components || [])" :key="component.ComponentID">
+                    <th class="py-2 px-2" x-text="component.Name"></th>
+                  </template>
+                  <th class="py-2 px-2">Akhir</th>
+                  <th class="py-2 px-2">KKM</th>
+                  <th class="py-2 px-2">Predikat</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <template x-for="subject in raportData?.academic?.subjects || []" :key="subject.SubjectID">
+                  <tr>
+                    <td class="py-2 pr-2 font-bold text-gray-800" x-text="subject.Name"></td>
+                    <td class="py-2 px-2" x-text="subject.Category"></td>
+                    <template x-for="component in subject.components" :key="component.ComponentID">
+                      <td class="py-2 px-2" x-text="component.Score ?? '-'"></td>
+                    </template>
+                    <td class="py-2 px-2 font-black" x-text="subject.finalScore ?? '-'"></td>
+                    <td class="py-2 px-2" x-text="subject.KKM"></td>
+                    <td class="py-2 px-2">
+                      <span
+                        class="px-2 py-1 rounded-full text-[10px] font-bold"
+                        :class="subject.complete && subject.passed ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'"
+                        x-text="subject.complete ? subject.predikat : 'Belum lengkap'"
+                      ></span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- BAGIAN B: HAFALAN AL-QUR'AN -->
   <div class="mb-6">
     <h3
       class="font-bold text-sm text-white bg-[#80A1C1] px-3 py-2 rounded-t-lg"
     >
-      A. Hafalan Al-Qur'an
+      B. Hafalan Al-Qur'an
     </h3>
     <div class="border border-gray-200 rounded-b-lg p-4">
       <div class="grid grid-cols-3 gap-4 text-center mb-4">
@@ -103,12 +190,12 @@
     </div>
   </div>
 
-  <!-- BAGIAN B: PERILAKU & AKHLAK -->
+  <!-- BAGIAN C: PERILAKU & AKHLAK -->
   <div class="mb-6">
     <h3
       class="font-bold text-sm text-white bg-orange-500 px-3 py-2 rounded-t-lg"
     >
-      B. Perilaku & Akhlak
+      C. Perilaku & Akhlak
     </h3>
     <div class="border border-gray-200 rounded-b-lg p-4">
       <div class="flex justify-between items-center mb-4">
@@ -154,10 +241,10 @@
     </div>
   </div>
 
-  <!-- BAGIAN C: KEHADIRAN -->
+  <!-- BAGIAN D: KEHADIRAN -->
   <div class="mb-6">
     <h3 class="font-bold text-sm text-white bg-gray-600 px-3 py-2 rounded-t-lg">
-      C. Kehadiran
+      D. Kehadiran
     </h3>
     <div class="border border-gray-200 rounded-b-lg p-4">
       <div class="grid grid-cols-3 gap-4 text-center text-sm">

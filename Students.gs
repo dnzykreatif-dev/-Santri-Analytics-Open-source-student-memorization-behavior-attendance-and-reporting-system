@@ -84,18 +84,28 @@ function getStudents(user) {
 }
 
 function addStudent(data) {
+  setupSheetWithHeaders_("Students", CORE_SHEET_SCHEMAS.Students);
   const sheet = getSheet_("Students");
   const cleanPhone = String(data.ParentContact || "").trim();
+  const headers = sheet
+    .getRange(1, 1, 1, sheet.getLastColumn())
+    .getValues()[0]
+    .map((header) => String(header || "").trim());
+  const now = new Date().toISOString();
+  const rowData = {
+    StudentID: "STU" + Date.now(),
+    Name: data.Name,
+    "Class/Level": data.ClassLevel,
+    Level: data.Level || "",
+    Gender: data.Gender || "",
+    ParentContact: cleanPhone,
+    CreatedAt: now,
+    WaliUsername: data.WaliUsername || "",
+    CatatanPembinaan: "",
+    Status: "Active",
+  };
 
-  sheet.appendRow([
-    "STU" + Date.now(),
-    data.Name,
-    data.ClassLevel,
-    cleanPhone,
-    new Date().toISOString(),
-    data.WaliUsername || "",
-    "",
-  ]);
+  sheet.appendRow(headers.map((header) => rowData[header] || ""));
 
   if (cleanPhone) {
     registerUser(cleanPhone, "123456", "Wali");
@@ -198,23 +208,35 @@ function getStudentAnalytics(studentId) {
   };
 }
 
-function getStudentReportData(studentId) {
+function getStudentReportData(studentId, periodId, currentUser) {
   const ss = getSpreadsheet_();
   const studentSheet = getSheet_("Students");
   const studentData = studentSheet.getDataRange().getValues();
   const studentHeaders = studentData[0];
   let studentObj = null;
   for (let i = 1; i < studentData.length; i++) {
-    if (studentData[i][0] === studentId) {
+    if (String(studentData[i][0]) === String(studentId)) {
       studentObj = serializeRow(studentData[i], studentHeaders);
       break;
     }
   }
   if (!studentObj) return { ok: false, message: "Santri tidak ditemukan" };
 
+  if (
+    currentUser &&
+    currentUser.Role === "Wali" &&
+    String(studentObj.WaliUsername || "").trim() !==
+      String(currentUser.Username || "").trim() &&
+    String(studentObj.ParentContact || "").trim() !==
+      String(currentUser.Username || "").trim() &&
+    String(currentUser.StudentID || "").trim() !== String(studentId)
+  ) {
+    return { ok: false, message: "Akses raport santri ditolak." };
+  }
+
   const memos = normalizeSheetData(
     getSheet_("MemorizationLogs").getDataRange().getValues(),
-  ).filter((m) => m.StudentID === studentId);
+  ).filter((m) => String(m.StudentID) === String(studentId));
 
   const totalSetoran = memos.length;
 
@@ -228,7 +250,7 @@ function getStudentReportData(studentId) {
 
   const incidents = normalizeSheetData(
     getSheet_("Incidents").getDataRange().getValues(),
-  ).filter((inc) => inc.StudentID === studentId);
+  ).filter((inc) => String(inc.StudentID) === String(studentId));
 
   const totalSkor = calculateBehaviorScore_(incidents);
   // Debug logging
@@ -252,7 +274,7 @@ function getStudentReportData(studentId) {
   if (attSheet) {
     const attendance = normalizeSheetData(
       attSheet.getDataRange().getValues(),
-    ).filter((att) => att.StudentID === studentId);
+    ).filter((att) => String(att.StudentID) === String(studentId));
 
     statsHadir.sakit = attendance.filter((a) => a.Type === "Sakit").length;
     statsHadir.izin = attendance.filter((a) => a.Type === "Izin").length;
@@ -265,11 +287,29 @@ function getStudentReportData(studentId) {
   else if (totalSkor >= 40) predikat = "Baik";
   else if (totalSkor < 40) predikat = "Perlu Bimbingan";
 
+  let academic = null;
+  if (typeof getAcademicReportForStudent_ === "function") {
+    try {
+      academic = getAcademicReportForStudent_(studentObj, periodId, currentUser);
+    } catch (e) {
+      academic = {
+        availablePeriods: [],
+        period: null,
+        subjects: [],
+        summary: {
+          average: null,
+          complete: false,
+          message: "Data akademik belum siap: " + e.message,
+        },
+      };
+    }
+  }
+
   return {
     ok: true,
     data: {
       profile: studentObj,
-      period: "Semester Ini",
+      period: academic && academic.period ? academic.period.Title : "Semester Ini",
       hafalan: {
         total: totalSetoran,
         details: hafalanKategori,
@@ -284,6 +324,7 @@ function getStudentReportData(studentId) {
         predikat: predikat,
       },
       attendance: statsHadir,
+      academic: academic,
     },
   };
 }

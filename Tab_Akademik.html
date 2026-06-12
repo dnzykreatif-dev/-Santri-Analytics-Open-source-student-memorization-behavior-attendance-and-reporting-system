@@ -1,0 +1,435 @@
+<!-- TAB: AKADEMIK -->
+<template
+  x-if="currentTab === 'akademik' && (user.Role === 'Mudir' || user.Role === 'Admin' || user.Role === 'Ustadz')"
+>
+  <div class="space-y-6">
+    <div class="app-card p-6 bg-white">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+            Raport Akademik
+          </p>
+          <h2 class="text-2xl font-black text-gray-900">Input dan Kelola Nilai</h2>
+          <p class="text-sm text-gray-500 mt-1">
+            Kelola periode, mapel, bobot, nilai, dan publish raport wali.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="app-btn"
+            :class="academicSection === 'nilai' ? 'app-btn-primary' : 'app-btn-soft'"
+            @click="academicSection = 'nilai'"
+          >
+            Input Nilai
+          </button>
+          <button
+            type="button"
+            class="app-btn"
+            x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
+            :class="academicSection === 'setup' ? 'app-btn-primary' : 'app-btn-soft'"
+            @click="academicSection = 'setup'"
+          >
+            Setup
+          </button>
+          <button
+            type="button"
+            class="app-btn"
+            x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
+            :class="academicSection === 'profil' ? 'app-btn-primary' : 'app-btn-soft'"
+            @click="academicSection = 'profil'"
+          >
+            Profil Santri
+          </button>
+          <button type="button" class="app-btn app-btn-soft" @click="loadAcademicSetup()">
+            Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-card p-6 bg-white">
+      <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+        <div class="max-w-3xl">
+          <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+            Cara Pengisian
+          </p>
+          <h3 class="text-xl font-black text-gray-900 mt-1">
+            Alur lengkap raport akademik
+          </h3>
+          <p class="text-sm text-gray-500 mt-2 leading-6">
+            Jika dropdown periode atau mapel masih kosong seperti pada tampilan awal,
+            berarti struktur sheet sudah siap tetapi data master akademik belum dibuat.
+            Isi setup secara berurutan sebelum input nilai.
+          </p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 text-sm">
+          <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+            <p class="font-black text-emerald-900">1. Lengkapi Profil</p>
+            <p class="text-emerald-800 mt-1">
+              Buka Profil Santri, isi jenjang SMP/SMA dan gender Ikhwan/Akhwat
+              agar filter mapel tepat.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+            <p class="font-black text-blue-900">2. Buat Periode</p>
+            <p class="text-blue-800 mt-1">
+              Buka Setup, buat tahun ajaran, semester, judul, dan tanggal raport.
+              Status awal adalah Draft.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-purple-100 bg-purple-50/60 p-4">
+            <p class="font-black text-purple-900">3. Buat Mapel</p>
+            <p class="text-purple-800 mt-1">
+              Tambahkan mapel agama/umum, atur jenjang, gender, kelas khusus,
+              KKM, dan status aktif.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-orange-100 bg-orange-50/60 p-4">
+            <p class="font-black text-orange-900">4. Cek Bobot</p>
+            <p class="text-orange-800 mt-1">
+              Sistem menyiapkan Harian 40%, Tugas 20%, PTS 20%, PAS/PAT 20%.
+              Ubah di Setup bila perlu.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p class="font-black text-slate-900">5. Input Nilai</p>
+            <p class="text-slate-700 mt-1">
+              Pilih periode, mapel, dan kelas, lalu klik Muat Matrix. Isi nilai
+              0-100 dan klik Simpan Nilai.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
+            <p class="font-black text-rose-900">6. Publish</p>
+            <p class="text-rose-800 mt-1">
+              Publish hanya oleh Mudir/Admin. Periode akan terkunci dan tampil
+              ke Wali jika semua nilai wajib lengkap.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-5 rounded-2xl border border-dashed border-[#D8C3A5] bg-[#FBF8F1] p-4 text-sm text-gray-700 leading-6">
+        <p class="font-black text-gray-900">Import massal dari Google Sheet</p>
+        <p class="mt-1">
+          Isi sheet <strong>AcademicScoreImport</strong> dengan kolom:
+          StudentID/StudentName, SubjectID/SubjectName, ComponentID/ComponentName,
+          Score, Notes, dan TeacherID. Pilih periode di tab Input Nilai, lalu klik
+          Import Staging. Sistem akan menolak baris yang santri, mapel, komponen,
+          atau nilainya tidak valid.
+        </p>
+      </div>
+    </div>
+
+    <div x-show="academicSection === 'nilai'" class="space-y-6">
+      <div class="app-card p-6 bg-white">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Periode</label>
+            <select x-model="academicMatrixFilter.PeriodID" class="app-input">
+              <option value="">Pilih periode</option>
+              <template x-for="period in academicSetup.periods" :key="period.PeriodID">
+                <option :value="period.PeriodID" x-text="period.Title + ' (' + period.Status + ')'"></option>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Mapel</label>
+            <select x-model="academicMatrixFilter.SubjectID" class="app-input">
+              <option value="">Pilih mapel</option>
+              <template x-for="subject in academicSetup.subjects" :key="subject.SubjectID">
+                <option :value="subject.SubjectID" x-text="subject.Name + ' - ' + (subject.Category || 'Umum')"></option>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Kelas</label>
+            <select x-model="academicMatrixFilter.Class" class="app-input">
+              <option value="">Semua kelas yang berlaku</option>
+              <template x-for="className in uniqueClasses" :key="className">
+                <option :value="className" x-text="className"></option>
+              </template>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button type="button" class="app-btn app-btn-primary w-full" @click="loadAcademicMatrix()">
+              Muat Matrix
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-card p-6 bg-white">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+          <div>
+            <h3 class="font-black text-gray-900">Matrix Nilai</h3>
+            <p
+              class="text-sm text-gray-500"
+              x-text="academicMatrix.subject ? academicMatrix.subject.Name + ' - ' + academicMatrix.period.Title : 'Pilih periode dan mapel terlebih dahulu.'"
+            ></p>
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="app-btn app-btn-soft"
+              @click="importAcademicScores()"
+              :disabled="!academicMatrixFilter.PeriodID || loadingAcademic"
+            >
+              Import Staging
+            </button>
+            <button
+              type="button"
+              class="app-btn app-btn-primary"
+              @click="saveAcademicMatrix()"
+              :disabled="!academicMatrix.rows.length || academicMatrix.isLocked || loadingAcademic"
+            >
+              Simpan Nilai
+            </button>
+          </div>
+        </div>
+
+        <div x-show="academicMatrix.isLocked" class="mb-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+          Periode ini terkunci. Ubah status ke Draft sebagai Mudir/Admin sebelum mengedit nilai.
+        </div>
+
+        <div x-show="!academicMatrix.rows.length" class="app-empty-state py-10">
+          <p class="font-bold text-gray-700">Belum ada matrix nilai.</p>
+          <p class="text-sm text-gray-500 mt-1">Muat periode dan mapel untuk mulai input.</p>
+        </div>
+
+        <div x-show="academicMatrix.rows.length" class="overflow-x-auto">
+          <table class="w-full min-w-[760px] text-sm">
+            <thead>
+              <tr class="text-left text-gray-400 border-b">
+                <th class="py-3 pr-3">Santri</th>
+                <template x-for="component in academicMatrix.components" :key="component.ComponentID">
+                  <th class="py-3 px-3">
+                    <span x-text="component.Name"></span>
+                    <span class="block text-[10px]" x-text="'Bobot ' + component.Weight + '%'"></span>
+                  </th>
+                </template>
+                <th class="py-3 px-3">Akhir</th>
+                <th class="py-3 px-3">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              <template x-for="row in academicMatrix.rows" :key="row.student.StudentID">
+                <tr>
+                  <td class="py-3 pr-3">
+                    <p class="font-bold text-gray-900" x-text="row.student.Name"></p>
+                    <p class="text-xs text-gray-400" x-text="row.student['Class/Level']"></p>
+                  </td>
+                  <template x-for="(component, index) in academicMatrix.components" :key="component.ComponentID">
+                    <td class="py-3 px-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        x-model="row.scores[index].Score"
+                        class="app-input w-24"
+                        :disabled="academicMatrix.isLocked"
+                      />
+                    </td>
+                  </template>
+                  <td class="py-3 px-3 font-black" x-text="row.result.finalScore ?? '-'"></td>
+                  <td class="py-3 px-3">
+                    <span
+                      class="app-badge"
+                      :class="row.result.complete ? 'app-badge-success' : 'app-badge-warning'"
+                      x-text="row.result.complete ? 'Lengkap' : 'Belum lengkap'"
+                    ></span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="academicSection === 'setup' && (user.Role === 'Mudir' || user.Role === 'Admin')" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div class="app-card p-6 bg-white space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h3 class="font-black text-gray-900">Periode Raport</h3>
+            <p class="text-sm text-gray-500">Draft bisa diedit, Published tampil ke Wali.</p>
+          </div>
+          <button type="button" class="app-btn app-btn-soft" @click="resetAcademicPeriodForm()">Baru</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input type="text" x-model="academicPeriodForm.AcademicYear" class="app-input" placeholder="2026/2027" />
+          <select x-model="academicPeriodForm.Semester" class="app-input">
+            <option value="">Semester</option>
+            <option value="Ganjil">Ganjil</option>
+            <option value="Genap">Genap</option>
+          </select>
+          <input type="text" x-model="academicPeriodForm.Title" class="app-input md:col-span-2" placeholder="Raport Semester Ganjil 2026/2027" />
+          <input type="date" x-model="academicPeriodForm.StartDate" class="app-input" />
+          <input type="date" x-model="academicPeriodForm.EndDate" class="app-input" />
+        </div>
+        <button type="button" class="app-btn app-btn-primary w-full" @click="saveAcademicPeriod()">Simpan Periode</button>
+
+        <div class="space-y-2 max-h-80 overflow-y-auto">
+          <template x-for="period in academicSetup.periods" :key="period.PeriodID">
+            <div class="rounded-xl border p-3 flex items-center justify-between gap-3">
+              <button type="button" class="text-left min-w-0" @click="editAcademicPeriod(period)">
+                <p class="font-bold text-gray-900 truncate" x-text="period.Title"></p>
+                <p class="text-xs text-gray-500" x-text="period.AcademicYear + ' - ' + period.Semester"></p>
+              </button>
+              <div class="flex items-center gap-2">
+                <span class="app-badge" :class="period.Status === 'Published' ? 'app-badge-success' : 'app-badge-warning'" x-text="period.Status"></span>
+                <button type="button" class="app-btn app-btn-soft text-xs" @click="setAcademicPeriodStatus(period, period.Status === 'Published' ? 'Draft' : 'Published')">
+                  <span x-text="period.Status === 'Published' ? 'Buka Draft' : 'Publish'"></span>
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <div class="app-card p-6 bg-white space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h3 class="font-black text-gray-900">Master Mata Pelajaran</h3>
+            <p class="text-sm text-gray-500">Bisa dibatasi jenjang, gender, atau kelas tertentu.</p>
+          </div>
+          <button type="button" class="app-btn app-btn-soft" @click="resetAcademicSubjectForm()">Baru</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input type="text" x-model="academicSubjectForm.Name" class="app-input md:col-span-2" placeholder="Nama mapel" />
+          <select x-model="academicSubjectForm.Category" class="app-input">
+            <option value="Umum">Umum</option>
+            <option value="Agama">Agama</option>
+          </select>
+          <select x-model="academicSubjectForm.Level" class="app-input">
+            <option value="Semua">Semua jenjang</option>
+            <option value="SMP">SMP</option>
+            <option value="SMA">SMA</option>
+          </select>
+          <select x-model="academicSubjectForm.Gender" class="app-input">
+            <option value="Semua">Ikhwan & Akhwat</option>
+            <option value="Ikhwan">Ikhwan</option>
+            <option value="Akhwat">Akhwat</option>
+          </select>
+          <input type="number" x-model="academicSubjectForm.DefaultKKM" class="app-input" placeholder="KKM" />
+          <input type="text" x-model="academicSubjectForm.Classes" class="app-input md:col-span-2" placeholder="Kelas khusus, pisahkan koma. Kosong = semua" />
+          <label class="inline-flex items-center gap-2 text-sm font-bold text-gray-600">
+            <input type="checkbox" x-model="academicSubjectForm.IsActive" />
+            Aktif
+          </label>
+        </div>
+        <button type="button" class="app-btn app-btn-primary w-full" @click="saveAcademicSubject()">Simpan Mapel</button>
+
+        <div class="space-y-2 max-h-80 overflow-y-auto">
+          <template x-for="subject in academicSetup.subjects" :key="subject.SubjectID">
+            <button type="button" class="w-full rounded-xl border p-3 text-left hover:bg-gray-50" @click="editAcademicSubject(subject)">
+              <div class="flex items-center justify-between gap-3">
+                <p class="font-bold text-gray-900" x-text="subject.Name"></p>
+                <span class="app-badge" :class="subject.IsActive ? 'app-badge-success' : 'app-badge-danger'" x-text="subject.IsActive ? 'Aktif' : 'Nonaktif'"></span>
+              </div>
+              <p class="text-xs text-gray-500" x-text="(subject.Category || 'Umum') + ' / ' + (subject.Level || 'Semua') + ' / ' + (subject.Gender || 'Semua')"></p>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <div class="app-card p-6 bg-white space-y-4 xl:col-span-2">
+        <h3 class="font-black text-gray-900">Komponen dan Bobot Nilai</h3>
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+          <select x-model="academicComponentForm.PeriodID" class="app-input md:col-span-2">
+            <option value="">Periode</option>
+            <template x-for="period in academicSetup.periods" :key="period.PeriodID">
+              <option :value="period.PeriodID" x-text="period.Title"></option>
+            </template>
+          </select>
+          <select x-model="academicComponentForm.SubjectID" class="app-input md:col-span-2">
+            <option value="">Mapel</option>
+            <template x-for="subject in academicSetup.subjects" :key="subject.SubjectID">
+              <option :value="subject.SubjectID" x-text="subject.Name"></option>
+            </template>
+          </select>
+          <input type="text" x-model="academicComponentForm.Name" class="app-input" placeholder="Komponen" />
+          <input type="number" x-model="academicComponentForm.Weight" class="app-input" placeholder="Bobot %" />
+          <input type="number" x-model="academicComponentForm.MaxScore" class="app-input" placeholder="Maks" />
+          <input type="number" x-model="academicComponentForm.SortOrder" class="app-input" placeholder="Urut" />
+          <label class="inline-flex items-center gap-2 text-sm font-bold text-gray-600">
+            <input type="checkbox" x-model="academicComponentForm.IsActive" />
+            Aktif
+          </label>
+          <button type="button" class="app-btn app-btn-primary md:col-span-2" @click="saveAssessmentComponent()">Simpan Komponen</button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-gray-400 border-b">
+                <th class="py-3">Periode</th>
+                <th class="py-3">Mapel</th>
+                <th class="py-3">Komponen</th>
+                <th class="py-3">Bobot</th>
+                <th class="py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              <template x-for="component in academicSetup.components" :key="component.ComponentID">
+                <tr class="cursor-pointer hover:bg-gray-50" @click="editAssessmentComponent(component)">
+                  <td class="py-3" x-text="academicPeriodTitle(component.PeriodID)"></td>
+                  <td class="py-3" x-text="academicSubjectName(component.SubjectID)"></td>
+                  <td class="py-3 font-bold" x-text="component.Name"></td>
+                  <td class="py-3" x-text="component.Weight + '%'"></td>
+                  <td class="py-3" x-text="component.IsActive ? 'Aktif' : 'Nonaktif'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="academicSection === 'profil' && (user.Role === 'Mudir' || user.Role === 'Admin')" class="app-card p-6 bg-white">
+      <h3 class="font-black text-gray-900 mb-4">Profil Akademik Santri</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[680px] text-sm">
+          <thead>
+            <tr class="text-left text-gray-400 border-b">
+              <th class="py-3">Santri</th>
+              <th class="py-3">Kelas</th>
+              <th class="py-3">Jenjang</th>
+              <th class="py-3">Gender</th>
+              <th class="py-3 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            <template x-for="student in students" :key="student.StudentID">
+              <tr>
+                <td class="py-3 font-bold" x-text="student.Name"></td>
+                <td class="py-3" x-text="student['Class/Level']"></td>
+                <td class="py-3">
+                  <select x-model="student.Level" class="app-input w-28">
+                    <option value="">Auto</option>
+                    <option value="SMP">SMP</option>
+                    <option value="SMA">SMA</option>
+                  </select>
+                </td>
+                <td class="py-3">
+                  <select x-model="student.Gender" class="app-input w-32">
+                    <option value="">Belum diisi</option>
+                    <option value="Ikhwan">Ikhwan</option>
+                    <option value="Akhwat">Akhwat</option>
+                  </select>
+                </td>
+                <td class="py-3 text-right">
+                  <button type="button" class="app-btn app-btn-soft text-xs" @click="saveStudentAcademicProfile(student)">
+                    Simpan
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</template>
