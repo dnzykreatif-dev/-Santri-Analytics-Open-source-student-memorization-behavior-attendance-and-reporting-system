@@ -331,6 +331,7 @@ function runHealthCheck(currentUser) {
       "importAcademicScoresFromStaging",
       "updateStudentAcademicProfile",
       "getPesantrenInfo",
+      "getPublicPesantrenInfo",
       "savePesantrenInfo",
       "setPesantrenInfoStatus",
       "deletePesantrenInfo",

@@ -17,6 +17,13 @@
         <p class="text-sm text-gray-500 mt-2">
           Pilih role agar form login menyesuaikan kebutuhan pengguna.
         </p>
+        <a
+          href="<?!= getPublicPageUrl_(); ?>"
+          target="_top"
+          class="inline-flex items-center justify-center mt-4 text-xs font-black text-[#0f5f4a] hover:text-[#0a4638]"
+        >
+          Lihat Website Pondok
+        </a>
       </div>
 
       <div x-show="!loginRole" class="space-y-3">
@@ -138,6 +145,14 @@
         >
           Daftar akun wali santri
         </button>
+
+        <a
+          href="<?!= getPublicPageUrl_(); ?>"
+          target="_top"
+          class="block w-full text-center text-xs font-bold text-gray-500 hover:text-[#0f5f4a]"
+        >
+          Lihat Website Pondok
+        </a>
       </form>
     </div>
   </section>

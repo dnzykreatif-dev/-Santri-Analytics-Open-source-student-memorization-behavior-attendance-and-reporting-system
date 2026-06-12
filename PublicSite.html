@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base target="_top" />
+    <title>Ma'had Raudhatul Ulum</title>
+    <meta
+      name="description"
+      content="Website publik Ma'had Raudhatul Ulum untuk profil pondok, pengumuman, kalender, dokumen, kontak, dan akses dashboard wali santri."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ma'had Raudhatul Ulum" />
+    <meta
+      property="og:description"
+      content="Informasi resmi pondok, pengumuman, kalender, dokumen, dan akses dashboard wali santri."
+    />
+    <style>
+      :root {
+        --bg: #fff8ed;
+        --surface: #ffffff;
+        --surface-soft: #fbf1df;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --line: #ecdcc3;
+        --primary: #0f5f4a;
+        --primary-strong: #0a4638;
+        --accent: #c58a1b;
+        --danger: #b42318;
+        --shadow: 0 20px 60px rgba(31, 41, 55, 0.11);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(15, 95, 74, 0.12), transparent 34rem),
+          linear-gradient(180deg, #fffdf8 0%, var(--bg) 46%, #ffffff 100%);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .site-shell {
+        min-height: 100vh;
+      }
+
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 1px solid rgba(236, 220, 195, 0.82);
+        background: rgba(255, 253, 248, 0.92);
+        backdrop-filter: blur(16px);
+      }
+
+      .container {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .header-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 72px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--primary);
+        color: white;
+        font-weight: 900;
+        letter-spacing: 0.02em;
+        box-shadow: 0 10px 24px rgba(15, 95, 74, 0.18);
+      }
+
+      .brand-name {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 900;
+        line-height: 1.15;
+      }
+
+      .brand-kicker {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .site-nav {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .site-nav a {
+        padding: 10px 12px;
+        border-radius: 10px;
+        color: #4b5563;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .site-nav a:hover {
+        background: var(--surface-soft);
+        color: var(--primary);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 11px 16px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 900;
+        cursor: pointer;
+        transition:
+          transform 0.18s ease,
+          box-shadow 0.18s ease,
+          background 0.18s ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 12px 28px rgba(15, 95, 74, 0.2);
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-strong);
+      }
+
+      .btn-soft {
+        background: white;
+        border-color: var(--line);
+        color: var(--primary);
+      }
+
+      .hero {
+        padding: 72px 0 44px;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.88fr);
+        gap: 34px;
+        align-items: center;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.76);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      h1 {
+        margin: 18px 0 0;
+        max-width: 780px;
+        font-size: clamp(42px, 7vw, 76px);
+        line-height: 0.95;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        margin: 22px 0 0;
+        max-width: 720px;
+        color: #4b5563;
+        font-size: 18px;
+        line-height: 1.75;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .hero-card {
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.84);
+        box-shadow: var(--shadow);
+      }
+
+      .hero-card h2 {
+        margin: 0;
+        font-size: 22px;
+      }
+
+      .hero-card p {
+        margin: 10px 0 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .quick-list {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .quick-item {
+        display: flex;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 8px;
+        background: var(--surface-soft);
+      }
+
+      .quick-icon {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 9px;
+        background: white;
+        color: var(--primary);
+        font-weight: 900;
+      }
+
+      .quick-item strong {
+        display: block;
+        font-size: 14px;
+      }
+
+      .quick-item span {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .section {
+        padding: 52px 0;
+      }
+
+      .section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+
+      .section-kicker {
+        margin: 0;
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .section-title {
+        margin: 8px 0 0;
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.08;
+      }
+
+      .section-copy {
+        max-width: 620px;
+        margin: 10px 0 0;
+        color: var(--muted);
+        line-height: 1.75;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .grid-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        box-shadow: 0 12px 34px rgba(31, 41, 55, 0.06);
+      }
+
+      .feature-card {
+        padding: 22px;
+      }
+
+      .feature-icon {
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        background: var(--surface-soft);
+        color: var(--primary);
+        font-size: 18px;
+        font-weight: 900;
+      }
+
+      .feature-card h3 {
+        margin: 18px 0 8px;
+        font-size: 18px;
+      }
+
+      .feature-card p,
+      .info-card p,
+      .contact-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .info-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      .chip {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: white;
+        color: #4b5563;
+        padding: 9px 12px;
+        font-size: 13px;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .chip.active {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: white;
+      }
+
+      .info-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 18px;
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .badge {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 9px;
+        border-radius: 999px;
+        background: var(--surface-soft);
+        color: var(--primary);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .badge-warning {
+        background: #fff3cd;
+        color: #8a5b00;
+      }
+
+      .badge-danger {
+        background: #fee4e2;
+        color: var(--danger);
+      }
+
+      .info-card h3 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.35;
+      }
+
+      .info-meta {
+        color: #9ca3af;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .empty-state {
+        padding: 36px;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.65);
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .wali-band {
+        padding: 32px;
+        border-radius: 8px;
+        background:
+          linear-gradient(135deg, rgba(15, 95, 74, 0.95), rgba(10, 70, 56, 0.95)),
+          var(--primary);
+        color: white;
+        box-shadow: var(--shadow);
+      }
+
+      .wali-band p {
+        color: rgba(255, 255, 255, 0.78);
+      }
+
+      .contact-card {
+        padding: 20px;
+      }
+
+      .contact-card h3 {
+        margin: 0 0 8px;
+      }
+
+      .site-footer {
+        padding: 34px 0;
+        border-top: 1px solid var(--line);
+        background: white;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .footer-inner {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        font-weight: 900;
+        color: var(--primary);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (max-width: 900px) {
+        .hero-grid,
+        .grid-4,
+        .grid-3 {
+          grid-template-columns: 1fr;
+        }
+
+        .site-nav {
+          display: none;
+        }
+
+        .section-head {
+          align-items: start;
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .container {
+          width: min(100% - 24px, 1120px);
+        }
+
+        .hero {
+          padding-top: 48px;
+        }
+
+        h1 {
+          font-size: 40px;
+        }
+
+        .hero-card,
+        .wali-band {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <div class="container header-inner">
+          <a class="brand" href="#top" aria-label="Ma'had Raudhatul Ulum">
+            <span class="brand-mark">MR</span>
+            <span>
+              <p class="brand-name">Ma'had Raudhatul Ulum</p>
+              <p class="brand-kicker">Website Pondok</p>
+            </span>
+          </a>
+          <nav class="site-nav" aria-label="Navigasi halaman publik">
+            <a href="#profil">Profil</a>
+            <a href="#program">Program</a>
+            <a href="#informasi">Informasi</a>
+            <a href="#kontak">Kontak</a>
+          </nav>
+          <div class="hero-actions" style="margin-top: 0">
+            <button class="btn btn-soft" type="button" id="shareHeaderButton">Bagikan</button>
+            <a class="btn btn-primary" href="<?= appUrl ?>">Masuk Dashboard</a>
+          </div>
+        </div>
+      </header>
+
+      <main id="top">
+        <section class="hero">
+          <div class="container hero-grid">
+            <div>
+              <span class="eyebrow">Informasi resmi pondok</span>
+              <h1>Ma'had Raudhatul Ulum</h1>
+              <p class="lead">
+                Website publik ringan untuk profil pondok, pengumuman, kalender,
+                dokumen, kontak layanan, dan pintu masuk dashboard wali santri.
+              </p>
+              <div class="hero-actions">
+                <a class="btn btn-primary" href="<?= appUrl ?>">Masuk Dashboard Wali</a>
+                <a class="btn btn-soft" href="#kontak">Hubungi Admin</a>
+                <a class="btn btn-soft" href="#informasi">Lihat Pengumuman</a>
+                <button class="btn btn-soft" type="button" id="shareHeroButton">Bagikan Halaman</button>
+              </div>
+              <p class="info-meta" id="shareStatus" style="margin-top: 12px;"></p>
+            </div>
+
+            <aside class="hero-card" aria-label="Ringkasan layanan">
+              <h2>Terhubung dengan perkembangan santri</h2>
+              <p>
+                Dashboard internal membantu wali dan pengurus membaca informasi
+                pondok serta memantau laporan perkembangan santri secara lebih
+                terarah.
+              </p>
+              <div class="quick-list">
+                <div class="quick-item">
+                  <span class="quick-icon">T</span>
+                  <span>
+                    <strong>Tahfidz dan Murojaah</strong>
+                    <span>Catatan setoran dan penguatan hafalan.</span>
+                  </span>
+                </div>
+                <div class="quick-item">
+                  <span class="quick-icon">A</span>
+                  <span>
+                    <strong>Akademik dan Raport</strong>
+                    <span>Laporan akademik, perilaku, dan kehadiran.</span>
+                  </span>
+                </div>
+                <div class="quick-item">
+                  <span class="quick-icon">I</span>
+                  <span>
+                    <strong>Informasi Pondok</strong>
+                    <span>Pengumuman, agenda, dokumen, dan kontak resmi.</span>
+                  </span>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="section" id="profil">
+          <div class="container">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Profil Ringkas</p>
+                <h2 class="section-title">Pondok yang teratur, komunikatif, dan mudah dipantau.</h2>
+                <p class="section-copy">
+                  Ma'had Raudhatul Ulum menggunakan sistem informasi untuk membantu
+                  pengurus dan wali membaca perkembangan santri, informasi pondok,
+                  serta agenda penting dengan lebih jelas.
+                </p>
+              </div>
+            </div>
+
+            <div class="grid grid-4">
+              <article class="card feature-card">
+                <div class="feature-icon">1</div>
+                <h3>Pembinaan Tahfidz</h3>
+                <p>Aktivitas hafalan dan murojaah dicatat agar perkembangan santri mudah ditinjau.</p>
+              </article>
+              <article class="card feature-card">
+                <div class="feature-icon">2</div>
+                <h3>Adab dan Perilaku</h3>
+                <p>Catatan pembinaan membantu proses evaluasi dan komunikasi yang lebih terarah.</p>
+              </article>
+              <article class="card feature-card">
+                <div class="feature-icon">3</div>
+                <h3>Akademik</h3>
+                <p>Raport digital menyatukan akademik, hafalan, perilaku, dan kehadiran.</p>
+              </article>
+              <article class="card feature-card">
+                <div class="feature-icon">4</div>
+                <h3>Komunikasi Wali</h3>
+                <p>Wali dapat membaca informasi resmi dan laporan santri melalui dashboard.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="program">
+          <div class="container">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Program dan Keunggulan</p>
+                <h2 class="section-title">Fokus pada pembelajaran dan keterbukaan informasi.</h2>
+              </div>
+              <a class="btn btn-soft" href="<?= appUrl ?>">Akses Dashboard</a>
+            </div>
+
+            <div class="grid grid-3">
+              <article class="card feature-card">
+                <div class="feature-icon">Q</div>
+                <h3>Tahfidz dan Murojaah</h3>
+                <p>Memantau setoran baru, murojaah, kualitas bacaan, dan riwayat aktivitas hafalan.</p>
+              </article>
+              <article class="card feature-card">
+                <div class="feature-icon">R</div>
+                <h3>Akademik dan Raport</h3>
+                <p>Menyiapkan laporan perkembangan santri dalam satu tampilan yang mudah dibaca.</p>
+              </article>
+              <article class="card feature-card">
+                <div class="feature-icon">B</div>
+                <h3>Pembinaan Perilaku</h3>
+                <p>Mencatat pelanggaran, prestasi, resolusi, dan evaluasi pembinaan santri.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="informasi">
+          <div class="container">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Informasi Dinamis</p>
+                <h2 class="section-title">Pengumuman, agenda, dokumen, dan kontak publik.</h2>
+                <p class="section-copy">
+                  Konten di bagian ini diambil dari Sistem Informasi Pesantren
+                  dan hanya menampilkan informasi yang sudah diterbitkan untuk umum.
+                </p>
+              </div>
+              <button class="btn btn-soft" type="button" id="refreshInfoButton">Refresh</button>
+            </div>
+
+            <div class="info-toolbar" id="infoFilters" aria-label="Filter informasi publik">
+              <button class="chip active" type="button" data-category="">Semua</button>
+              <button class="chip" type="button" data-category="Pengumuman">Pengumuman</button>
+              <button class="chip" type="button" data-category="Kalender Pendidikan">Kalender</button>
+              <button class="chip" type="button" data-category="Kegiatan Pondok">Kegiatan</button>
+              <button class="chip" type="button" data-category="Dokumen">Dokumen</button>
+              <button class="chip" type="button" data-category="Kontak">Kontak</button>
+            </div>
+
+            <div class="empty-state" id="infoLoading">Memuat informasi publik...</div>
+            <div class="grid grid-3" id="infoList" hidden></div>
+            <div class="empty-state" id="infoEmpty" hidden>
+              Belum ada informasi publik pada kategori ini.
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="wali">
+          <div class="container">
+            <div class="wali-band">
+              <p class="section-kicker" style="color: rgba(255, 255, 255, 0.72)">Untuk Wali Santri</p>
+              <h2 class="section-title" style="margin-top: 8px">Pantau informasi pondok dan perkembangan santri dari dashboard.</h2>
+              <p class="section-copy">
+                Wali dapat masuk untuk membaca laporan santri, pengumuman, kalender,
+                panduan, dokumen, dan kontak resmi yang disiapkan pengurus pondok.
+              </p>
+              <div class="hero-actions">
+                <a class="btn btn-soft" href="<?= appUrl ?>">Masuk Dashboard Wali</a>
+                <a class="btn btn-soft" href="#informasi">Baca Informasi Publik</a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="kontak">
+          <div class="container">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Kontak</p>
+                <h2 class="section-title">Hubungi layanan pondok yang tersedia.</h2>
+                <p class="section-copy">
+                  Alamat lengkap dan data profil resmi bisa ditambahkan kemudian.
+                  Untuk saat ini, kontak publik akan mengikuti konten kategori Kontak.
+                </p>
+              </div>
+            </div>
+
+            <div class="grid grid-3" id="contactList"></div>
+            <div class="empty-state" id="contactEmpty">
+              Belum ada kontak publik. Silakan tambahkan konten kategori Kontak
+              dengan status Published dan audiens Semua.
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="container footer-inner">
+          <span>&copy; <span id="currentYear"></span> Ma'had Raudhatul Ulum.</span>
+          <span class="footer-links">
+            <a href="#informasi">Pengumuman</a>
+            <a href="#kontak">Kontak</a>
+            <a href="<?= appUrl ?>">Login Dashboard</a>
+          </span>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      const publicState = {
+        items: [],
+        category: "",
+      };
+
+      const infoList = document.getElementById("infoList");
+      const infoLoading = document.getElementById("infoLoading");
+      const infoEmpty = document.getElementById("infoEmpty");
+      const contactList = document.getElementById("contactList");
+      const contactEmpty = document.getElementById("contactEmpty");
+
+      document.getElementById("currentYear").textContent = new Date().getFullYear();
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function normalizePhone(value) {
+        return String(value || "").replace(/\D/g, "");
+      }
+
+      function getShareUrl() {
+        return window.location.href.split("#")[0];
+      }
+
+      function safeUrl(value) {
+        const url = String(value || "").trim();
+        return /^https?:\/\//i.test(url) ? url : "";
+      }
+
+      function formatLongDate(value) {
+        if (!value) return "-";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+      }
+
+      function itemDate(item) {
+        return item.EventDate || item.DisplayDate || item.UpdatedAt || item.CreatedAt || "";
+      }
+
+      function itemCard(item) {
+        const isPinned = item.IsPinned ? '<span class="badge badge-warning">Pinned</span>' : "";
+        const priority = item.Priority === "Tinggi"
+          ? '<span class="badge badge-danger">Penting</span>'
+          : "";
+        const attachmentUrl = safeUrl(item.AttachmentURL);
+        const attachment = attachmentUrl
+          ? `<a class="btn btn-soft" href="${escapeHtml(attachmentUrl)}" target="_blank" rel="noopener">${escapeHtml(item.AttachmentTitle || "Buka Lampiran")}</a>`
+          : "";
+        const phone = normalizePhone(item.ContactPhone);
+        const contact = phone
+          ? `<a class="btn btn-soft" href="https://wa.me/${phone}" target="_blank" rel="noopener">Hubungi</a>`
+          : "";
+
+        return `
+          <article class="card info-card">
+            <div class="badge-row">
+              <span class="badge">${escapeHtml(item.Category || "Informasi")}</span>
+              ${isPinned}
+              ${priority}
+            </div>
+            <h3>${escapeHtml(item.Title || item.ContactName || "Informasi Pondok")}</h3>
+            <p>${escapeHtml(item.Summary || item.Content || item.Location || "")}</p>
+            <span class="info-meta">${escapeHtml(formatLongDate(itemDate(item)))}</span>
+            ${(attachment || contact) ? `<div class="hero-actions">${attachment}${contact}</div>` : ""}
+          </article>
+        `;
+      }
+
+      function contactCard(item) {
+        const phone = normalizePhone(item.ContactPhone);
+        const contact = phone
+          ? `<a class="btn btn-primary" href="https://wa.me/${phone}" target="_blank" rel="noopener">WhatsApp</a>`
+          : "";
+        return `
+          <article class="card contact-card">
+            <h3>${escapeHtml(item.ContactName || item.Title || "Kontak Pondok")}</h3>
+            <p>${escapeHtml(item.ContactPhone || item.Summary || item.Content || "Kontak resmi pondok.")}</p>
+            ${contact ? `<div class="hero-actions">${contact}</div>` : ""}
+          </article>
+        `;
+      }
+
+      function renderInfo() {
+        const filtered = publicState.category
+          ? publicState.items.filter((item) => item.Category === publicState.category)
+          : publicState.items;
+        infoList.innerHTML = filtered.map(itemCard).join("");
+        infoList.hidden = filtered.length === 0;
+        infoEmpty.hidden = filtered.length > 0;
+      }
+
+      function renderContacts() {
+        const contacts = publicState.items.filter((item) => item.Category === "Kontak");
+        contactList.innerHTML = contacts.map(contactCard).join("");
+        contactList.hidden = contacts.length === 0;
+        contactEmpty.hidden = contacts.length > 0;
+      }
+
+      function setLoading(isLoading) {
+        infoLoading.hidden = !isLoading;
+        if (isLoading) {
+          infoList.hidden = true;
+          infoEmpty.hidden = true;
+        }
+      }
+
+      function loadPublicInfo() {
+        setLoading(true);
+        google.script.run
+          .withSuccessHandler((res) => {
+            setLoading(false);
+            if (!res || !res.ok || !res.data) {
+              publicState.items = [];
+              renderInfo();
+              renderContacts();
+              return;
+            }
+            publicState.items = Array.isArray(res.data.items) ? res.data.items : [];
+            renderInfo();
+            renderContacts();
+          })
+          .withFailureHandler(() => {
+            setLoading(false);
+            publicState.items = [];
+            renderInfo();
+            renderContacts();
+          })
+          .getPublicPesantrenInfo({});
+      }
+
+      async function sharePage() {
+        const url = getShareUrl();
+        const title = document.title || "Ma'had Raudhatul Ulum";
+        const status = document.getElementById("shareStatus");
+
+        try {
+          if (navigator.share) {
+            await navigator.share({
+              title,
+              text: "Lihat halaman resmi Ma'had Raudhatul Ulum",
+              url,
+            });
+            if (status) status.textContent = "Tautan dibagikan.";
+            return;
+          }
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(url);
+            if (status) status.textContent = "Tautan disalin ke clipboard.";
+            return;
+          }
+
+          if (status) status.textContent = "Salin tautan ini: " + url;
+        } catch (error) {
+          if (status) status.textContent = "Tidak bisa membagikan tautan saat ini.";
+        }
+      }
+
+      document.getElementById("infoFilters").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-category]");
+        if (!button) return;
+        publicState.category = button.dataset.category || "";
+        document
+          .querySelectorAll("#infoFilters .chip")
+          .forEach((chip) => chip.classList.toggle("active", chip === button));
+        renderInfo();
+      });
+
+      document.getElementById("refreshInfoButton").addEventListener("click", loadPublicInfo);
+      document.getElementById("shareHeaderButton").addEventListener("click", sharePage);
+      document.getElementById("shareHeroButton").addEventListener("click", sharePage);
+
+      loadPublicInfo();
+    </script>
+  </body>
+</html>

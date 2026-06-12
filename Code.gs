@@ -1,9 +1,16 @@
 function doGet(e) {
-  const template = HtmlService.createTemplateFromFile("Index");
+  const page = String(
+    (e && e.parameter && e.parameter.page) || (e && e.pathInfo) || "",
+  ).toLowerCase();
+  const isPublicPage = page === "public" || page === "website";
+  const template = HtmlService.createTemplateFromFile(
+    isPublicPage ? "PublicSite" : "Index",
+  );
+  template.appUrl = getAppEntryUrl_();
 
   return template
     .evaluate()
-    .setTitle("Monitor Santri")
+    .setTitle(isPublicPage ? "Ma'had Raudhatul Ulum" : "Monitor Santri")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag("viewport", "width=device-width, initial-scale=1");
 }
@@ -141,6 +148,23 @@ function getBehaviorLogs() {
 function include(filename) {
   const template = HtmlService.createTemplateFromFile(filename);
   return template.evaluate().getContent();
+}
+
+function getWebAppUrl_() {
+  try {
+    return ScriptApp.getService().getUrl() || "";
+  } catch (e) {
+    return "";
+  }
+}
+
+function getAppEntryUrl_() {
+  return getWebAppUrl_() || "?";
+}
+
+function getPublicPageUrl_() {
+  const appUrl = getWebAppUrl_();
+  return appUrl ? appUrl + "?page=public" : "?page=public";
 }
 
 // ============================================

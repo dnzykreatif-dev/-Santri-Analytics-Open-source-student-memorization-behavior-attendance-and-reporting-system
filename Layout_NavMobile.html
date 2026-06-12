@@ -36,6 +36,16 @@
     </div>
 
     <nav class="app-mobile-drawer-list">
+      <a
+        href="<?!= getPublicPageUrl_(); ?>"
+        target="_blank"
+        rel="noopener"
+        class="app-mobile-drawer-item"
+      >
+        <span class="app-mobile-more-icon" x-html="navIcon('info')"></span>
+        Website Pondok
+      </a>
+
       <button
         type="button"
         @click="setCurrentTab('dashboard')"

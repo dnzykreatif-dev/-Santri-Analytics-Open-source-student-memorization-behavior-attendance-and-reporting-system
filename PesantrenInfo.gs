@@ -128,6 +128,12 @@ function PI_isPublishedAudience_(item) {
   return status === "Published" && (audience === "Semua" || audience === "Wali");
 }
 
+function PI_isPublicAudience_(item) {
+  const status = PI_text_(item.Status || "Draft");
+  const audience = PI_text_(item.Audience || "Semua");
+  return status === "Published" && audience === "Semua";
+}
+
 function PI_normalizeItem_(item) {
   const normalized = { ...item };
   normalized.IsPinned = PI_bool_(normalized.IsPinned);
@@ -151,6 +157,31 @@ function PI_normalizeItem_(item) {
   normalized.IsDraft = normalized.Status === "Draft";
   normalized.IsArchived = normalized.Status === "Archived";
   return normalized;
+}
+
+function PI_publicUrl_(value) {
+  const url = PI_text_(value);
+  return /^https?:\/\//i.test(url) ? url : "";
+}
+
+function PI_publicItem_(item) {
+  return {
+    InfoID: item.InfoID,
+    Title: item.Title,
+    Category: item.Category,
+    Summary: item.Summary,
+    Content: item.Content,
+    DisplayDate: item.DisplayDate,
+    EventDate: item.EventDate,
+    EndDate: item.EndDate,
+    Location: item.Location,
+    Priority: item.Priority,
+    IsPinned: item.IsPinned,
+    AttachmentTitle: item.AttachmentTitle,
+    AttachmentURL: PI_publicUrl_(item.AttachmentURL),
+    ContactName: item.ContactName,
+    ContactPhone: item.ContactPhone,
+  };
 }
 
 function PI_sortItems_(items) {
@@ -292,6 +323,66 @@ function getPesantrenInfo(currentUser, filters) {
         visibleCount: visibleItems.length,
       },
       message: "Data informasi pesantren berhasil dimuat.",
+    };
+  } catch (e) {
+    return { ok: false, message: "Error: " + e.message };
+  }
+}
+
+function getPublicPesantrenInfo(filters) {
+  try {
+    const sheet = PI_getSheet_();
+    const values = sheet.getDataRange().getValues();
+    const headers = values.length > 0 ? values[0] : PESANTREN_INFO_HEADERS;
+    let items = values.length <= 1
+      ? []
+      : values
+          .slice(1)
+          .filter((row) => row.some((cell) => cell !== "" && cell !== null))
+          .map((row) => PI_normalizeItem_(serializeRow(row, headers)))
+          .filter((item) => PI_isPublicAudience_(item));
+
+    const category = PI_text_(filters && filters.Category);
+    const search = PI_text_(filters && filters.Search).toLowerCase();
+    const pinnedOnly = PI_bool_(filters && filters.PinnedOnly);
+
+    if (category) {
+      items = items.filter((item) => item.Category === category);
+    }
+
+    if (search) {
+      items = items.filter((item) => {
+        const haystack = [
+          item.Title,
+          item.Summary,
+          item.Content,
+          item.Category,
+          item.Location,
+          item.AttachmentTitle,
+          item.ContactName,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(search);
+      });
+    }
+
+    if (pinnedOnly) {
+      items = items.filter((item) => item.IsPinned);
+    }
+
+    items = PI_sortItems_(items);
+    const summary = PI_buildSummary_(items);
+
+    return {
+      ok: true,
+      data: {
+        items: items.map((item) => PI_publicItem_(item)),
+        summary,
+        categories: PESANTREN_INFO_CATEGORIES,
+        visibleCount: items.length,
+      },
+      message: "Data informasi publik pesantren berhasil dimuat.",
     };
   } catch (e) {
     return { ok: false, message: "Error: " + e.message };

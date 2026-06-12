@@ -9,6 +9,16 @@
   </div>
 
   <nav class="app-sidebar-nav">
+    <a
+      href="<?!= getPublicPageUrl_(); ?>"
+      target="_blank"
+      rel="noopener"
+      class="app-sidebar-item"
+    >
+      <span class="app-sidebar-icon" x-html="navIcon('info')"></span>
+      <span>Website Pondok</span>
+    </a>
+
     <button
       type="button"
       @click="setCurrentTab('dashboard')"
