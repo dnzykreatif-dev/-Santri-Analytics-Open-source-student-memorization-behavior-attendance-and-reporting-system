@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base target="_top" />
+    <base target="_self" />
     <title>Ma'had Raudhatul Ulum</title>
     <meta
       name="description"
@@ -15,6 +15,10 @@
       property="og:description"
       content="Informasi resmi pondok, pengumuman, kalender, dokumen, dan akses dashboard wali santri."
     />
+    <script>
+      window.APP_SCRIPT_URL = "<?= scriptUrl ?>";
+      window.APP_PUBLIC_URL = "<?= publicUrl ?>";
+    </script>
     <style>
       :root {
         --bg: #fff8ed;
@@ -131,6 +135,17 @@
       .site-nav a:hover {
         background: var(--surface-soft);
         color: var(--primary);
+      }
+
+      .brand-button,
+      .footer-link-button {
+        appearance: none;
+        border: 0;
+        padding: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
       }
 
       .btn {
@@ -549,8 +564,8 @@
             <a href="#kontak">Kontak</a>
           </nav>
           <div class="hero-actions" style="margin-top: 0">
-            <button class="btn btn-soft" type="button" id="shareHeaderButton">Bagikan</button>
-            <a class="btn btn-primary" href="<?= appUrl ?>">Masuk Dashboard</a>
+            <button class="btn btn-soft" type="button" id="shareHeaderButton" onclick="sharePage()">Bagikan</button>
+            <a class="btn btn-primary" href="<?= scriptUrl ?>" target="_blank" rel="noopener">Masuk Dashboard</a>
           </div>
         </div>
       </header>
@@ -566,10 +581,10 @@
                 dokumen, kontak layanan, dan pintu masuk dashboard wali santri.
               </p>
               <div class="hero-actions">
-                <a class="btn btn-primary" href="<?= appUrl ?>">Masuk Dashboard Wali</a>
+                <a class="btn btn-primary" href="<?= scriptUrl ?>" target="_blank" rel="noopener">Masuk Dashboard Wali</a>
                 <a class="btn btn-soft" href="#kontak">Hubungi Admin</a>
                 <a class="btn btn-soft" href="#informasi">Lihat Pengumuman</a>
-                <button class="btn btn-soft" type="button" id="shareHeroButton">Bagikan Halaman</button>
+                <button class="btn btn-soft" type="button" id="shareHeroButton" onclick="sharePage()">Bagikan Halaman</button>
               </div>
               <p class="info-meta" id="shareStatus" style="margin-top: 12px;"></p>
             </div>
@@ -607,6 +622,12 @@
             </aside>
           </div>
         </section>
+
+        <div class="container">
+          <p class="text-xs text-gray-500 -mt-2">
+            Pengaturan konten website ada di dashboard internal pada menu Sistem Informasi Pesantren.
+          </p>
+        </div>
 
         <section class="section" id="profil">
           <div class="container">
@@ -654,7 +675,7 @@
                 <p class="section-kicker">Program dan Keunggulan</p>
                 <h2 class="section-title">Fokus pada pembelajaran dan keterbukaan informasi.</h2>
               </div>
-              <a class="btn btn-soft" href="<?= appUrl ?>">Akses Dashboard</a>
+              <a class="btn btn-soft" href="<?= scriptUrl ?>" target="_blank" rel="noopener">Akses Dashboard</a>
             </div>
 
             <div class="grid grid-3">
@@ -718,7 +739,7 @@
                 panduan, dokumen, dan kontak resmi yang disiapkan pengurus pondok.
               </p>
               <div class="hero-actions">
-                <a class="btn btn-soft" href="<?= appUrl ?>">Masuk Dashboard Wali</a>
+                <a class="btn btn-soft" href="<?= scriptUrl ?>" target="_blank" rel="noopener">Masuk Dashboard Wali</a>
                 <a class="btn btn-soft" href="#informasi">Baca Informasi Publik</a>
               </div>
             </div>
@@ -753,7 +774,7 @@
           <span class="footer-links">
             <a href="#informasi">Pengumuman</a>
             <a href="#kontak">Kontak</a>
-            <a href="<?= appUrl ?>">Login Dashboard</a>
+            <a href="<?= scriptUrl ?>" target="_blank" rel="noopener">Login Dashboard</a>
           </span>
         </div>
       </footer>
@@ -764,6 +785,8 @@
         items: [],
         category: "",
       };
+      const canonicalPublicUrl = String(window.APP_PUBLIC_URL || "").trim();
+      const canonicalScriptUrl = String(window.APP_SCRIPT_URL || "").trim();
 
       const infoList = document.getElementById("infoList");
       const infoLoading = document.getElementById("infoLoading");
@@ -787,7 +810,22 @@
       }
 
       function getShareUrl() {
+        if (canonicalPublicUrl && canonicalPublicUrl.trim()) {
+          return canonicalPublicUrl;
+        }
         return window.location.href.split("#")[0];
+      }
+
+      function cleanAppUrl(value) {
+        return String(value || "")
+          .trim()
+          .replace(/[?#].*$/, "")
+          .replace(/\/$/, "")
+          .replace(/\/userCodeAppPanel$/, "");
+      }
+
+      function getDashboardUrl() {
+        return cleanAppUrl(canonicalScriptUrl || window.location.href);
       }
 
       function safeUrl(value) {
@@ -879,6 +917,13 @@
 
       function loadPublicInfo() {
         setLoading(true);
+        if (!window.google || !google.script || !google.script.run) {
+          setLoading(false);
+          publicState.items = [];
+          renderInfo();
+          renderContacts();
+          return;
+        }
         google.script.run
           .withSuccessHandler((res) => {
             setLoading(false);
@@ -916,18 +961,46 @@
             if (status) status.textContent = "Tautan dibagikan.";
             return;
           }
+        } catch (error) {
+          // Fall through to manual copy.
+        }
 
+        try {
           if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(url);
             if (status) status.textContent = "Tautan disalin ke clipboard.";
             return;
           }
-
-          if (status) status.textContent = "Salin tautan ini: " + url;
         } catch (error) {
-          if (status) status.textContent = "Tidak bisa membagikan tautan saat ini.";
+          // Ignore and continue to manual fallback.
+        }
+
+        try {
+          const textarea = document.createElement("textarea");
+          textarea.value = url;
+          textarea.setAttribute("readonly", "true");
+          textarea.style.position = "fixed";
+          textarea.style.left = "-9999px";
+          textarea.style.top = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          const copied = document.execCommand("copy");
+          document.body.removeChild(textarea);
+          if (copied) {
+            if (status) status.textContent = "Tautan disalin ke clipboard.";
+            return;
+          }
+        } catch (error) {
+          // Ignore and continue to prompt fallback.
+        }
+
+        window.prompt("Salin tautan halaman ini:", url);
+        if (status) {
+          status.textContent = "Salin tautan dari kotak dialog yang muncul.";
         }
       }
+
+      window.sharePage = sharePage;
 
       document.getElementById("infoFilters").addEventListener("click", (event) => {
         const button = event.target.closest("[data-category]");

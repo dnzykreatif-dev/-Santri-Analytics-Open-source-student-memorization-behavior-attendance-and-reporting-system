@@ -7,6 +7,8 @@ function doGet(e) {
     isPublicPage ? "PublicSite" : "Index",
   );
   template.appUrl = getAppEntryUrl_();
+  template.publicUrl = getPublicPageUrl_();
+  template.scriptUrl = getWebAppUrl_();
 
   return template
     .evaluate()

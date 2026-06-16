@@ -2,6 +2,15 @@
 <html lang="id">
   <head>
     <?!= include('Head'); ?> <?!= include('Style'); ?>
+    <script>
+      window.APP_SCRIPT_URL = "<?= scriptUrl ?>";
+      window.APP_PUBLIC_URL = "<?= publicUrl ?>";
+      document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("[data-public-link]").forEach(function (link) {
+          link.href = window.APP_PUBLIC_URL || "?page=public";
+        });
+      });
+    </script>
   </head>
 
   <body class="min-h-screen bg-[#FFF5E6] text-[#111827] pb-20 md:pb-0">

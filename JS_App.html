@@ -874,6 +874,55 @@
         }
       },
 
+      scrollToLogin() {
+        const loginCard = document.getElementById("login");
+        if (loginCard) {
+          loginCard.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      },
+
+      getAppBaseUrl() {
+        const canonical = String(window.APP_SCRIPT_URL || "").trim();
+        if (canonical) {
+          return canonical.replace(/[?#].*$/, "").replace(/\/$/, "");
+        }
+
+        const current = String(window.location.href || "").split("#")[0].split("?")[0];
+        return current.replace(/\/$/, "").replace(/\/userCodeAppPanel$/, "");
+      },
+
+      getPublicWebsiteUrl() {
+        const baseUrl = this.getAppBaseUrl();
+        return baseUrl ? `${baseUrl}?page=public` : "?page=public";
+      },
+
+      navigateTop(url) {
+        if (!url) return;
+        const opened = window.open(url, "_blank", "noopener");
+        if (!opened) {
+          window.location.href = url;
+        }
+      },
+
+      goToDashboard() {
+        const url = this.getAppBaseUrl();
+        if (!url) return;
+        try {
+          this.navigateTop(url);
+        } catch (error) {
+          window.location.href = url;
+        }
+      },
+
+      openPublicWebsite() {
+        const url = this.getPublicWebsiteUrl();
+        try {
+          this.navigateTop(url);
+        } catch (error) {
+          window.location.href = url;
+        }
+      },
+
       scrollToPesantrenInfoForm() {
         const editorCard = this.$el?.querySelector(".pesantren-info-editor");
         if (editorCard) {

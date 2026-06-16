@@ -13,7 +13,7 @@
 
         <div class="mt-6 flex flex-wrap gap-3">
           <a href="#login" class="app-btn app-btn-primary">Masuk Dashboard</a>
-          <a href="<?!= getPublicPageUrl_(); ?>" target="_top" class="app-btn app-btn-soft">Buka Website Publik</a>
+          <a href="?page=public" target="_blank" rel="noopener" data-public-link class="app-btn app-btn-soft">Buka Website Publik</a>
           <button type="button" @click="loadPublicLandingInfo()" class="app-btn app-btn-soft">Refresh Informasi</button>
         </div>
 
