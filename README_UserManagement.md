@@ -8,6 +8,7 @@
 - **Edit User**: Update informasi user termasuk password
 - **Hapus User**: Hapus user dengan validasi (tidak bisa hapus akun sendiri)
 - **Lihat User**: Tampilkan daftar semua user dengan filter dan pencarian
+- **Ganti Password Mandiri**: Semua user yang login bisa mengganti password akun sendiri
 
 ### 2. **Struktur Data User**
 
@@ -29,6 +30,7 @@ Menggunakan sheet "Users" dengan kolom:
 
 - Password di-hash dengan salt menggunakan SHA-256
 - Akses terbatas hanya untuk role Mudir dan Admin
+- Ganti password mandiri tersedia untuk semua user yang login
 - Validasi input lengkap
 - Tidak bisa menghapus akun sendiri
 
@@ -49,6 +51,7 @@ Menggunakan sheet "Users" dengan kolom:
    - `addUser(userData, currentUser)` - Tambah user baru
    - `updateUser(userId, userData, currentUser)` - Update user
    - `deleteUser(userId, currentUser)` - Hapus user
+   - `changeOwnPassword(currentUser, oldPassword, newPassword)` - Ganti password akun sendiri
    - `hashPasswordWithSalt(password, salt)` - Hash password dengan salt
    - `loginWithSalt(username, password)` - Login dengan sistem salt
 
@@ -67,17 +70,17 @@ Menggunakan sheet "Users" dengan kolom:
    - Tabel user dengan filter dan pencarian
    - Modal tambah/edit user
    - Statistik user
-
-2. **JS_App.html** - Diperbarui
+2. **Modal_ChangePassword.html** - Modal ganti password mandiri
+3. **JS_App.html** - Diperbarui
    - State untuk user management
    - Computed property `filteredUsers`
    - Fungsi `fetchUsers()`, `editUser()`, `submitUserForm()`, `deleteUser()`
 
-3. **Index.html** - Include Tab_Users
+4. **Index.html** - Include Tab_Users
 
-4. **Layout_NavDesktop.html** - Tambah tombol "Manajemen User"
+5. **Layout_NavDesktop.html** - Tambah tombol "Manajemen User"
 
-5. **Layout_NavMobile.html** - Tambah tombol "Users"
+6. **Layout_NavMobile.html** - Tambah tombol "Users"
 
 ## Cara Penggunaan
 
@@ -109,7 +112,14 @@ Menggunakan sheet "Users" dengan kolom:
 3. Untuk ganti password, isi field password baru
 4. Klik "Update User"
 
-### 4. Menghapus User
+### 4. Ganti Password Mandiri
+
+1. Login ke dashboard sebagai user apa pun
+2. Klik tombol "Ganti Password"
+3. Isi password lama, password baru, dan konfirmasi
+4. Klik "Simpan Password"
+
+### 5. Menghapus User
 
 1. Di tabel user, klik ikon hapus (tong sampah)
 2. Konfirmasi penghapusan

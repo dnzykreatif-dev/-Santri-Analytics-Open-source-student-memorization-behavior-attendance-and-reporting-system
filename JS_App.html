@@ -22,6 +22,11 @@
       },
       loginForm: { username: "", password: "" },
       registerForm: { username: "", password: "", confirmPassword: "" },
+      changePasswordForm: {
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      },
       newStudent: {
         Name: "",
         ClassLevel: "",
@@ -155,6 +160,9 @@
       studentVisibleCount: 10,
       showRegister: false,
       registerError: "",
+      showChangePasswordModal: false,
+      changePasswordError: "",
+      loadingChangePassword: false,
       // === STATE LINKS ===
       studentLinks: [],
       linkForm: { Title: "", URL: "", Type: "Rekaman" },
@@ -1085,6 +1093,8 @@
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>',
           logout:
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 5v14"/></svg>',
+          lock:
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg>',
         };
         return icons[name] || icons.more;
       },
@@ -1156,6 +1166,9 @@
         this.user = { Username: "", Role: "" };
         this.mobileMoreOpen = false;
         this.mobileDrawerOpen = false;
+        this.showChangePasswordModal = false;
+        this.changePasswordError = "";
+        this.loadingChangePassword = false;
         this.publicLandingItems = [];
         this.publicLandingSummary = {
           total: 0,
@@ -1203,8 +1216,79 @@
         this.selectedRaportPeriodId = "";
         this.resetPesantrenInfoForm();
         this.resetLoginRole();
+        this.resetForm("changePasswordForm");
         sessionStorage.removeItem("user");
         this.loadPublicLandingInfo();
+      },
+
+      openChangePasswordModal() {
+        this.changePasswordError = "";
+        this.resetForm("changePasswordForm");
+        this.showChangePasswordModal = true;
+        this.mobileMoreOpen = false;
+        this.mobileDrawerOpen = false;
+      },
+
+      closeChangePasswordModal() {
+        this.showChangePasswordModal = false;
+        this.changePasswordError = "";
+        this.loadingChangePassword = false;
+        this.resetForm("changePasswordForm");
+      },
+
+      submitChangePasswordForm() {
+        this.changePasswordError = "";
+
+        if (
+          !this.changePasswordForm.oldPassword ||
+          !this.changePasswordForm.newPassword
+        ) {
+          this.changePasswordError = "Password lama dan baru wajib diisi.";
+          return;
+        }
+
+        if (this.changePasswordForm.newPassword.length < 6) {
+          this.changePasswordError = "Password baru minimal 6 karakter.";
+          return;
+        }
+
+        if (
+          this.changePasswordForm.newPassword !==
+          this.changePasswordForm.confirmPassword
+        ) {
+          this.changePasswordError = "Password baru dan konfirmasi tidak cocok.";
+          return;
+        }
+
+        if (
+          this.changePasswordForm.oldPassword ===
+          this.changePasswordForm.newPassword
+        ) {
+          this.changePasswordError =
+            "Password baru harus berbeda dari password lama.";
+          return;
+        }
+
+        this.loadingChangePassword = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingChangePassword = false;
+            if (res.ok) {
+              this.showToast(res.message, "success");
+              this.closeChangePasswordModal();
+              return;
+            }
+            this.changePasswordError = res.message;
+          })
+          .withFailureHandler((err) => {
+            this.loadingChangePassword = false;
+            this.changePasswordError = "Terjadi kesalahan: " + err.message;
+          })
+          .changeOwnPassword(
+            this.user,
+            this.changePasswordForm.oldPassword,
+            this.changePasswordForm.newPassword,
+          );
       },
 
       // ===== DATA FETCHING =====

@@ -42,6 +42,15 @@
 
     <button
       type="button"
+      @click="openChangePasswordModal()"
+      class="app-btn app-btn-ghost hidden sm:inline-flex"
+    >
+      <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('lock')"></span>
+      Ganti Password
+    </button>
+
+    <button
+      type="button"
       @click="logout()"
       class="app-btn app-btn-danger hidden sm:inline-flex"
     >

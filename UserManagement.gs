@@ -294,6 +294,80 @@ function updateUser(userId, userData, currentUser) {
 }
 
 /**
+ * Change the password for the currently logged-in user.
+ * This is self-service only and does not allow changing another account.
+ */
+function changeOwnPassword(currentUser, oldPassword, newPassword) {
+  try {
+    if (!currentUser || !currentUser.Username) {
+      return { ok: false, message: "Sesi login tidak valid." };
+    }
+
+    const oldPasswordText = String(oldPassword || "");
+    const newPasswordText = String(newPassword || "");
+
+    if (!oldPasswordText || !newPasswordText) {
+      return { ok: false, message: "Password lama dan baru wajib diisi." };
+    }
+
+    if (newPasswordText.length < 6) {
+      return { ok: false, message: "Password baru minimal 6 karakter." };
+    }
+
+    const sheet = getSheet_(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const inputUsername = String(currentUser.Username || "").trim();
+
+    const userIndex = data.findIndex(
+      (row, index) =>
+        index > 0 &&
+        String(row[headers.indexOf("Username")] || "").trim() === inputUsername,
+    );
+
+    if (userIndex === -1) {
+      return { ok: false, message: "User tidak ditemukan." };
+    }
+
+    const row = data[userIndex];
+    const saltIndex = headers.indexOf("Salt");
+    const hashIndex = headers.indexOf("PasswordHash");
+    const updatedAtIndex = headers.indexOf("UpdatedAt");
+
+    if (saltIndex === -1 || hashIndex === -1) {
+      return {
+        ok: false,
+        message: "Kolom Salt atau PasswordHash tidak ditemukan.",
+      };
+    }
+
+    const currentSalt = row[saltIndex] || "";
+    const currentHash = row[hashIndex] || "";
+    const oldHash = hashPasswordWithSalt(oldPasswordText, currentSalt);
+
+    if (currentHash !== oldHash) {
+      return { ok: false, message: "Password lama salah." };
+    }
+
+    const newSalt = Utilities.getUuid().substring(0, 8);
+    const newHash = hashPasswordWithSalt(newPasswordText, newSalt);
+    const updatedRow = [...row];
+    updatedRow[saltIndex] = newSalt;
+    updatedRow[hashIndex] = newHash;
+
+    if (updatedAtIndex !== -1) {
+      updatedRow[updatedAtIndex] = new Date().toISOString();
+    }
+
+    sheet.getRange(userIndex + 1, 1, 1, updatedRow.length).setValues([updatedRow]);
+
+    return { ok: true, message: "Password berhasil diubah." };
+  } catch (e) {
+    return { ok: false, message: "Error: " + e.message };
+  }
+}
+
+/**
  * Delete user (only accessible by Mudir/Admin)
  */
 function deleteUser(userId, currentUser) {
