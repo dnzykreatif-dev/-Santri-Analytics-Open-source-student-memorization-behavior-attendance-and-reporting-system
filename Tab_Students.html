@@ -10,9 +10,9 @@
     <div
       class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"
     >
-      <div>
+      <div class="flex-1">
         <h3 class="font-bold text-xl">Daftar Santri</h3>
-        <div class="mt-2 flex flex-wrap items-center gap-4">
+        <div class="mt-2 flex flex-wrap items-center gap-3">
           <input
             type="text"
             x-model="searchQuery"
@@ -35,15 +35,50 @@
               </template>
             </select>
           </div>
+          <div class="flex items-center gap-1 rounded-xl border border-gray-100 bg-gray-50 p-1">
+            <button
+              type="button"
+              @click="studentDisplayMode = 'table'"
+              class="px-3 py-2 text-xs font-bold rounded-lg"
+              :class="studentDisplayMode === 'table' ? 'bg-white shadow-sm text-[#0f5f4a]' : 'text-gray-500'"
+            >
+              Tabel
+            </button>
+            <button
+              type="button"
+              @click="studentDisplayMode = 'card'"
+              class="px-3 py-2 text-xs font-bold rounded-lg"
+              :class="studentDisplayMode === 'card' ? 'bg-white shadow-sm text-[#0f5f4a]' : 'text-gray-500'"
+            >
+              Kartu
+            </button>
+          </div>
         </div>
       </div>
-      <button
-        x-show="user.Role !== 'Wali'"
-        @click="showAddStudent = true"
-        class="w-full md:w-auto bg-[#FAD4C0] px-6 py-3 rounded-xl font-bold text-sm hover:shadow-md transition-all"
-      >
-        + Tambah Santri
-      </button>
+      <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+        <button
+          type="button"
+          @click="exportStudentCsv()"
+          x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
+          class="w-full md:w-auto bg-white border border-gray-200 px-4 py-3 rounded-xl font-bold text-sm hover:shadow-sm transition-all"
+        >
+          Export CSV
+        </button>
+        <button
+          type="button"
+          @click="loadStudentStatistics()"
+          class="w-full md:w-auto bg-white border border-gray-200 px-4 py-3 rounded-xl font-bold text-sm hover:shadow-sm transition-all"
+        >
+          Statistik
+        </button>
+        <button
+          x-show="user.Role !== 'Wali'"
+          @click="showAddStudent = true"
+          class="w-full md:w-auto bg-[#FAD4C0] px-6 py-3 rounded-xl font-bold text-sm hover:shadow-md transition-all"
+        >
+          + Tambah Santri
+        </button>
+      </div>
     </div>
 
     <!-- SKELETON LOADING STATE -->
@@ -76,7 +111,10 @@
           </div>
 
           <div x-show="students.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <template x-for="s in students" :key="s.StudentID">
+            <template
+              x-for="s in students"
+              :key="s.StudentID || s.WaliUsername || s.ParentContact || s.Name"
+            >
               <button
                 type="button"
                 @click="openStudentDetail(s)"
@@ -118,10 +156,13 @@
     </template>
 
     <div
-      x-show="!loading && user.Role !== 'Wali'"
-      class="md:hidden grid grid-cols-1 gap-4"
+      x-show="!loading && user.Role !== 'Wali' && studentDisplayMode === 'card'"
+      class="grid grid-cols-1 gap-4"
     >
-      <template x-for="s in visibleStudents" :key="s.StudentID">
+      <template
+        x-for="s in visibleStudents"
+        :key="s.StudentID || s.WaliUsername || s.ParentContact || s.Name"
+      >
         <div
           @click="openStudentDetail(s)"
           class="bento-card p-4 bg-white border border-gray-100 flex justify-between items-center cursor-pointer hover:bg-gray-50"
@@ -156,8 +197,8 @@
 
     <!-- CONTENT: Desktop Table View -->
     <div
-      x-show="!loading && user.Role !== 'Wali'"
-      class="hidden md:block overflow-x-auto"
+      x-show="!loading && user.Role !== 'Wali' && studentDisplayMode === 'table'"
+      class="overflow-x-auto"
     >
       <table class="w-full">
         <thead>
@@ -170,7 +211,10 @@
           </tr>
         </thead>
         <tbody class="divide-y">
-          <template x-for="s in visibleStudents" :key="s.StudentID">
+          <template
+            x-for="s in visibleStudents"
+            :key="s.StudentID || s.WaliUsername || s.ParentContact || s.Name"
+          >
             <tr
               class="hover:bg-gray-50/50 cursor-pointer"
               @click="openStudentDetail(s)"
@@ -223,6 +267,67 @@
       >
         Muat Lagi
       </button>
+    </div>
+  </div>
+
+  <div
+    x-show="showStudentStatisticsModal"
+    class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+    x-cloak
+  >
+    <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl p-6">
+      <div class="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h3 class="text-xl font-bold">Statistik Santri</h3>
+          <p class="text-sm text-gray-500 mt-1">Ringkasan cepat berdasarkan data yang sedang difilter.</p>
+        </div>
+        <button class="text-gray-400 hover:text-gray-700" @click="showStudentStatisticsModal = false">✕</button>
+      </div>
+      <div x-show="loadingStudentStatistics" class="text-sm text-gray-500">Memuat statistik...</div>
+      <div x-show="!loadingStudentStatistics" class="space-y-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="rounded-2xl bg-gray-50 p-4">
+            <p class="text-xs text-gray-400">Total</p>
+            <p class="text-2xl font-black" x-text="studentStatistics.total || 0"></p>
+          </div>
+          <div class="rounded-2xl bg-gray-50 p-4">
+            <p class="text-xs text-gray-400">Dengan QR</p>
+            <p class="text-2xl font-black" x-text="studentStatistics.withQr || 0"></p>
+          </div>
+          <div class="rounded-2xl bg-gray-50 p-4">
+            <p class="text-xs text-gray-400">Dengan Foto</p>
+            <p class="text-2xl font-black" x-text="studentStatistics.withPhoto || 0"></p>
+          </div>
+          <div class="rounded-2xl bg-gray-50 p-4">
+            <p class="text-xs text-gray-400">Kelas</p>
+            <p class="text-2xl font-black" x-text="Object.keys(studentStatistics.countsByClass || {}).length"></p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="rounded-2xl border border-gray-100 p-4">
+            <h4 class="font-bold mb-3">Per Kelas</h4>
+            <div class="space-y-2 max-h-48 overflow-auto">
+              <template x-for="entry in Object.entries(studentStatistics.countsByClass || {})" :key="entry[0]">
+                <div class="flex items-center justify-between text-sm">
+                  <span x-text="entry[0]"></span>
+                  <span class="font-bold" x-text="entry[1]"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+          <div class="rounded-2xl border border-gray-100 p-4">
+            <h4 class="font-bold mb-3">Per Status</h4>
+            <div class="space-y-2 max-h-48 overflow-auto">
+              <template x-for="entry in Object.entries(studentStatistics.countsByStatus || {})" :key="entry[0]">
+                <div class="flex items-center justify-between text-sm">
+                  <span x-text="entry[0]"></span>
+                  <span class="font-bold" x-text="entry[1]"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

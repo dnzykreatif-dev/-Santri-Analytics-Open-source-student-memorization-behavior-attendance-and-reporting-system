@@ -24,6 +24,78 @@ function normalizeSheetData(data) {
   const rows = data.slice(1);
   return rows.map((row) => serializeRow(row, headers));
 }
+
+function repairMissingIds_(sheet, headers, idHeader, prefix, options = {}) {
+  if (!sheet || !headers || !idHeader) return 0;
+
+  const idIndex = headers.indexOf(idHeader);
+  if (idIndex === -1) return 0;
+
+  const createdAtIndex = headers.indexOf(options.createdAtHeader || "CreatedAt");
+  const statusIndex = headers.indexOf(options.statusHeader || "Status");
+  const phoneIndex = headers.indexOf(options.phoneHeader || "Phone");
+  const usernameIndex = headers.indexOf(options.usernameHeader || "Username");
+  const waliUsernameIndex = headers.indexOf(
+    options.waliUsernameHeader || "WaliUsername",
+  );
+  const roleIndex = headers.indexOf(options.roleHeader || "Role");
+
+  const data = sheet.getDataRange().getValues();
+  const now = new Date().toISOString();
+  let repairedCount = 0;
+
+  for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+    const row = data[rowIndex];
+    const currentId = String(row[idIndex] || "").trim();
+    if (!currentId) {
+      const generatedId = prefix + Date.now() + rowIndex;
+      sheet.getRange(rowIndex + 1, idIndex + 1).setValue(generatedId);
+      row[idIndex] = generatedId;
+    }
+
+    if (createdAtIndex !== -1 && !String(row[createdAtIndex] || "").trim()) {
+      sheet.getRange(rowIndex + 1, createdAtIndex + 1).setValue(now);
+      row[createdAtIndex] = now;
+    }
+
+    if (statusIndex !== -1 && !String(row[statusIndex] || "").trim()) {
+      sheet.getRange(rowIndex + 1, statusIndex + 1).setValue("Active");
+      row[statusIndex] = "Active";
+    }
+
+    if (
+      phoneIndex !== -1 &&
+      waliUsernameIndex !== -1 &&
+      !String(row[waliUsernameIndex] || "").trim()
+    ) {
+      const phoneValue = String(row[phoneIndex] || "").trim();
+      if (phoneValue) {
+        sheet
+          .getRange(rowIndex + 1, waliUsernameIndex + 1)
+          .setValue(normalizePhoneNumber(phoneValue) || phoneValue);
+      }
+    }
+
+    if (
+      prefix === "USR" &&
+      usernameIndex !== -1 &&
+      roleIndex !== -1 &&
+      !String(row[usernameIndex] || "").trim()
+    ) {
+      const phoneValue = String(row[phoneIndex] || "").trim();
+      const roleValue = String(row[roleIndex] || "").trim();
+      if (roleValue === "Wali" && phoneValue) {
+        sheet
+          .getRange(rowIndex + 1, usernameIndex + 1)
+          .setValue(normalizePhoneNumber(phoneValue) || phoneValue);
+      }
+    }
+
+    repairedCount++;
+  }
+
+  return repairedCount;
+}
 /**
  * Helper: Mencari index baris berdasarkan ID di kolom pertama (ID unik).
  * Mengembalikan -1 jika tidak ditemukan.

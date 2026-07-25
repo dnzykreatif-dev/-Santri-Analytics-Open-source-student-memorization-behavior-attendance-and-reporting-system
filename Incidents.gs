@@ -15,7 +15,10 @@ function getDailyStats(studentId) {
   };
 }
 
-function logIncident(data, user) {
+function logIncident(data, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, {
+    roles: ["Mudir", "Admin", "Ustadz"],
+  });
   const incidentSheet = getSheet_("Incidents");
   const studentSheet = getSheet_("Students");
 
@@ -48,10 +51,15 @@ function logIncident(data, user) {
     data.Description,
     data.Severity,
     normalizedPoints,
-    user ? user.Username : "System",
+    sessionUser ? sessionUser.Username : "System",
     "",
     data.Category || "Umum",
   ]);
+  bumpStudentDataRevision_();
+  AUTH_appendAuditLog_("CREATE", "Incident", data.StudentID, sessionUser, {
+    incidentType: data.IncidentType,
+    severity: data.Severity,
+  });
 
   const students = normalizeSheetData(studentSheet.getDataRange().getValues());
   const student = students.find((s) => s.StudentID === data.StudentID);
@@ -68,7 +76,10 @@ function logIncident(data, user) {
   };
 }
 
-function updateIncident(incidentId, data, user) {
+function updateIncident(incidentId, data, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, {
+    roles: ["Mudir", "Admin", "Ustadz"],
+  });
   const sheet = getSheet_("Incidents");
   const row = findRowIndexById_("Incidents", incidentId);
 
@@ -86,18 +97,26 @@ function updateIncident(incidentId, data, user) {
     data.Description,
     data.Severity,
     normalizedPoints,
-    user ? user.Username : "System", // ReportedBy (update auditor)
+    sessionUser ? sessionUser.Username : "System", // ReportedBy (update auditor)
     "", // Resolution
     data.Category || "Umum",
   ];
 
   // Update range mulai kolom 4 sampai 10
   sheet.getRange(row, 4, 1, 7).setValues([rowData]);
+  bumpStudentDataRevision_();
+  AUTH_appendAuditLog_("UPDATE", "Incident", incidentId, sessionUser, {
+    incidentType: data.IncidentType,
+    severity: data.Severity,
+  });
 
   return { ok: true, message: "Insiden berhasil diperbarui." };
 }
 
-function deleteIncident(incidentId) {
+function deleteIncident(incidentId, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, {
+    roles: ["Mudir", "Admin", "Ustadz"],
+  });
   const sheet = getSheet_("Incidents");
   const row = findRowIndexById_("Incidents", incidentId);
 
@@ -106,6 +125,8 @@ function deleteIncident(incidentId) {
   }
 
   sheet.deleteRow(row);
+  bumpStudentDataRevision_();
+  AUTH_appendAuditLog_("DELETE", "Incident", incidentId, sessionUser, {});
   return { ok: true, message: "Insiden berhasil dihapus." };
 }
 

@@ -269,15 +269,46 @@
       }
 
       .quick-icon {
-        width: 34px;
-        height: 34px;
-        display: grid;
-        place-items: center;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         flex: 0 0 auto;
-        border-radius: 9px;
-        background: white;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #e8f7f0, #ffffff);
         color: var(--primary);
-        font-weight: 900;
+        line-height: 0;
+        overflow: hidden;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.85),
+          0 8px 18px rgba(15, 95, 74, 0.08);
+      }
+
+      .quick-icon--quran {
+        background: linear-gradient(135deg, #d6f4f0, #ffffff 72%);
+        color: #0f7f6f;
+      }
+
+      .quick-icon--academic {
+        background: linear-gradient(135deg, #fff0cc, #ffffff 72%);
+        color: #c58a1b;
+      }
+
+      .quick-icon--info {
+        background: linear-gradient(135deg, #dbeafe, #ffffff 72%);
+        color: #2563eb;
+      }
+
+      .quick-icon svg {
+        width: 22px;
+        height: 22px;
+        display: block;
+        flex: 0 0 auto;
+        margin: 0;
+        transform: translateY(0.5px);
+        stroke-linecap: round;
+        stroke-linejoin: round;
       }
 
       .quick-item strong {
@@ -598,21 +629,42 @@
               </p>
               <div class="quick-list">
                 <div class="quick-item">
-                  <span class="quick-icon">T</span>
+                  <span class="quick-icon quick-icon--quran" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                      <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3h10A1.5 1.5 0 0 1 19 4.5v14A2.5 2.5 0 0 0 16.5 16h-9A2.5 2.5 0 0 0 5 18.5z" fill="currentColor" opacity="0.12"/>
+                      <path d="M7.5 4.5h9"/>
+                      <path d="M8 8h7"/>
+                      <path d="M8 11h7"/>
+                      <path d="M8 14h5.5"/>
+                    </svg>
+                  </span>
                   <span>
                     <strong>Tahfidz dan Murojaah</strong>
                     <span>Catatan setoran dan penguatan hafalan.</span>
                   </span>
                 </div>
                 <div class="quick-item">
-                  <span class="quick-icon">A</span>
+                  <span class="quick-icon quick-icon--academic" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                      <path d="M12 4l8 4-8 4-8-4 8-4z" fill="currentColor" opacity="0.12"/>
+                      <path d="M4 8l8 4 8-4"/>
+                      <path d="M6 10.5V15c0 1 2.7 3 6 3s6-2 6-3v-4.5"/>
+                      <path d="M19 9v4"/>
+                    </svg>
+                  </span>
                   <span>
                     <strong>Akademik dan Raport</strong>
                     <span>Laporan akademik, perilaku, dan kehadiran.</span>
                   </span>
                 </div>
                 <div class="quick-item">
-                  <span class="quick-icon">I</span>
+                  <span class="quick-icon quick-icon--info" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
+                      <circle cx="12" cy="12" r="8" fill="currentColor" opacity="0.12"/>
+                      <circle cx="12" cy="8" r="1.1" fill="currentColor" stroke="none"/>
+                      <path d="M12 11.5v5"/>
+                    </svg>
+                  </span>
                   <span>
                     <strong>Informasi Pondok</strong>
                     <span>Pengumuman, agenda, dokumen, dan kontak resmi.</span>
@@ -713,13 +765,14 @@
             </div>
 
             <div class="info-toolbar" id="infoFilters" aria-label="Filter informasi publik">
-              <button class="chip active" type="button" data-category="">Semua</button>
-              <button class="chip" type="button" data-category="Pengumuman">Pengumuman</button>
-              <button class="chip" type="button" data-category="Kalender Pendidikan">Kalender</button>
-              <button class="chip" type="button" data-category="Kegiatan Pondok">Kegiatan</button>
-              <button class="chip" type="button" data-category="Dokumen">Dokumen</button>
-              <button class="chip" type="button" data-category="Kontak">Kontak</button>
+              <button class="chip active" type="button" data-category="" onclick="return window.setPublicCategory(this)">Semua</button>
+              <button class="chip" type="button" data-category="Pengumuman" onclick="return window.setPublicCategory(this)">Pengumuman</button>
+              <button class="chip" type="button" data-category="Kalender Pendidikan" onclick="return window.setPublicCategory(this)">Kalender</button>
+              <button class="chip" type="button" data-category="Kegiatan Pondok" onclick="return window.setPublicCategory(this)">Kegiatan</button>
+              <button class="chip" type="button" data-category="Dokumen" onclick="return window.setPublicCategory(this)">Dokumen</button>
+              <button class="chip" type="button" data-category="Kontak" onclick="return window.setPublicCategory(this)">Kontak</button>
             </div>
+            <p class="info-meta mt-3" id="infoFilterStatus">Menampilkan: Semua</p>
 
             <div class="empty-state" id="infoLoading">Memuat informasi publik...</div>
             <div class="grid grid-3" id="infoList" hidden></div>
@@ -907,6 +960,20 @@
         contactEmpty.hidden = contacts.length > 0;
       }
 
+      function setPublicCategory(button) {
+        if (!button) return;
+        publicState.category = button.dataset.category || "";
+        document
+          .querySelectorAll("#infoFilters .chip")
+          .forEach((chip) => chip.classList.toggle("active", chip === button));
+        const status = document.getElementById("infoFilterStatus");
+        if (status) {
+          status.textContent = `Menampilkan: ${button.textContent || "Semua"}`;
+        }
+        renderInfo();
+        return false;
+      }
+
       function setLoading(isLoading) {
         infoLoading.hidden = !isLoading;
         if (isLoading) {
@@ -1000,6 +1067,109 @@
         }
       }
 
+      function renderStudentQrLookup() {
+        const params = new URLSearchParams(window.location.search);
+        const pid = params.get("pid");
+        const sig = params.get("sig");
+        if (!pid || !sig) return false;
+
+        const shell = document.querySelector(".site-shell");
+        if (shell) shell.style.display = "none";
+
+        const view = document.createElement("main");
+        view.className = "site-shell";
+        view.innerHTML = `
+          <section class="hero" style="padding-top:48px;">
+            <div class="container">
+              <div class="hero-card" style="max-width:840px;margin:0 auto;">
+                <div class="eyebrow">QR Identitas Santri</div>
+                <h1 class="section-title" id="qrStudentName">Memuat data santri...</h1>
+                <p class="lead" id="qrStudentMessage">Mohon tunggu, sistem sedang memverifikasi identitas.</p>
+                <div class="grid" style="grid-template-columns:minmax(180px,220px) minmax(0,1fr);gap:18px;align-items:start;margin-top:24px;">
+                  <div class="card feature-card" style="padding:16px;">
+                    <img id="qrStudentPhoto" alt="Foto santri" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;background:#f3f4f6;display:none;" />
+                    <div id="qrStudentPhotoFallback" class="hero-card" style="min-height:220px;display:grid;place-items:center;text-align:center;">
+                      <div>
+                        <div style="font-size:40px;font-weight:900;color:var(--primary);">QR</div>
+                        <p style="margin:8px 0 0;color:var(--muted);font-size:13px;">Menunggu hasil verifikasi</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card feature-card">
+                    <div class="quick-list" style="margin-top:0;">
+                      <div class="quick-item">
+                        <div class="quick-icon quick-icon--info">NIS</div>
+                        <div><strong>Nomor Induk</strong><span id="qrStudentNis">-</span></div>
+                      </div>
+                      <div class="quick-item">
+                        <div class="quick-icon quick-icon--academic">Kelas</div>
+                        <div><strong>Rombel</strong><span id="qrStudentClass">-</span></div>
+                      </div>
+                      <div class="quick-item">
+                        <div class="quick-icon quick-icon--quran">Info</div>
+                        <div><strong>Status QR</strong><span id="qrStudentStatus">Memeriksa tanda tangan...</span></div>
+                      </div>
+                    </div>
+                    <div class="hero-actions" style="margin-top:20px;">
+                      <a class="btn btn-primary" href="?page=public">Kembali ke Website</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        `;
+        document.body.prepend(view);
+
+        if (!window.google || !google.script || !google.script.run) {
+          document.getElementById("qrStudentStatus").textContent =
+            "Mode pratinjau tidak dapat memverifikasi QR.";
+          document.getElementById("qrStudentMessage").textContent =
+            "Sistem verifikasi tidak tersedia pada mode ini.";
+          return true;
+        }
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            const status = document.getElementById("qrStudentStatus");
+            const message = document.getElementById("qrStudentMessage");
+            if (!res || !res.ok || !res.data) {
+              status.textContent = "QR tidak valid.";
+              message.textContent = res?.message || "Data santri tidak ditemukan.";
+              return;
+            }
+
+            const data = res.data;
+            document.getElementById("qrStudentName").textContent =
+              data.name || "Santri";
+            document.getElementById("qrStudentNis").textContent =
+              data.nis || data.studentId || "-";
+            document.getElementById("qrStudentClass").textContent =
+              data.classLevel || "-";
+            status.textContent = "QR valid dan tersambung ke data santri.";
+            message.textContent =
+              "QR ini hanya memuat identitas publik tanpa menampilkan NIK/KK.";
+
+            const photo = document.getElementById("qrStudentPhoto");
+            const fallback = document.getElementById("qrStudentPhotoFallback");
+            if (data.photoUrl) {
+              photo.src = data.photoUrl;
+              photo.style.display = "block";
+              if (fallback) fallback.style.display = "none";
+            }
+          })
+          .withFailureHandler((err) => {
+            document.getElementById("qrStudentStatus").textContent =
+              "Gagal memverifikasi QR.";
+            document.getElementById("qrStudentMessage").textContent =
+              err && err.message ? err.message : "Terjadi kesalahan.";
+          })
+          .resolveStudentQr({ pid, sig });
+
+        return true;
+      }
+
+      window.setPublicCategory = setPublicCategory;
       window.sharePage = sharePage;
 
       document.getElementById("infoFilters").addEventListener("click", (event) => {
@@ -1016,7 +1186,9 @@
       document.getElementById("shareHeaderButton").addEventListener("click", sharePage);
       document.getElementById("shareHeroButton").addEventListener("click", sharePage);
 
-      loadPublicInfo();
+      if (!renderStudentQrLookup()) {
+        loadPublicInfo();
+      }
     </script>
   </body>
 </html>

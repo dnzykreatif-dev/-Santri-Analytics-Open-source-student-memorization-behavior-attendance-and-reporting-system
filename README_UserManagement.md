@@ -125,6 +125,18 @@ Menggunakan sheet "Users" dengan kolom:
 2. Konfirmasi penghapusan
 3. User akan dihapus (kecuali akun sendiri)
 
+### 6. Input Manual Lewat Sheet
+
+Kalau baris `Wali` diisi langsung lewat sheet `Users`, password login tidak otomatis jadi `123456` karena sistem membaca `Salt` dan `PasswordHash`.
+
+Untuk mengisi password default `123456` pada baris Wali yang diinput manual:
+
+1. Pastikan `Role` berisi `Wali`
+2. Biarkan `Salt` dan `PasswordHash` kosong
+3. Jalankan fungsi `setupDefaultWaliPasswords()`
+
+Fungsi itu akan mengisi `Salt` dan `PasswordHash` untuk baris Wali yang belum punya hash password.
+
 ## Validasi dan Keamanan
 
 ### Validasi Input

@@ -22,27 +22,27 @@ const USER_HEADERS = [
  */
 function getUsers(currentUser) {
   try {
-    // Check permission - only Mudir or Admin can access
-    if (
-      !currentUser ||
-      (currentUser.Role !== "Mudir" && currentUser.Role !== "Admin")
-    ) {
-      return {
-        ok: false,
-        message: "Akses ditolak. Hanya Mudir/Admin yang dapat mengelola user.",
-      };
-    }
+    requireSessionUser_(currentUser, { roles: ["Mudir", "Admin"] });
 
     const sheet = getSheet_(SHEET_USERS);
     const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    repairMissingIds_(sheet, headers, "UserID", "USR", {
+      usernameHeader: "Username",
+      phoneHeader: "Phone",
+      roleHeader: "Role",
+      statusHeader: "Status",
+      createdAtHeader: "CreatedAt",
+    });
+    const refreshedData = sheet.getDataRange().getValues();
 
-    if (data.length <= 1) {
+    if (refreshedData.length <= 1) {
       return { ok: true, data: { users: [] } };
     }
 
-    const headers = data[0];
-    const users = data.slice(1).map((row) => {
-      const user = serializeRow(row, headers);
+    const refreshedHeaders = refreshedData[0];
+    const users = refreshedData.slice(1).map((row) => {
+      const user = serializeRow(row, refreshedHeaders);
       // Remove sensitive data
       delete user.Salt;
       delete user.PasswordHash;
@@ -60,16 +60,9 @@ function getUsers(currentUser) {
  */
 function addUser(userData, currentUser) {
   try {
-    // Check permission
-    if (
-      !currentUser ||
-      (currentUser.Role !== "Mudir" && currentUser.Role !== "Admin")
-    ) {
-      return {
-        ok: false,
-        message: "Akses ditolak. Hanya Mudir/Admin yang dapat menambah user.",
-      };
-    }
+    const sessionUser = requireSessionUser_(currentUser, {
+      roles: ["Mudir", "Admin"],
+    });
 
     const sheet = getSheet_(SHEET_USERS);
     const data = sheet.getDataRange().getValues();
@@ -160,6 +153,10 @@ function addUser(userData, currentUser) {
     });
 
     sheet.appendRow(newRow);
+    AUTH_appendAuditLog_("CREATE", "User", userId, sessionUser, {
+      username: inputUsername,
+      role: userData.Role || "Wali",
+    });
 
     // Return user data without sensitive info
     const newUser = {
@@ -190,20 +187,22 @@ function addUser(userData, currentUser) {
  */
 function updateUser(userId, userData, currentUser) {
   try {
-    // Check permission
-    if (
-      !currentUser ||
-      (currentUser.Role !== "Mudir" && currentUser.Role !== "Admin")
-    ) {
-      return {
-        ok: false,
-        message: "Akses ditolak. Hanya Mudir/Admin yang dapat mengupdate user.",
-      };
-    }
+    const sessionUser = requireSessionUser_(currentUser, {
+      roles: ["Mudir", "Admin"],
+    });
 
     const sheet = getSheet_(SHEET_USERS);
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
+    repairMissingIds_(sheet, headers, "UserID", "USR", {
+      usernameHeader: "Username",
+      phoneHeader: "Phone",
+      roleHeader: "Role",
+      statusHeader: "Status",
+      createdAtHeader: "CreatedAt",
+    });
+    const refreshedData = sheet.getDataRange().getValues();
+    const refreshedHeaders = refreshedData[0];
 
     // Find user row
     const userIndex = findRowIndexById_(SHEET_USERS, userId);
@@ -214,10 +213,10 @@ function updateUser(userId, userData, currentUser) {
     // Check if username is being changed and if it already exists
     if (userData.Username !== undefined && userData.Username !== null) {
       const usernameStr = String(userData.Username || "").trim();
-      const existingUser = data.slice(1).find((row, index) => {
-        const rowUserId = row[headers.indexOf("UserID")];
+      const existingUser = refreshedData.slice(1).find((row, index) => {
+        const rowUserId = row[refreshedHeaders.indexOf("UserID")];
         const rowUsername = String(
-          row[headers.indexOf("Username")] || "",
+          row[refreshedHeaders.indexOf("Username")] || "",
         ).trim();
         return rowUserId !== userId && rowUsername === usernameStr;
       });
@@ -231,8 +230,8 @@ function updateUser(userId, userData, currentUser) {
     }
 
     // Get current user data
-    const currentRow = data[userIndex - 1]; // userIndex is 1-based
-    const currentUserObj = serializeRow(currentRow, headers);
+    const currentRow = refreshedData[userIndex - 1]; // userIndex is 1-based
+    const currentUserObj = serializeRow(currentRow, refreshedHeaders);
 
     // Update fields
     const updatedRow = [...currentRow];
@@ -253,8 +252,8 @@ function updateUser(userId, userData, currentUser) {
     });
 
     if (userData.Password) {
-      const saltIndex = headers.indexOf("Salt");
-      const hashIndex = headers.indexOf("PasswordHash");
+      const saltIndex = refreshedHeaders.indexOf("Salt");
+      const hashIndex = refreshedHeaders.indexOf("PasswordHash");
       if (saltIndex === -1 || hashIndex === -1) {
         return {
           ok: false,
@@ -268,7 +267,7 @@ function updateUser(userId, userData, currentUser) {
     }
 
     // Update UpdatedAt
-    updatedRow[headers.indexOf("UpdatedAt")] = new Date().toISOString();
+    updatedRow[refreshedHeaders.indexOf("UpdatedAt")] = new Date().toISOString();
 
     // Write back to sheet
     sheet.getRange(userIndex, 1, 1, updatedRow.length).setValues([updatedRow]);
@@ -278,10 +277,26 @@ function updateUser(userId, userData, currentUser) {
       syncStudentStatus(currentUserObj.Username, userData.Status);
     }
 
+    if (
+      userData.Status !== undefined ||
+      userData.Role !== undefined ||
+      userData.Username !== undefined ||
+      userData.Password !== undefined
+    ) {
+      AUTH_revokeAllSessionsForUsername_(currentUserObj.Username, {
+        reason: "user-updated",
+      });
+    }
+
     // Return updated user data without sensitive info
-    const updatedUser = serializeRow(updatedRow, headers);
+    const updatedUser = serializeRow(updatedRow, refreshedHeaders);
     delete updatedUser.Salt;
     delete updatedUser.PasswordHash;
+
+    AUTH_appendAuditLog_("UPDATE", "User", userId, sessionUser, {
+      username: updatedUser.Username,
+      role: updatedUser.Role,
+    });
 
     return {
       ok: true,
@@ -299,9 +314,9 @@ function updateUser(userId, userData, currentUser) {
  */
 function changeOwnPassword(currentUser, oldPassword, newPassword) {
   try {
-    if (!currentUser || !currentUser.Username) {
-      return { ok: false, message: "Sesi login tidak valid." };
-    }
+    const sessionUser = requireSessionUser_(currentUser, {
+      allowAnonymous: false,
+    });
 
     const oldPasswordText = String(oldPassword || "");
     const newPasswordText = String(newPassword || "");
@@ -317,7 +332,7 @@ function changeOwnPassword(currentUser, oldPassword, newPassword) {
     const sheet = getSheet_(SHEET_USERS);
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
-    const inputUsername = String(currentUser.Username || "").trim();
+    const inputUsername = String(sessionUser.Username || "").trim();
 
     const userIndex = data.findIndex(
       (row, index) =>
@@ -360,6 +375,10 @@ function changeOwnPassword(currentUser, oldPassword, newPassword) {
     }
 
     sheet.getRange(userIndex + 1, 1, 1, updatedRow.length).setValues([updatedRow]);
+    AUTH_revokeAllSessionsForUsername_(inputUsername, {
+      reason: "password-change",
+    });
+    AUTH_appendAuditLog_("PASSWORD_CHANGE", "User", inputUsername, sessionUser, {});
 
     return { ok: true, message: "Password berhasil diubah." };
   } catch (e) {
@@ -372,16 +391,9 @@ function changeOwnPassword(currentUser, oldPassword, newPassword) {
  */
 function deleteUser(userId, currentUser) {
   try {
-    // Check permission
-    if (
-      !currentUser ||
-      (currentUser.Role !== "Mudir" && currentUser.Role !== "Admin")
-    ) {
-      return {
-        ok: false,
-        message: "Akses ditolak. Hanya Mudir/Admin yang dapat menghapus user.",
-      };
-    }
+    const sessionUser = requireSessionUser_(currentUser, {
+      roles: ["Mudir", "Admin"],
+    });
 
     const sheet = getSheet_(SHEET_USERS);
     const userIndex = findRowIndexById_(SHEET_USERS, userId);
@@ -396,11 +408,17 @@ function deleteUser(userId, currentUser) {
     const userRow = data[userIndex - 1];
     const user = serializeRow(userRow, headers);
 
-    if (user.Username === currentUser.Username) {
+    if (user.Username === sessionUser.Username) {
       return { ok: false, message: "Tidak dapat menghapus akun sendiri." };
     }
 
     sheet.deleteRow(userIndex);
+    AUTH_revokeAllSessionsForUsername_(user.Username, {
+      reason: "user-deleted",
+    });
+    AUTH_appendAuditLog_("DELETE", "User", userId, sessionUser, {
+      username: user.Username,
+    });
     return { ok: true, message: "User berhasil dihapus." };
   } catch (e) {
     return { ok: false, message: "Error: " + e.message };

@@ -15,7 +15,10 @@ function getStudentLinks(studentId) {
   return { ok: true, data: { links } };
 }
 
-function addHafalanLink(data) {
+function addHafalanLink(data, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, {
+    roles: ["Mudir", "Admin", "Ustadz"],
+  });
   const sheet = getSheet_("HafalanLinks");
 
   if (!data || !data.StudentID || !data.URL) {
@@ -29,27 +32,43 @@ function addHafalanLink(data) {
     data.Title || "Link Hafalan",
     data.URL,
     data.Type || "Rekaman",
-    data.TeacherID || "System",
+    sessionUser.Username || data.TeacherID || "System",
   ]);
+  bumpStudentDataRevision_();
+  AUTH_appendAuditLog_("CREATE", "HafalanLink", data.StudentID, sessionUser, {
+    type: data.Type || "Rekaman",
+  });
 
   return { ok: true, message: "Link berhasil disimpan." };
 }
 
-function updateHafalanLink(linkId, data) {
+function updateHafalanLink(linkId, data, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, {
+    roles: ["Mudir", "Admin", "Ustadz"],
+  });
   const row = findRowIndexById_("HafalanLinks", linkId);
   if (row === -1) return { ok: false, message: "Link tidak ditemukan." };
 
   const sheet = getSheet_("HafalanLinks");
   sheet.getRange(row, 4, 1, 3).setValues([[data.Title, data.URL, data.Type]]);
+  bumpStudentDataRevision_();
+  AUTH_appendAuditLog_("UPDATE", "HafalanLink", linkId, sessionUser, {
+    title: data.Title,
+  });
 
   return { ok: true, message: "Link berhasil diupdate." };
 }
 
-function deleteHafalanLink(linkId) {
+function deleteHafalanLink(linkId, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, {
+    roles: ["Mudir", "Admin", "Ustadz"],
+  });
   const row = findRowIndexById_("HafalanLinks", linkId);
   if (row === -1) return { ok: false, message: "Link tidak ditemukan." };
 
   const sheet = getSheet_("HafalanLinks");
   sheet.deleteRow(row);
+  bumpStudentDataRevision_();
+  AUTH_appendAuditLog_("DELETE", "HafalanLink", linkId, sessionUser, {});
   return { ok: true, message: "Link berhasil dihapus." };
 }

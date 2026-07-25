@@ -74,6 +74,14 @@
       </div>
       <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         <button
+          @click="studentDetailTab = 'identitas'"
+          :class="studentDetailTab === 'identitas' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
+          class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
+        >
+          <span class="w-4 h-4 inline-flex items-center justify-center" x-html="navIcon('users')"></span>
+          Identitas
+        </button>
+        <button
           @click="studentDetailTab = 'hafalan'"
           :class="studentDetailTab === 'hafalan' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
           class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"
@@ -156,6 +164,9 @@
     <div class="flex-1 overflow-y-auto p-6">
       <!-- Include Sub-Content -->
       <div class="p-5">
+        <div x-show="studentDetailTab === 'identitas'" x-cloak>
+          <?!= include('Modal_Detail_Identitas'); ?>
+        </div>
         <div x-show="studentDetailTab === 'hafalan'" x-cloak>
           <?!= include('Modal_Detail_Hafalan'); ?>
         </div>

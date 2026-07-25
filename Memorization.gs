@@ -1,4 +1,7 @@
-function logMemorization(data) {
+function logMemorization(data, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, {
+    roles: ["Mudir", "Admin", "Ustadz"],
+  });
   const sheet = getSheet_("MemorizationLogs");
 
   if (!data || !data.StudentID || !data.Surah) {
@@ -28,13 +31,21 @@ function logMemorization(data) {
     data.Juz,
     data.Category,
     data.Status,
-    "Mudir",
+    sessionUser.Username || "System",
     data.Quality || "Lancar",
   ]);
+  bumpStudentDataRevision_();
+  AUTH_appendAuditLog_("CREATE", "MemorizationLog", data.StudentID, sessionUser, {
+    surah: data.Surah,
+    category: data.Category,
+  });
   return { ok: true };
 }
 
-function updateMemorization(logId, data) {
+function updateMemorization(logId, data, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, {
+    roles: ["Mudir", "Admin", "Ustadz"],
+  });
   const sheet = getSheet_("MemorizationLogs");
   const row = findRowIndexById_("MemorizationLogs", logId);
 
@@ -53,17 +64,25 @@ function updateMemorization(logId, data) {
     data.Juz,
     data.Category,
     data.Status,
-    "Mudir", // TeacherID
+    sessionUser.Username || "System", // TeacherID
     data.Quality || "Lancar",
   ];
 
   // Update range mulai kolom 4 (Surah) sampai kolom 11 (Quality)
   sheet.getRange(row, 4, 1, 8).setValues([rowData]);
+  bumpStudentDataRevision_();
+  AUTH_appendAuditLog_("UPDATE", "MemorizationLog", logId, sessionUser, {
+    surah: data.Surah,
+    category: data.Category,
+  });
 
   return { ok: true, message: "Hafalan berhasil diperbarui." };
 }
 
-function deleteMemorization(logId) {
+function deleteMemorization(logId, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, {
+    roles: ["Mudir", "Admin", "Ustadz"],
+  });
   const sheet = getSheet_("MemorizationLogs");
   const row = findRowIndexById_("MemorizationLogs", logId);
 
@@ -72,6 +91,8 @@ function deleteMemorization(logId) {
   }
 
   sheet.deleteRow(row);
+  bumpStudentDataRevision_();
+  AUTH_appendAuditLog_("DELETE", "MemorizationLog", logId, sessionUser, {});
   return { ok: true, message: "Hafalan berhasil dihapus." };
 }
 

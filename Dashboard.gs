@@ -1,4 +1,24 @@
 function getDashboardSummary(user, filters = {}) {
+  const sessionUser = requireSessionUser_(user, { allowAnonymous: false });
+  const revision = getStudentDataRevision_();
+  const cacheKey = makeCacheKey_("dashboard", [
+    sessionUser.Username,
+    sessionUser.Role,
+    revision,
+    filters.startDate || "",
+    filters.endDate || "",
+    filters.classFilter || "",
+    filters.memoCategory || "",
+    filters.incidentType || "",
+  ]);
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {}
+  }
+
   const ss = getSpreadsheet_();
   const studentsSheet = getSheet_("Students");
   const memorizationSheet = getSheet_("MemorizationLogs");
@@ -16,6 +36,9 @@ function getDashboardSummary(user, filters = {}) {
 
   // Filter out students associated with Inactive users (case-insensitive check)
   const activeStudents = allStudents.filter((s) => {
+    if (String(s.DeletedAt || "").trim()) {
+      return false;
+    }
     const user = allUsers.find(
       (u) => u.Username === s.WaliUsername || u.Phone === s.ParentContact,
     );
@@ -30,8 +53,8 @@ function getDashboardSummary(user, filters = {}) {
   let students = activeStudents;
   let memorizationLogs = allMemorizationLogs;
   let incidents = allIncidents;
-  let isWaliUser = user && user.Role === "Wali";
-  let waliStudentId = isWaliUser ? user.StudentID : null;
+  let isWaliUser = sessionUser && sessionUser.Role === "Wali";
+  let waliStudentId = isWaliUser ? sessionUser.StudentID : null;
 
   if (isWaliUser && waliStudentId) {
     // Filter students - hanya tampilkan siswa yang terkait dengan wali ini
@@ -291,7 +314,7 @@ function getDashboardSummary(user, filters = {}) {
     .sort((a, b) => a.score - b.score)
     .slice(0, 5);
 
-  return {
+  const response = {
     ok: true,
     data: {
       totalStudents: students.length,
@@ -310,4 +333,9 @@ function getDashboardSummary(user, filters = {}) {
       lowScoreStudents: lowScoreStudents,
     },
   };
+  const responseText = JSON.stringify(response);
+  if (responseText.length < 90000) {
+    cache.put(cacheKey, responseText, 180);
+  }
+  return response;
 }

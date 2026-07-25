@@ -29,10 +29,20 @@
       },
       newStudent: {
         Name: "",
+        NIS: "",
         ClassLevel: "",
         Level: "",
         Gender: "",
         ParentContact: "",
+        BirthPlace: "",
+        BirthDate: "",
+        SchoolUnit: "",
+        CohortYear: "",
+        Province: "",
+        Regency: "",
+        ResidencyStatus: "",
+        DormitoryBlock: "",
+        Room: "",
       },
       attendanceForm: { Type: "Sakit", Notes: "", Date: "" },
       academicPeriodForm: {
@@ -157,6 +167,19 @@
       },
       searchQuery: "",
       filterClass: "",
+      studentDisplayMode: "table",
+      studentStatistics: {
+        total: 0,
+        countsByClass: {},
+        countsByGender: {},
+        countsByStatus: {},
+        countsByResidency: {},
+        countsBySchoolUnit: {},
+        withQr: 0,
+        withPhoto: 0,
+      },
+      showStudentStatisticsModal: false,
+      loadingStudentStatistics: false,
       studentVisibleCount: 10,
       showRegister: false,
       registerError: "",
@@ -381,7 +404,7 @@
                 this.showToast(res.message, "error");
               }
             })
-            .updateHafalanLink(this.linkLiveForm.LinkID, data);
+            .updateHafalanLink(this.linkLiveForm.LinkID, data, this.user);
         } else {
           google.script.run
             .withSuccessHandler((res) => {
@@ -393,7 +416,7 @@
                 this.showToast(res.message, "error");
               }
             })
-            .addHafalanLink(data);
+            .addHafalanLink(data, this.user);
         }
       },
 
@@ -424,7 +447,7 @@
               this.showToast(res.message, "error");
             }
           })
-          .deleteHafalanLink(linkId);
+          .deleteHafalanLink(linkId, this.user);
       },
 
       editLink(link) {
@@ -450,7 +473,7 @@
               this.showToast(res.message, "error");
             }
           })
-          .deleteHafalanLink(linkId);
+          .deleteHafalanLink(linkId, this.user);
       },
 
       submitLink() {
@@ -485,9 +508,9 @@
         if (this.editModeLink) {
           google.script.run
             .withSuccessHandler(onSuccess)
-            .updateHafalanLink(this.editModeLink, data);
+            .updateHafalanLink(this.editModeLink, data, this.user);
         } else {
-          google.script.run.withSuccessHandler(onSuccess).addHafalanLink(data);
+          google.script.run.withSuccessHandler(onSuccess).addHafalanLink(data, this.user);
         }
       },
       // === LOADING & NOTIFICATIONS ===
@@ -825,8 +848,13 @@
         if (savedUser) {
           try {
             this.user = JSON.parse(savedUser);
-            this.isLoggedIn = true;
-            this.refreshData();
+            if (this.user?.SessionToken) {
+              this.isLoggedIn = true;
+              this.refreshData();
+            } else {
+              sessionStorage.removeItem("user");
+              this.user = { Username: "", Role: "" };
+            }
           } catch (e) {
             sessionStorage.removeItem("user");
           }
@@ -952,7 +980,7 @@
               });
             }
           })
-          .getStudentDetailData(this.selectedStudent.StudentID);
+          .getStudentDetailData(this.selectedStudent.StudentID, this.user);
       },
 
       // ===== AUTH ACTIONS =====
@@ -1162,6 +1190,11 @@
       },
 
       logout() {
+        if (this.user?.SessionToken) {
+          try {
+            google.script.run.logoutSession(this.user);
+          } catch (e) {}
+        }
         this.isLoggedIn = false;
         this.user = { Username: "", Role: "" };
         this.mobileMoreOpen = false;
@@ -1276,6 +1309,9 @@
             if (res.ok) {
               this.showToast(res.message, "success");
               this.closeChangePasswordModal();
+              setTimeout(() => {
+                this.logout();
+              }, 300);
               return;
             }
             this.changePasswordError = res.message;
@@ -1295,11 +1331,26 @@
       refreshData() {
         this.fetchStudents();
         this.fetchSummary();
+        if (this.user?.Role === "Mudir" || this.user?.Role === "Admin") {
+          this.fetchUsers();
+        }
+        if (this.selectedStudent?.StudentID) {
+          this.refreshStudentDetail();
+          if (this.fullStudentReport) {
+            this.loadFullStudentReport(
+              this.selectedStudent.StudentID,
+              this.selectedRaportPeriodId,
+            );
+          }
+        }
         if (this.currentTab === "informasi_pesantren") {
           this.loadPesantrenInfo();
         }
         if (this.currentTab === "akademik") {
           this.loadAcademicSetup();
+        }
+        if (this.currentTab === "pulang_bulanan") {
+          this.loadPulangBulanan();
         }
       },
 
@@ -2042,6 +2093,80 @@
           .getStudents(this.user);
       },
 
+      loadStudentStatistics() {
+        this.loadingStudentStatistics = true;
+        this.showStudentStatisticsModal = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingStudentStatistics = false;
+            if (res && res.ok) {
+              this.studentStatistics = res.data || this.studentStatistics;
+            } else {
+              this.showToast(res?.message || "Gagal memuat statistik santri", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingStudentStatistics = false;
+            this.showToast(err.message || "Gagal memuat statistik santri", "error");
+          })
+          .getStudentStatistics(this.user, {
+            search: this.searchQuery,
+            classFilter: this.filterClass,
+          });
+      },
+
+      exportStudentCsv() {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (!res || !res.ok) {
+              this.showToast(res?.message || "Gagal mengekspor data santri", "error");
+              return;
+            }
+
+            const csv = res.data?.csv || "";
+            const filename = res.data?.filename || "santri-export.csv";
+            const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            this.showToast("Ekspor CSV berhasil.", "success");
+          })
+          .withFailureHandler((err) => {
+            this.showToast(err.message || "Gagal mengekspor data santri", "error");
+          })
+          .exportStudentsCsv(this.user, {
+            search: this.searchQuery,
+            classFilter: this.filterClass,
+          });
+      },
+
+      issueSelectedStudentQr() {
+        if (!this.selectedStudent?.StudentID) return;
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res && res.ok && res.data) {
+              this.selectedStudent = {
+                ...this.selectedStudent,
+                QrPublicId: res.data.qrPublicId || "",
+                QrImageUrl: res.data.qrImageUrl || "",
+                QrUrl: res.data.qrUrl || "",
+              };
+              this.showToast("QR identitas berhasil dibuat.", "success");
+            } else {
+              this.showToast(res?.message || "Gagal membuat QR identitas", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.showToast(err.message || "Gagal membuat QR identitas", "error");
+          })
+          .issueStudentQr(this.selectedStudent.StudentID, this.user);
+      },
+
       // ===== HELPER FUNCTIONS =====
       formatDate(isoString) {
         if (!isoString) return "-";
@@ -2107,7 +2232,7 @@
               this.showToast(res.message, "error");
             }
           })
-          .addStudent(this.newStudent);
+          .addStudent(this.newStudent, this.user);
       },
 
       openStudentDetail(student) {
@@ -2115,7 +2240,7 @@
 
         if (this.user?.Role === "Wali") {
           this.selectedStudent = { ...student };
-          this.studentDetailTab = "hafalan";
+          this.studentDetailTab = "identitas";
           this.studentHistory = [];
           this.studentIncidents = [];
           this.behaviorFilter = "all";
@@ -2132,7 +2257,7 @@
         }
 
         this.selectedStudent = { ...student };
-        this.studentDetailTab = "hafalan";
+        this.studentDetailTab = "identitas";
         this.showDetailModal = true;
         this.studentHistory = [];
         this.studentIncidents = [];
@@ -2238,6 +2363,7 @@
           .updateStudentNote(
             this.selectedStudent.StudentID,
             this.selectedStudent.CatatanPembinaan,
+            this.user,
           );
       },
 
@@ -2276,7 +2402,7 @@
               this.showToast(res.message, "error");
             }
           })
-          .deleteMemorization(logId);
+          .deleteMemorization(logId, this.user);
       },
 
       submitMemorization() {
@@ -2303,9 +2429,9 @@
         if (this.editModeHafalan) {
           google.script.run
             .withSuccessHandler(onSuccess)
-            .updateMemorization(this.editModeHafalan, data);
+            .updateMemorization(this.editModeHafalan, data, this.user);
         } else {
-          google.script.run.withSuccessHandler(onSuccess).logMemorization(data);
+          google.script.run.withSuccessHandler(onSuccess).logMemorization(data, this.user);
         }
 
         this.cancelEditHafalan();
@@ -2334,7 +2460,7 @@
               this.showToast(res.message, "error");
             }
           })
-          .logMemorization(data);
+          .logMemorization(data, this.user);
       },
 
       // ===== ATTENDANCE ACTIONS =====
@@ -2423,7 +2549,7 @@
               this.showToast(res.message, "error");
             }
           })
-          .deleteIncident(incidentId);
+          .deleteIncident(incidentId, this.user);
       },
 
       applyQuickIncident(item) {
@@ -2678,7 +2804,7 @@
               options: commonOptions,
             });
           })
-          .getStudentAnalytics(this.selectedStudent.StudentID);
+          .getStudentAnalytics(this.selectedStudent.StudentID, this.user);
       },
 
       // ===== USER MANAGEMENT ACTIONS =====

@@ -2,15 +2,31 @@
 const CORE_SHEET_SCHEMAS = {
   Students: [
     "StudentID",
+    "NIS",
     "Name",
     "Class/Level",
     "Level",
     "Gender",
     "ParentContact",
+    "BirthPlace",
+    "BirthDate",
+    "SchoolUnit",
+    "CohortYear",
+    "Province",
+    "Regency",
+    "ResidencyStatus",
+    "DormitoryBlock",
+    "Room",
     "CreatedAt",
+    "UpdatedAt",
+    "RecordVersion",
     "WaliUsername",
     "CatatanPembinaan",
     "Status",
+    "DeletedAt",
+    "PhotoFileId",
+    "PhotoUpdatedAt",
+    "QrPublicId",
   ],
   MemorizationLogs: [
     "LogID",
@@ -77,7 +93,47 @@ const CORE_SHEET_SCHEMAS = {
     "UpdatedBy",
     "UpdatedAt",
   ],
+  StudentLookups: [
+    "LookupID",
+    "LookupType",
+    "Key",
+    "Label",
+    "Value",
+    "IsActive",
+    "SortOrder",
+    "CreatedAt",
+    "UpdatedAt",
+  ],
+  SchemaMigrations: [
+    "Version",
+    "Description",
+    "AppliedAt",
+    "AppliedBy",
+  ],
+  AuditLogs: [
+    "AuditID",
+    "Action",
+    "EntityType",
+    "EntityID",
+    "Username",
+    "Role",
+    "Payload",
+    "CreatedAt",
+  ],
+  Sessions: [
+    "SessionID",
+    "TokenHash",
+    "UserID",
+    "Username",
+    "Role",
+    "CreatedAt",
+    "ExpiresAt",
+    "LastSeenAt",
+    "RevokedAt",
+  ],
 };
+
+const SCHEMA_MIGRATION_VERSION = "2026.07.25.1";
 
 function setupSheetWithHeaders_(sheetName, requiredHeaders) {
   const spreadsheet = getSpreadsheet_();
@@ -136,6 +192,12 @@ function setupCoreSheets() {
     });
   });
 
+  recordSchemaMigration_(
+    SCHEMA_MIGRATION_VERSION,
+    "Add student profile, sessions, audit, and lookup sheets",
+    "system",
+  );
+
   results.push({
     sheet: SHEET_PULANG_BULANAN,
     result: setupSheetWithHeaders_(
@@ -152,6 +214,35 @@ function setupCoreSheets() {
   }
 
   return { ok: true, data: { results }, message: "Sheet inti siap." };
+}
+
+function recordSchemaMigration_(version, description, appliedBy) {
+  try {
+    const sheet = setupSheetWithHeaders_(
+      "SchemaMigrations",
+      CORE_SHEET_SCHEMAS.SchemaMigrations,
+    );
+    const migrationSheet = getSheet_("SchemaMigrations");
+    const data = migrationSheet.getDataRange().getValues();
+    if (data.length > 1) {
+      const headers = data[0];
+      const versionIndex = headers.indexOf("Version");
+      const exists = data.slice(1).some((row) => String(row[versionIndex] || "") === String(version));
+      if (exists) {
+        return { ok: true, message: "Schema migration sudah tercatat." };
+      }
+    }
+
+    migrationSheet.appendRow([
+      version,
+      description,
+      new Date().toISOString(),
+      appliedBy || "system",
+    ]);
+    return { ok: true, message: "Schema migration tercatat." };
+  } catch (e) {
+    return { ok: false, message: e.message };
+  }
 }
 
 function canManageSetup_(currentUser) {
@@ -232,6 +323,22 @@ function setupUsersSheet() {
   }
 }
 
+function setupStudentLookups() {
+  try {
+    const result = setupSheetWithHeaders_(
+      "StudentLookups",
+      CORE_SHEET_SCHEMAS.StudentLookups,
+    );
+    return {
+      ok: true,
+      message: result.message || "Sheet lookup santri siap.",
+      addedHeaders: result.addedHeaders || [],
+    };
+  } catch (e) {
+    return { ok: false, message: "Error setup lookup: " + e.message };
+  }
+}
+
 // Initialize the application
 function initializeApp() {
   const results = [];
@@ -262,6 +369,85 @@ function setupCompleteApp() {
   results.push({ task: "Convert parent contacts", result: conversionResult });
 
   return { ok: true, results };
+}
+
+// Repair manual sheet entry by assigning default Wali password
+function setupDefaultWaliPasswords() {
+  try {
+    const spreadsheet = getSpreadsheet_();
+    const usersSheet = spreadsheet.getSheetByName(SHEET_USERS);
+
+    if (!usersSheet) {
+      return {
+        ok: false,
+        message: "Sheet Users tidak ditemukan.",
+      };
+    }
+
+    const data = usersSheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return {
+        ok: true,
+        message: "Tidak ada data user yang perlu diperbaiki.",
+        stats: { updated: 0, skipped: 0 },
+      };
+    }
+
+    const headers = data[0];
+    const roleIndex = headers.indexOf("Role");
+    const saltIndex = headers.indexOf("Salt");
+    const hashIndex = headers.indexOf("PasswordHash");
+
+    if (roleIndex === -1 || saltIndex === -1 || hashIndex === -1) {
+      return {
+        ok: false,
+        message: "Kolom Role, Salt, atau PasswordHash tidak ditemukan.",
+      };
+    }
+
+    const defaultPassword = "123456";
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const role = String(row[roleIndex] || "").trim();
+      const currentSalt = String(row[saltIndex] || "").trim();
+      const currentHash = String(row[hashIndex] || "").trim();
+
+      if (role !== "Wali") {
+        continue;
+      }
+
+      if (currentSalt || currentHash) {
+        skippedCount++;
+        continue;
+      }
+
+      const salt = Utilities.getUuid().substring(0, 8);
+      row[saltIndex] = salt;
+      row[hashIndex] = hashPasswordWithSalt(defaultPassword, salt);
+      updatedCount++;
+    }
+
+    if (updatedCount > 0) {
+      usersSheet
+        .getRange(2, 1, data.length - 1, headers.length)
+        .setValues(data.slice(1));
+    }
+
+    return {
+      ok: true,
+      message:
+        "Password default Wali berhasil diisi untuk " + updatedCount + " baris.",
+      stats: {
+        updated: updatedCount,
+        skipped: skippedCount,
+      },
+    };
+  } catch (e) {
+    return { ok: false, message: "Error perbaikan password: " + e.message };
+  }
 }
 
 function runHealthCheck(currentUser) {
@@ -316,8 +502,14 @@ function runHealthCheck(currentUser) {
 
     const requiredFunctions = [
       "login",
+      "logoutSession",
       "getStudents",
+      "queryStudents",
       "getDashboardSummary",
+      "getStudentStatistics",
+      "exportStudentsCsv",
+      "issueStudentQr",
+      "resolveStudentQr",
       "logMemorization",
       "logIncident",
       "getUsers",
@@ -338,6 +530,7 @@ function runHealthCheck(currentUser) {
       "savePulangBulanan",
       "updatePulangBulanan",
       "deletePulangBulanan",
+      "setupStudentLookups",
     ];
     const functions = requiredFunctions.map((name) => ({
       name,

@@ -581,7 +581,10 @@ function updateStudentAcademicProfile(studentId, profile, currentUser) {
 
 function getAcademicReportForStudent_(student, periodId, currentUser) {
   AC_ensureSheets_();
-  const role = currentUser && currentUser.Role;
+  const sessionUser = requireSessionUser_(currentUser, {
+    allowAnonymous: false,
+  });
+  const role = sessionUser && sessionUser.Role;
   const allPeriods = AC_getPeriods_();
   const visiblePeriods =
     role === "Wali"
@@ -965,11 +968,13 @@ function AC_ensureSheets_() {
 }
 
 function AC_canManage_(user) {
-  return user && ["Mudir", "Admin", "Ustadz"].includes(user.Role);
+  const sessionUser = resolveSessionUser_(user, { allowAnonymous: false });
+  return sessionUser && ["Mudir", "Admin", "Ustadz"].includes(sessionUser.Role);
 }
 
 function AC_canAdmin_(user) {
-  return user && ["Mudir", "Admin"].includes(user.Role);
+  const sessionUser = resolveSessionUser_(user, { allowAnonymous: false });
+  return sessionUser && ["Mudir", "Admin"].includes(sessionUser.Role);
 }
 
 function AC_text_(value) {

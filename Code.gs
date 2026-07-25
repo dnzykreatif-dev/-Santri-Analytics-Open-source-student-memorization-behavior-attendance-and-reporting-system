@@ -2,7 +2,8 @@ function doGet(e) {
   const page = String(
     (e && e.parameter && e.parameter.page) || (e && e.pathInfo) || "",
   ).toLowerCase();
-  const isPublicPage = page === "public" || page === "website";
+  const isPublicPage =
+    page === "public" || page === "website" || page === "student-qr";
   const template = HtmlService.createTemplateFromFile(
     isPublicPage ? "PublicSite" : "Index",
   );
@@ -10,26 +11,26 @@ function doGet(e) {
   template.publicUrl = getPublicPageUrl_();
   template.scriptUrl = getWebAppUrl_();
 
-  return template
+  const response = template
     .evaluate()
     .setTitle(isPublicPage ? "Ma'had Raudhatul Ulum" : "Monitor Santri")
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag("viewport", "width=device-width, initial-scale=1");
+
+  if (isPublicPage) {
+    response.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+
+  return response;
 }
 
 // Function to run parent contact conversion from frontend
 function runParentContactConversion(currentUser) {
   try {
-    // Check if user has permission (Mudir or Admin only)
-    if (currentUser.Role !== "Mudir" && currentUser.Role !== "Admin") {
-      return {
-        ok: false,
-        message:
-          "Akses ditolak. Hanya Mudir/Admin yang dapat menjalankan konversi.",
-      };
-    }
+    const sessionUser = requireSessionUser_(currentUser, {
+      roles: ["Mudir", "Admin"],
+    });
 
-    return convertParentContactsToUsers();
+    return convertParentContactsToUsers(sessionUser);
   } catch (e) {
     return { ok: false, message: "Error: " + e.message };
   }
@@ -38,23 +39,19 @@ function runParentContactConversion(currentUser) {
 // Function to setup complete app from frontend
 function runCompleteSetup(currentUser) {
   try {
-    // Check if user has permission (Mudir or Admin only)
-    if (currentUser.Role !== "Mudir" && currentUser.Role !== "Admin") {
-      return {
-        ok: false,
-        message:
-          "Akses ditolak. Hanya Mudir/Admin yang dapat menjalankan setup.",
-      };
-    }
+    const sessionUser = requireSessionUser_(currentUser, {
+      roles: ["Mudir", "Admin"],
+    });
 
-    return setupCompleteApp();
+    return setupCompleteApp(sessionUser);
   } catch (e) {
     return { ok: false, message: "Error: " + e.message };
   }
 }
 
-function getFullStudentReport(studentId) {
+function getFullStudentReport(studentId, currentUser) {
   try {
+    requireSessionUser_(currentUser, { allowAnonymous: false });
     const students = getStudentsList();
     const hafalan = getHafalanLogs();
     const perilaku = getBehaviorLogs();
