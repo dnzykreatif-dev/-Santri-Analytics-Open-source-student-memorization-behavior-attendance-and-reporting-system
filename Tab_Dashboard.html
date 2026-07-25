@@ -205,6 +205,207 @@
     </div>
   </div>
 
+  <!-- HERO & QUICK SNAPSHOT -->
+  <div x-show="!loading" class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+    <div
+      class="xl:col-span-2 rounded-[28px] p-6 md:p-8 text-white overflow-hidden relative shadow-[0_18px_45px_rgba(15,95,74,0.18)]"
+      style="background: linear-gradient(135deg, #0f5f4a 0%, #15745a 54%, #c8a24a 100%);"
+    >
+      <div class="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10 blur-2xl"></div>
+      <div class="absolute -left-12 bottom-0 w-48 h-48 rounded-full bg-black/10 blur-2xl"></div>
+      <div class="relative">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-[11px] font-bold tracking-widest uppercase">
+          <span class="w-2 h-2 rounded-full bg-emerald-300"></span>
+          Ringkasan Operasional
+        </div>
+        <h2 class="mt-4 text-2xl md:text-4xl font-black tracking-tight">
+          Assalamu'alaikum,
+          <span x-text="user?.Name || user?.Username || 'Pengguna'"></span>
+        </h2>
+        <p class="mt-3 max-w-2xl text-white/90">
+          Pantau santri, hafalan, perilaku, dan informasi pondok dari satu
+          tempat. Kartu di bawah ini membantu pindah ke modul yang paling sering
+          dipakai tanpa harus membuka menu panjang.
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            @click="setCurrentTab('santri')"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white text-[#0f5f4a] font-bold shadow-lg hover:-translate-y-0.5 transition-transform"
+          >
+            <span x-html="navIcon('santri')" class="w-4 h-4"></span>
+            Data Santri
+          </button>
+          <button
+            type="button"
+            @click="setCurrentTab('hafalan')"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/15 text-white font-bold hover:bg-black/20 transition-colors"
+          >
+            <span x-html="navIcon('hafalan')" class="w-4 h-4"></span>
+            Input Hafalan
+          </button>
+          <button
+            type="button"
+            @click="setCurrentTab('list_perilaku')"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/15 text-white font-bold hover:bg-black/20 transition-colors"
+          >
+            <span x-html="navIcon('catatan')" class="w-4 h-4"></span>
+            Catatan Perilaku
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-6 bg-white">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-[0.18em]">
+            Snapshot
+          </p>
+          <h3 class="text-lg font-black text-gray-900 mt-1">Hari ini</h3>
+        </div>
+        <div class="stat-icon primary" style="width: 3rem; height: 3rem;">
+          <span>📈</span>
+        </div>
+      </div>
+
+      <div class="mt-5 space-y-3">
+        <div class="flex items-center justify-between rounded-2xl bg-emerald-50 px-4 py-3">
+          <div>
+            <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest">Santri</p>
+            <p class="text-sm text-gray-600">Total terdata</p>
+          </div>
+          <strong class="text-xl text-emerald-700" x-text="summary.totalStudents || 0"></strong>
+        </div>
+        <div class="flex items-center justify-between rounded-2xl bg-blue-50 px-4 py-3">
+          <div>
+            <p class="text-xs font-bold text-blue-600 uppercase tracking-widest">Hafalan</p>
+            <p class="text-sm text-gray-600">Log masuk</p>
+          </div>
+          <strong class="text-xl text-blue-700" x-text="summary.totalLogs || 0"></strong>
+        </div>
+        <div class="flex items-center justify-between rounded-2xl bg-orange-50 px-4 py-3">
+          <div>
+            <p class="text-xs font-bold text-orange-600 uppercase tracking-widest">Perilaku</p>
+            <p class="text-sm text-gray-600">Catatan aktif</p>
+          </div>
+          <strong class="text-xl text-orange-700" x-text="summary.totalIncidents || 0"></strong>
+        </div>
+        <div class="flex items-center justify-between rounded-2xl bg-red-50 px-4 py-3">
+          <div>
+            <p class="text-xs font-bold text-red-600 uppercase tracking-widest">Perhatian</p>
+            <p class="text-sm text-gray-600">Butuh follow-up</p>
+          </div>
+          <strong class="text-xl text-red-700" x-text="summary.attentionStudents ? summary.attentionStudents.length : 0"></strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK ACCESS MENU CARDS -->
+  <div x-show="!loading" class="space-y-3">
+    <div class="flex items-end justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-[0.18em]">
+          Menu Cepat
+        </p>
+        <h3 class="text-xl font-black text-gray-900 mt-1">Akses modul utama</h3>
+      </div>
+      <button
+        type="button"
+        @click="navigateTop(getPublicWebsiteUrl())"
+        class="text-xs font-bold px-4 py-2 rounded-full bg-white border border-gray-200 text-gray-600 hover:border-[#0f5f4a] hover:text-[#0f5f4a] transition-colors"
+      >
+        Buka Website Pondok
+      </button>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <button type="button" @click="setCurrentTab('santri')" class="card p-4 text-left group hover:-translate-y-1">
+        <div class="flex items-center justify-between">
+          <div class="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center" x-html="navIcon('santri')"></div>
+          <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700">Data</span>
+        </div>
+        <p class="mt-4 font-black text-gray-900">Santri</p>
+        <p class="text-xs text-gray-500 mt-1">Cari dan buka detail santri.</p>
+      </button>
+
+      <button type="button" @click="setCurrentTab('hafalan')" class="card p-4 text-left group hover:-translate-y-1">
+        <div class="flex items-center justify-between">
+          <div class="w-11 h-11 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center" x-html="navIcon('hafalan')"></div>
+          <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-blue-50 text-blue-700">Operasional</span>
+        </div>
+        <p class="mt-4 font-black text-gray-900">Input Hafalan</p>
+        <p class="text-xs text-gray-500 mt-1">Catat setoran baru santri.</p>
+      </button>
+
+      <button type="button" @click="setCurrentTab('list_perilaku')" class="card p-4 text-left group hover:-translate-y-1">
+        <div class="flex items-center justify-between">
+          <div class="w-11 h-11 rounded-2xl bg-orange-100 text-orange-700 flex items-center justify-center" x-html="navIcon('catatan')"></div>
+          <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-orange-50 text-orange-700">Update</span>
+        </div>
+        <p class="mt-4 font-black text-gray-900">Catatan Perilaku</p>
+        <p class="text-xs text-gray-500 mt-1">Pantau pelanggaran dan prestasi.</p>
+      </button>
+
+      <button type="button" @click="setCurrentTab('link_live')" class="card p-4 text-left group hover:-translate-y-1">
+        <div class="flex items-center justify-between">
+          <div class="w-11 h-11 rounded-2xl bg-violet-100 text-violet-700 flex items-center justify-center" x-html="navIcon('link_live')"></div>
+          <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-violet-50 text-violet-700">Tautan</span>
+        </div>
+        <p class="mt-4 font-black text-gray-900">Link Hafalan</p>
+        <p class="text-xs text-gray-500 mt-1">Kelola tautan rekaman hafalan.</p>
+      </button>
+
+      <button type="button" @click="setCurrentTab('informasi_pesantren')" class="card p-4 text-left group hover:-translate-y-1">
+        <div class="flex items-center justify-between">
+          <div class="w-11 h-11 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center" x-html="navIcon('info')"></div>
+          <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-teal-50 text-teal-700">Publik</span>
+        </div>
+        <p class="mt-4 font-black text-gray-900">Sistem Informasi</p>
+        <p class="text-xs text-gray-500 mt-1">Kelola pengumuman pondok.</p>
+      </button>
+
+      <button type="button" @click="setCurrentTab('pulang_bulanan')" class="card p-4 text-left group hover:-translate-y-1">
+        <div class="flex items-center justify-between">
+          <div class="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center" x-html="navIcon('pulang_bulanan')"></div>
+          <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 text-amber-700">Jadwal</span>
+        </div>
+        <p class="mt-4 font-black text-gray-900">Pulang Bulanan</p>
+        <p class="text-xs text-gray-500 mt-1">Atur jadwal pulang santri.</p>
+      </button>
+
+      <button
+        x-show="user?.Role === 'Mudir' || user?.Role === 'Admin'"
+        type="button"
+        @click="setCurrentTab('users')"
+        class="card p-4 text-left group hover:-translate-y-1"
+      >
+        <div class="flex items-center justify-between">
+          <div class="w-11 h-11 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center" x-html="navIcon('users')"></div>
+          <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-slate-50 text-slate-700">Admin</span>
+        </div>
+        <p class="mt-4 font-black text-gray-900">Manajemen User</p>
+        <p class="text-xs text-gray-500 mt-1">Kelola akun staf dan wali.</p>
+      </button>
+
+      <button
+        x-show="user?.Role === 'Mudir' || user?.Role === 'Ustadz'"
+        type="button"
+        @click="setCurrentTab('akademik')"
+        class="card p-4 text-left group hover:-translate-y-1"
+      >
+        <div class="flex items-center justify-between">
+          <div class="w-11 h-11 rounded-2xl bg-fuchsia-100 text-fuchsia-700 flex items-center justify-center" x-html="navIcon('akademik')"></div>
+          <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-fuchsia-50 text-fuchsia-700">Nilai</span>
+        </div>
+        <p class="mt-4 font-black text-gray-900">Akademik</p>
+        <p class="text-xs text-gray-500 mt-1">Lihat dan input data akademik.</p>
+      </button>
+    </div>
+  </div>
+
   <!-- CONTENT: DASHBOARD CHARTS -->
   <div x-show="!loading" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
     <!-- Memo Chart Card -->
