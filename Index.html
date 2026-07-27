@@ -4,6 +4,7 @@
     <?!= include('Head'); ?> <?!= include('Style'); ?>
     <script>
       window.APP_SCRIPT_URL = "<?= scriptUrl ?>";
+      window.SCRIPT_URL = "<?= scriptUrl ?>";
       window.APP_PUBLIC_URL = "<?= publicUrl ?>";
       document.addEventListener("DOMContentLoaded", function () {
         document.querySelectorAll("[data-public-link]").forEach(function (link) {

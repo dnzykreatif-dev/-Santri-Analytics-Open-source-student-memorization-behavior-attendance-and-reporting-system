@@ -17,6 +17,7 @@
     />
     <script>
       window.APP_SCRIPT_URL = "<?= scriptUrl ?>";
+      window.SCRIPT_URL = "<?= scriptUrl ?>";
       window.APP_PUBLIC_URL = "<?= publicUrl ?>";
     </script>
     <style>
@@ -841,6 +842,101 @@
       const canonicalPublicUrl = String(window.APP_PUBLIC_URL || "").trim();
       const canonicalScriptUrl = String(window.APP_SCRIPT_URL || "").trim();
 
+      (function installServerBridge() {
+        if (window.google && window.google.script && window.google.script.run) {
+          return;
+        }
+
+        const getScriptUrl = () => {
+          const scriptUrl = String(
+            window.SCRIPT_URL || window.APP_SCRIPT_URL || "",
+          ).trim();
+          if (!scriptUrl || scriptUrl.includes("<?=") || scriptUrl.includes("?>")) {
+            throw new Error("SCRIPT_URL belum dikonfigurasi.");
+          }
+          return scriptUrl;
+        };
+
+        const callRemote = async (action, args) => {
+          const response = await fetch(getScriptUrl(), {
+            method: "POST",
+            headers: {
+              "Content-Type": "text/plain;charset=utf-8",
+            },
+            body: JSON.stringify({ action, args }),
+          });
+
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+
+          const data = await response.json();
+          if (!data || data.ok !== true) {
+            throw new Error((data && data.message) || "Permintaan gagal.");
+          }
+
+          return data.data;
+        };
+
+        const state = {
+          successHandler: null,
+          failureHandler: null,
+          userObject: null,
+        };
+
+        const runner = new Proxy(
+          {},
+          {
+            get(_, prop) {
+              if (prop === "withSuccessHandler") {
+                return (handler) => {
+                  state.successHandler = handler;
+                  return runner;
+                };
+              }
+              if (prop === "withFailureHandler") {
+                return (handler) => {
+                  state.failureHandler = handler;
+                  return runner;
+                };
+              }
+              if (prop === "withUserObject") {
+                return (userObject) => {
+                  state.userObject = userObject;
+                  return runner;
+                };
+              }
+
+              return (...args) => {
+                callRemote(String(prop), args)
+                  .then((result) => {
+                    if (typeof state.successHandler === "function") {
+                      state.successHandler(result, state.userObject);
+                    }
+                  })
+                  .catch((error) => {
+                    if (typeof state.failureHandler === "function") {
+                      state.failureHandler(error, state.userObject);
+                      return;
+                    }
+                    console.error(error);
+                  })
+                  .finally(() => {
+                    state.successHandler = null;
+                    state.failureHandler = null;
+                    state.userObject = null;
+                  });
+                return runner;
+              };
+            },
+          },
+        );
+
+        window.google = window.google || {};
+        window.google.script = window.google.script || {};
+        window.google.script.run = runner;
+      })();
+
       const infoList = document.getElementById("infoList");
       const infoLoading = document.getElementById("infoLoading");
       const infoEmpty = document.getElementById("infoEmpty");
@@ -863,7 +959,12 @@
       }
 
       function getShareUrl() {
-        if (canonicalPublicUrl && canonicalPublicUrl.trim()) {
+        if (
+          canonicalPublicUrl &&
+          canonicalPublicUrl.trim() &&
+          !canonicalPublicUrl.includes("<?=") &&
+          !canonicalPublicUrl.includes("?>")
+        ) {
           return canonicalPublicUrl;
         }
         return window.location.href.split("#")[0];
@@ -878,7 +979,13 @@
       }
 
       function getDashboardUrl() {
-        return cleanAppUrl(canonicalScriptUrl || window.location.href);
+        const baseUrl =
+          canonicalScriptUrl &&
+          !canonicalScriptUrl.includes("<?=") &&
+          !canonicalScriptUrl.includes("?>")
+            ? canonicalScriptUrl
+            : window.location.href;
+        return cleanAppUrl(baseUrl);
       }
 
       function safeUrl(value) {

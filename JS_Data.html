@@ -248,4 +248,102 @@
       ],
     },
   ];
+
+  (function installServerBridge() {
+    if (window.google && window.google.script && window.google.script.run) {
+      return;
+    }
+
+    const getScriptUrl = () => {
+      const scriptUrl = String(
+        window.SCRIPT_URL || window.APP_SCRIPT_URL || "",
+      ).trim();
+      if (!scriptUrl || scriptUrl.includes("<?=") || scriptUrl.includes("?>")) {
+        throw new Error("SCRIPT_URL belum dikonfigurasi.");
+      }
+      return scriptUrl;
+    };
+
+    const callRemote = async (action, args) => {
+      const response = await fetch(getScriptUrl(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8",
+        },
+        body: JSON.stringify({ action, args }),
+      });
+
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status);
+      }
+
+      const data = await response.json();
+      if (!data || data.ok !== true) {
+        throw new Error((data && data.message) || "Permintaan gagal.");
+      }
+
+      return data.data;
+    };
+
+    const makeRunner = () => {
+      const state = {
+        successHandler: null,
+        failureHandler: null,
+        userObject: null,
+      };
+
+      return new Proxy(
+        {},
+        {
+          get(_, prop) {
+            if (prop === "withSuccessHandler") {
+              return (handler) => {
+                state.successHandler = handler;
+                return runner;
+              };
+            }
+            if (prop === "withFailureHandler") {
+              return (handler) => {
+                state.failureHandler = handler;
+                return runner;
+              };
+            }
+            if (prop === "withUserObject") {
+              return (userObject) => {
+                state.userObject = userObject;
+                return runner;
+              };
+            }
+
+            return (...args) => {
+              callRemote(String(prop), args)
+                .then((result) => {
+                  if (typeof state.successHandler === "function") {
+                    state.successHandler(result, state.userObject);
+                  }
+                })
+                .catch((error) => {
+                  if (typeof state.failureHandler === "function") {
+                    state.failureHandler(error, state.userObject);
+                    return;
+                  }
+                  console.error(error);
+                })
+                .finally(() => {
+                  state.successHandler = null;
+                  state.failureHandler = null;
+                  state.userObject = null;
+                });
+              return runner;
+            };
+          },
+        },
+      );
+    };
+
+    const runner = makeRunner();
+    window.google = window.google || {};
+    window.google.script = window.google.script || {};
+    window.google.script.run = runner;
+  })();
 </script>

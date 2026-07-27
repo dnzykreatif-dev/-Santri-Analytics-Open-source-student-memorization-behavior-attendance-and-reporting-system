@@ -23,6 +23,73 @@ function doGet(e) {
   return response;
 }
 
+function doPost(e) {
+  try {
+    const request = parseExternalRequest_(e);
+    const action = String(request.action || "").trim();
+    if (!action) {
+      return jsonResponse_({
+        ok: false,
+        message: "Action tidak ditemukan.",
+      });
+    }
+
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(action)) {
+      return jsonResponse_({
+        ok: false,
+        message: "Action tidak valid.",
+      });
+    }
+
+    const handler = globalThis[action];
+    if (typeof handler !== "function") {
+      return jsonResponse_({
+        ok: false,
+        message: "Action tidak ditemukan: " + action,
+      });
+    }
+
+    const args = Array.isArray(request.args)
+      ? request.args
+      : request.payload !== undefined
+        ? [request.payload]
+        : [];
+    const result = handler.apply(null, args);
+    return jsonResponse_({
+      ok: true,
+      data: result === undefined ? null : result,
+    });
+  } catch (error) {
+    return jsonResponse_({
+      ok: false,
+      message: error && error.message ? error.message : String(error),
+    });
+  }
+}
+
+function parseExternalRequest_(e) {
+  const raw = (e && e.postData && e.postData.contents) || "";
+  if (raw) {
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      throw new Error("Request body harus JSON valid.");
+    }
+  }
+
+  return {
+    action: (e && e.parameter && e.parameter.action) || "",
+    payload: undefined,
+    args: [],
+  };
+}
+
+function jsonResponse_(value) {
+  return ContentService.createTextOutput(JSON.stringify(value)).setMimeType(
+    ContentService.MimeType.JSON,
+  );
+}
+
 // Function to run parent contact conversion from frontend
 function runParentContactConversion(currentUser) {
   try {
