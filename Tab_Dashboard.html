@@ -612,8 +612,8 @@
           :key="inc.IncidentID"
         >
           <div
-            class="p-3 bg-gray-50 rounded-xl hover:bg-red-50 transition-colors border-l-4"
-            :class="inc.IncidentType === 'Violation' ? 'border-red-400' : 'border-green-400'"
+            class="p-3 rounded-xl border-l-4 transition-colors"
+            :class="behaviorCardClasses(inc.IncidentType)"
           >
             <div class="flex justify-between items-start">
               <div class="flex-1">

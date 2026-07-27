@@ -1136,6 +1136,16 @@
         return String(type || "-");
       },
 
+      behaviorCardClasses(type) {
+        if (type === "Violation") {
+          return "bg-red-50 hover:bg-red-100 border-red-400";
+        }
+        if (type === "Improvement") {
+          return "bg-green-50 hover:bg-green-100 border-green-400";
+        }
+        return "bg-gray-50 hover:bg-gray-100 border-gray-200";
+      },
+
       handleLogin() {
         if (!this.loginRole) {
           this.error = "Pilih role login terlebih dahulu";
