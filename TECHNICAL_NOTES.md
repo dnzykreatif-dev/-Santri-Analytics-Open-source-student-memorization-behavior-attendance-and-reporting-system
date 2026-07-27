@@ -4,7 +4,10 @@
 
 This project is a Google Apps Script web app. `doGet()` renders `Index.html`,
 which includes layout, tab, modal, style, and JavaScript partials. The frontend
-uses Alpine.js and calls server functions through `google.script.run`.
+uses Alpine.js and supports two transport modes:
+
+1. Native Apps Script mode through `google.script.run`.
+2. External-host mode through `fetch()` + `doPost(e)` dispatch.
 
 Server responses should keep the existing shape:
 
@@ -14,6 +17,44 @@ Server responses should keep the existing shape:
 
 Authentication returns `{ ok: true, user }` for compatibility with the current
 login handler.
+
+## Deployment Targets
+
+There are now two valid browser entry patterns:
+
+- **Apps Script web app**: open the deployed `.../exec` URL directly. This is
+  the primary and most stable runtime for the project.
+- **External wrapper / host**: only works if the host provides a real
+  `SCRIPT_URL` that points back to the deployed Apps Script web app and the
+  page is allowed to be embedded or proxied safely.
+
+Important notes for external hosting:
+
+- `SCRIPT_URL` must be an absolute Apps Script web app URL.
+- The host must not render the app as a static HTML export only.
+- The app now sets `XFrameOptionsMode.ALLOWALL` so iframe-based hosts can
+  embed the web app if their platform permits it.
+- If the host blocks iframe loading or does not pass `SCRIPT_URL`, the page can
+  appear blank even when the Apps Script deployment itself is healthy.
+
+## External Transport Bridge
+
+The browser bridge is designed to make the app more tolerant of non-native
+hosts, but it still expects a live Apps Script backend.
+
+Frontend behavior:
+
+- If `google.script.run` exists, the app keeps using the native Apps Script
+  transport.
+- If `google.script.run` is missing, the bridge falls back to `fetch()` and
+  posts `{ action, args }` to `SCRIPT_URL`.
+
+Backend behavior:
+
+- `doPost(e)` in `Code.gs` dispatches the requested action name.
+- Responses are wrapped as JSON with `{ ok, data, message }`.
+- The dispatcher is intentionally strict: only named global functions can be
+  called.
 
 ## Core Sheets
 
@@ -279,6 +320,19 @@ Student detail behavior now follows role:
 - Parse `JS_App.html` after stripping the `<script>` wrapper.
 - Run `git diff --check`.
 - Verify `git status --short` is clean after commit.
+
+## Troubleshooting Browser Hosting
+
+If the external host shows a blank page while Apps Script runs normally:
+
+1. Open the deployed Apps Script `.../exec` URL directly and confirm it works.
+2. Check whether the wrapper host is embedding the app in an iframe or
+   rewriting the page.
+3. Verify that the wrapper injects `SCRIPT_URL` correctly.
+4. Check console errors for `X-Frame-Options`, missing `SCRIPT_URL`, or failed
+   `fetch()` calls to the Apps Script backend.
+5. If the wrapper is only static hosting, use a redirect or reverse proxy
+   rather than a static export of the HTML partials.
 
 ## Academic User Guide
 

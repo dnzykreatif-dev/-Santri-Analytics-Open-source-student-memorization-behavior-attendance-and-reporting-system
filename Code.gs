@@ -16,10 +16,7 @@ function doGet(e) {
     .setTitle(isPublicPage ? "Ma'had Raudhatul Ulum" : "Monitor Santri")
     .addMetaTag("viewport", "width=device-width, initial-scale=1");
 
-  if (isPublicPage) {
-    response.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  }
-
+  response.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   return response;
 }
 
