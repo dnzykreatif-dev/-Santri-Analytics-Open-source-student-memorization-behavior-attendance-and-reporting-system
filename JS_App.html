@@ -1130,6 +1130,12 @@
         );
       },
 
+      behaviorTypeLabel(type) {
+        if (type === "Violation") return "Pelanggaran";
+        if (type === "Improvement") return "Prestasi";
+        return String(type || "-");
+      },
+
       handleLogin() {
         if (!this.loginRole) {
           this.error = "Pilih role login terlebih dahulu";
