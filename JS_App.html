@@ -138,6 +138,12 @@
       studentHistory: [],
       studentIncidents: [],
       behaviorFilter: "all",
+      
+      // ===== PULL TO REFRESH STATE =====
+      pullStartY: 0,
+      pullMoveY: 0,
+      pullDistance: 0,
+      isRefreshing: false,
       behaviorVisibleCount: 5,
       globalBehaviorFilter: "all",
       globalBehaviorVisibleCount: 5,
@@ -2616,6 +2622,61 @@
         this.refreshStudentDetail();
         this.fetchSummary();
         this.fetchStudents();
+      },
+
+
+
+      // ===== PULL TO REFRESH =====
+      handleTouchStart(e) {
+        if (window.scrollY === 0 && !this.isRefreshing) {
+          this.pullStartY = e.touches[0].clientY;
+          this.pullMoveY = this.pullStartY;
+          this.pullDistance = 0;
+        }
+      },
+      handleTouchMove(e) {
+        if (this.pullStartY > 0 && !this.isRefreshing) {
+          this.pullMoveY = e.touches[0].clientY;
+          let diff = this.pullMoveY - this.pullStartY;
+          
+          if (diff > 0 && window.scrollY === 0) {
+            // Add resistance
+            this.pullDistance = diff * 0.4;
+            if (this.pullDistance > 80) this.pullDistance = 80;
+            // Prevent default scroll on some browsers
+            if (e.cancelable && diff > 10) e.preventDefault(); 
+          } else {
+            this.pullDistance = 0;
+          }
+        }
+      },
+      handleTouchEnd() {
+        if (this.pullDistance > 60 && !this.isRefreshing) {
+          this.triggerRefresh();
+        } else if (!this.isRefreshing) {
+          // Reset pull if not refreshing
+          this.pullStartY = 0;
+          this.pullMoveY = 0;
+          this.pullDistance = 0;
+        }
+      },
+      async triggerRefresh() {
+        this.isRefreshing = true;
+        this.pullDistance = 60; // Keep spinner visible at 60px
+        
+        // Vibrate to provide feedback if supported
+        if (navigator.vibrate) navigator.vibrate(50);
+        
+        // Trigger data refresh depending on tab
+        this.refreshData();
+        
+        // Artificial delay for UI smoothness (ensure spinner is seen for at least 800ms)
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        this.isRefreshing = false;
+        this.pullStartY = 0;
+        this.pullMoveY = 0;
+        this.pullDistance = 0;
       },
 
       submitIncidentGlobal() {

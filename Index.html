@@ -14,8 +14,24 @@
     </script>
   </head>
 
-  <body class="min-h-screen bg-[#FFF5E6] text-[#111827] pb-20 md:pb-0">
+  <body class="min-h-screen bg-[#FFF5E6] text-[#111827] pb-20 md:pb-0" @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd">
     <div x-data="app()" x-init="init()" x-cloak>
+      
+      <!-- PULL TO REFRESH SPINNER -->
+      <div class="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none"
+           x-show="pullDistance > 0"
+           x-transition:enter="transition ease-out duration-200"
+           x-transition:enter-start="opacity-0"
+           x-transition:enter-end="opacity-100"
+           x-transition:leave="transition ease-in duration-200"
+           x-transition:leave-start="opacity-100"
+           x-transition:leave-end="opacity-0">
+        <div class="bg-white rounded-full shadow-lg flex items-center justify-center text-emerald-600 transition-transform duration-75"
+             :style="`transform: translateY(${pullDistance}px); width: 40px; height: 40px;`">
+          <i class="fas fa-sync-alt" :class="{'animate-spin': isRefreshing}" :style="`transform: rotate(${pullDistance * 5}deg);`"></i>
+        </div>
+      </div>
+
       <!-- AUTHENTICATION SHELL -->
       <template x-if="!isLoggedIn">
         <div>
