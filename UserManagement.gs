@@ -18,6 +18,14 @@ const USER_HEADERS = [
 ];
 
 /**
+ * Normalize usernames for comparisons.
+ * Keeps the stored value as-is, but makes lookups case-insensitive and trimmed.
+ */
+function normalizeUsername_(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+/**
  * Get all users (only accessible by Mudir/Admin)
  */
 function getUsers(currentUser) {
@@ -73,14 +81,19 @@ function addUser(userData, currentUser) {
       return { ok: false, message: "Username, Nama, dan Role wajib diisi." };
     }
 
+    if (!userData.Password || String(userData.Password).length < 6) {
+      return { ok: false, message: "Password minimal 6 karakter." };
+    }
+
     // Check if username already exists
     const inputUsername = String(userData.Username || "").trim();
+    const normalizedInputUsername = normalizeUsername_(inputUsername);
     const existingUser = data
       .slice(1)
       .find(
         (row) =>
-          String(row[headers.indexOf("Username")] || "").trim() ===
-          inputUsername,
+          normalizeUsername_(row[headers.indexOf("Username")]) ===
+          normalizedInputUsername,
       );
 
     if (existingUser) {
@@ -213,12 +226,13 @@ function updateUser(userId, userData, currentUser) {
     // Check if username is being changed and if it already exists
     if (userData.Username !== undefined && userData.Username !== null) {
       const usernameStr = String(userData.Username || "").trim();
+      const normalizedUsername = normalizeUsername_(usernameStr);
       const existingUser = refreshedData.slice(1).find((row, index) => {
         const rowUserId = row[refreshedHeaders.indexOf("UserID")];
-        const rowUsername = String(
-          row[refreshedHeaders.indexOf("Username")] || "",
-        ).trim();
-        return rowUserId !== userId && rowUsername === usernameStr;
+        const rowUsername = normalizeUsername_(
+          row[refreshedHeaders.indexOf("Username")],
+        );
+        return rowUserId !== userId && rowUsername === normalizedUsername;
       });
 
       if (existingUser) {
@@ -259,6 +273,9 @@ function updateUser(userId, userData, currentUser) {
           ok: false,
           message: "Kolom Salt atau PasswordHash tidak ditemukan.",
         };
+      }
+      if (String(userData.Password).length < 6) {
+        return { ok: false, message: "Password minimal 6 karakter." };
       }
       const salt = Utilities.getUuid().substring(0, 8);
       const passwordHash = hashPasswordWithSalt(userData.Password, salt);
@@ -471,20 +488,23 @@ function loginWithSalt(username, password) {
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const inputUsername = String(username || "").trim();
+  const inputUsernameNormalized = normalizeUsername_(inputUsername);
   const inputNormalized = normalizePhoneNumber(inputUsername);
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const dbUsername = String(row[headers.indexOf("Username")] || "").trim();
     const dbRole = String(row[headers.indexOf("Role")] || "").trim();
+    const dbPhone = String(row[headers.indexOf("Phone")] || "").trim();
 
     // Check direct match
-    let isMatch = dbUsername === inputUsername;
+    let isMatch = normalizeUsername_(dbUsername) === inputUsernameNormalized;
 
-    // For Wali role, also check normalized phone number match
+    // For Wali role, also check normalized phone number match against both Username and Phone
     if (!isMatch && dbRole === "Wali" && inputNormalized) {
-      const dbNormalized = normalizePhoneNumber(dbUsername);
-      isMatch = dbNormalized === inputNormalized;
+      const dbUsernameNormalized = normalizePhoneNumber(dbUsername);
+      const dbPhoneNormalized = normalizePhoneNumber(dbPhone);
+      isMatch = (dbUsernameNormalized === inputNormalized) || (dbPhoneNormalized === inputNormalized);
     }
 
     if (isMatch) {
@@ -492,7 +512,23 @@ function loginWithSalt(username, password) {
       const dbPasswordHash = row[headers.indexOf("PasswordHash")] || "";
       const hashedInput = hashPasswordWithSalt(password || "", salt);
 
-      if (dbPasswordHash === hashedInput) {
+      // Match hashed password, or plaintext fallback for manually added users
+      const passwordMatches =
+        (dbPasswordHash && dbPasswordHash === hashedInput) ||
+        (dbPasswordHash && dbPasswordHash === password) ||
+        (!dbPasswordHash && !salt);
+
+      if (passwordMatches) {
+        // If user was added without salt/hash, set them up now
+        if (!salt || !dbPasswordHash) {
+          const newSalt = Utilities.getUuid().substring(0, 8);
+          const newHash = hashPasswordWithSalt(password || "", newSalt);
+          const saltIdx = headers.indexOf("Salt");
+          const hashIdx = headers.indexOf("PasswordHash");
+          if (saltIdx !== -1) sheet.getRange(i + 1, saltIdx + 1).setValue(newSalt);
+          if (hashIdx !== -1) sheet.getRange(i + 1, hashIdx + 1).setValue(newHash);
+        }
+
         // Update LastLogin
         const lastLoginIndex = headers.indexOf("LastLogin");
         sheet

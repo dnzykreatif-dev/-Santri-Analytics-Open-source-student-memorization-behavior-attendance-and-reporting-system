@@ -57,7 +57,11 @@ function addStudent(data, currentUser) {
   sheet.appendRow(headers.map((header) => rowData[header] ?? ""));
 
   if (cleanPhone) {
-    registerUser(cleanPhone, "123456", "Wali");
+    registerUser(cleanPhone, "123456", "Wali", {
+      phone: cleanPhone,
+      studentId: studentId,
+      name: data.Name || "",
+    });
   }
 
   bumpStudentDataRevision_();
@@ -198,7 +202,7 @@ function getStudentReportData(studentId, periodId, currentUser) {
 
   if (
     sessionUser &&
-    sessionUser.Role === "Wali" &&
+    String(sessionUser.Role).trim().toLowerCase() === "wali" &&
     normalizePhoneNumber(studentObj.WaliUsername || "") !==
       normalizePhoneNumber(sessionUser.Username || "") &&
     normalizePhoneNumber(studentObj.ParentContact || "") !==
@@ -396,13 +400,17 @@ function queryStudents(currentUser, options) {
     : [];
 
   const scopedStudents = studentRows.filter((student) => {
-    if (sessionUser.Role === "Wali") {
+    if (String(sessionUser.Role).trim().toLowerCase() === "wali") {
+      const sessionPhone = normalizePhoneNumber(sessionUser.Phone || "");
+      
       const wali = normalizePhoneNumber(student.WaliUsername || "");
       const parentContact = normalizePhoneNumber(student.ParentContact || "");
-      const matchesUser =
-        wali === normalizedSessionUsername ||
-        parentContact === normalizedSessionUsername ||
-        String(sessionUser.StudentID || "").trim() === String(student.StudentID);
+      
+      let matchesUser = false;
+      if (wali && (wali === normalizedSessionUsername || wali === sessionPhone)) matchesUser = true;
+      if (parentContact && (parentContact === normalizedSessionUsername || parentContact === sessionPhone)) matchesUser = true;
+      if (sessionUser.StudentID && String(sessionUser.StudentID).trim() === String(student.StudentID)) matchesUser = true;
+
       if (!matchesUser) return false;
     }
 

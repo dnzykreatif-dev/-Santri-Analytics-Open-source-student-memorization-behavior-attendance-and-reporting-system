@@ -20,6 +20,26 @@ function doGet(e) {
   return response;
 }
 
+function testWaliDashboard() {
+  const fakeUser = {
+    Username: "81345217799",
+    Role: "Wali",
+    SessionToken: "SES_FAKE_TOKEN"
+  };
+  
+  // Create a fake session in the DB temporarily
+  const sheet = AUTH_getSessionSheet_();
+  sheet.appendRow(["SES_FAKE_TOKEN", "HASH", "USER1", "81345217799", "Wali", new Date().toISOString(), new Date(Date.now() + 100000).toISOString(), new Date().toISOString(), ""]);
+  
+  try {
+    const res = getDashboardSummary(fakeUser, {});
+    console.log("Total students returned: " + res.data.totalStudents);
+    console.log("Debug info: " + JSON.stringify(res.data.debug));
+  } catch(e) {
+    console.log("Error: " + e.toString());
+  }
+}
+
 function doPost(e) {
   try {
     const request = parseExternalRequest_(e);
@@ -495,10 +515,25 @@ function getPulangBulananLogs(currentUser, filters) {
     if (statusKembali) {
       logs = logs.filter((l) => String(l.StatusKembali) === statusKembali);
     }
-    if (currentUser.Role === "Wali") {
-      logs = logs.filter(
-        (l) => String(l.StudentID) === String(currentUser.StudentID),
-      );
+
+    if (String(currentUser.Role).trim().toLowerCase() === "wali") {
+      const sessionPhone = normalizePhoneNumber(currentUser.Phone || "");
+      const sessionUsername = normalizePhoneNumber(currentUser.Username || "");
+      const sessionStudentId = String(currentUser.StudentID || "").trim();
+      const studentsSheet = getSheet_("Students");
+      const studentsData = normalizeSheetData(studentsSheet.getDataRange().getValues());
+      const allowedIds = studentsData
+        .filter((s) => {
+          const wali = normalizePhoneNumber(s.WaliUsername || "");
+          const pc = normalizePhoneNumber(s.ParentContact || "");
+          let match = false;
+          if (wali && (wali === sessionUsername || wali === sessionPhone)) match = true;
+          if (pc && (pc === sessionUsername || pc === sessionPhone)) match = true;
+          if (sessionStudentId && sessionStudentId === String(s.StudentID)) match = true;
+          return match;
+        })
+        .map((s) => String(s.StudentID));
+      logs = logs.filter((l) => allowedIds.includes(String(l.StudentID)));
     }
     if (currentUser.Role === "Ustadz" && currentUser.Class) {
       logs = logs.filter((l) => String(l.Class) === String(currentUser.Class));

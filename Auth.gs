@@ -416,7 +416,7 @@ function AUTH_clearLoginThrottle_(username) {
   );
 }
 
-function registerUser(username, password, role = "Wali") {
+function registerUser(username, password, role = "Wali", extras = {}) {
   try {
     const sheet = getSheet_("Users");
     const data = sheet.getDataRange().getValues();
@@ -427,14 +427,20 @@ function registerUser(username, password, role = "Wali") {
       return { ok: false, message: "Username dan Password wajib diisi." };
     }
 
-    // Check if username already exists
+    // Check if username already exists (also check normalized phone for Wali)
+    const inputNormalized = normalizePhoneNumber(inputUsername);
     const existingUser = data
       .slice(1)
-      .find(
-        (row) =>
-          String(row[headers.indexOf("Username")] || "").trim() ===
-          inputUsername,
-      );
+      .find((row) => {
+        const dbUsername = String(row[headers.indexOf("Username")] || "").trim();
+        const dbPhone = String(row[headers.indexOf("Phone")] || "").trim();
+        if (dbUsername === inputUsername) return true;
+        if (inputNormalized && role === "Wali") {
+          if (normalizePhoneNumber(dbUsername) === inputNormalized) return true;
+          if (normalizePhoneNumber(dbPhone) === inputNormalized) return true;
+        }
+        return false;
+      });
     if (existingUser) {
       return {
         ok: false,
@@ -457,7 +463,7 @@ function registerUser(username, password, role = "Wali") {
           newRow.push(userId);
           break;
         case "Name":
-          newRow.push("");
+          newRow.push(extras.name || "");
           break;
         case "Username":
           newRow.push(inputUsername);
@@ -466,13 +472,13 @@ function registerUser(username, password, role = "Wali") {
           newRow.push("");
           break;
         case "Phone":
-          newRow.push("");
+          newRow.push(extras.phone || inputUsername);
           break;
         case "Role":
           newRow.push(role);
           break;
         case "StudentID":
-          newRow.push("");
+          newRow.push(extras.studentId || "");
           break;
         case "Class":
           newRow.push("");

@@ -1,7 +1,7 @@
 function getDashboardSummary(user, filters = {}) {
   const sessionUser = requireSessionUser_(user, { allowAnonymous: false });
   const revision = getStudentDataRevision_();
-  const cacheKey = makeCacheKey_("dashboard", [
+  const cacheKey = makeCacheKey_("dashboard-v2", [
     sessionUser.Username,
     sessionUser.Role,
     revision,
@@ -49,27 +49,38 @@ function getDashboardSummary(user, filters = {}) {
   });
 
   // === WALI ACCESS CONTROL ===
-  // Jika user adalah Wali, hanya tampilkan data untuk StudentID yang terkait
   let students = activeStudents;
   let memorizationLogs = allMemorizationLogs;
   let incidents = allIncidents;
-  let isWaliUser = sessionUser && sessionUser.Role === "Wali";
-  let waliStudentId = isWaliUser ? sessionUser.StudentID : null;
+  let isWaliUser = sessionUser && String(sessionUser.Role).trim().toLowerCase() === "wali";
 
-  if (isWaliUser && waliStudentId) {
-    // Filter students - hanya tampilkan siswa yang terkait dengan wali ini
-    students = allStudents.filter(
-      (s) => String(s.StudentID) === String(waliStudentId),
-    );
+  if (isWaliUser) {
+    const sessionPhone = normalizePhoneNumber(sessionUser.Phone || "");
+    const sessionUsername = normalizePhoneNumber(sessionUser.Username || "");
+    const sessionStudentId = String(sessionUser.StudentID || "").trim();
+
+    // Filter students - cari yang nyambung via Nomor HP atau StudentID di Users
+    students = activeStudents.filter((s) => {
+      const wali = normalizePhoneNumber(s.WaliUsername || "");
+      const parentContact = normalizePhoneNumber(s.ParentContact || "");
+      let match = false;
+      if (wali && (wali === sessionUsername || wali === sessionPhone)) match = true;
+      if (parentContact && (parentContact === sessionUsername || parentContact === sessionPhone)) match = true;
+      if (sessionStudentId && sessionStudentId === String(s.StudentID)) match = true;
+      return match;
+    });
+
+    // Ambil daftar StudentID yang jadi hak Wali ini
+    const allowedStudentIds = students.map((s) => String(s.StudentID));
 
     // Filter memorization logs
     memorizationLogs = allMemorizationLogs.filter(
-      (log) => String(log.StudentID) === String(waliStudentId),
+      (log) => allowedStudentIds.includes(String(log.StudentID))
     );
 
     // Filter incidents
     incidents = allIncidents.filter(
-      (inc) => String(inc.StudentID) === String(waliStudentId),
+      (inc) => allowedStudentIds.includes(String(inc.StudentID))
     );
   }
 
@@ -120,10 +131,11 @@ function getDashboardSummary(user, filters = {}) {
       attendanceSheet.getDataRange().getValues(),
     );
 
-    // Filter attendance logs berdasarkan waliStudentId jika user adalah Wali
-    if (isWaliUser && waliStudentId) {
+    // Filter attendance logs for Wali
+    if (isWaliUser) {
+      const allowedIds = students.map((s) => String(s.StudentID));
       rawAttendanceLogs = rawAttendanceLogs.filter(
-        (log) => String(log.StudentID) === String(waliStudentId),
+        (log) => allowedIds.includes(String(log.StudentID)),
       );
     }
 
@@ -202,9 +214,7 @@ function getDashboardSummary(user, filters = {}) {
 
   // Group memorization logs by date (last 30 days)
   const memoByDate = {};
-  const allMemorizationForChart = isWaliUser
-    ? allMemorizationLogs
-    : memorizationLogs;
+  const allMemorizationForChart = memorizationLogs;
 
   allMemorizationForChart.forEach((log) => {
     const logDate = new Date(log.DateLogged);
@@ -242,11 +252,7 @@ function getDashboardSummary(user, filters = {}) {
 
   // Calculate cumulative score per student
   students.forEach((student) => {
-    const studentIncidents = isWaliUser
-      ? allIncidents.filter(
-          (inc) => String(inc.StudentID) === String(waliStudentId),
-        )
-      : allIncidents.filter((inc) => inc.StudentID === student.StudentID);
+    const studentIncidents = incidents.filter((inc) => inc.StudentID === student.StudentID);
 
     const latestScore = calculateBehaviorScore_(studentIncidents);
     // Debug logging
@@ -285,11 +291,7 @@ function getDashboardSummary(user, filters = {}) {
       let totalScore = 0;
       let studentCount = 0;
       students.forEach((student) => {
-        const studentIncidents = isWaliUser
-          ? allIncidents.filter(
-              (inc) => String(inc.StudentID) === String(waliStudentId),
-            )
-          : allIncidents.filter((inc) => inc.StudentID === student.StudentID);
+        const studentIncidents = incidents.filter((inc) => inc.StudentID === student.StudentID);
 
         const studentScore = calculateBehaviorScore_(
           studentIncidents,
@@ -327,6 +329,13 @@ function getDashboardSummary(user, filters = {}) {
       // Flag untuk frontend menyesuaikan tampilan
       isWaliUser: isWaliUser,
       studentDetail: studentDetail,
+      debug: {
+        sessionUserRole: sessionUser ? sessionUser.Role : null,
+        sessionUsername: sessionUser ? sessionUser.Username : null,
+        isWaliUserEvaluated: isWaliUser,
+        studentsArrayLength: students.length,
+        activeStudentsLength: activeStudents.length
+      },
       // Chart data
       memoChartData: memoChartData,
       behaviorChartData: behaviorChartData,

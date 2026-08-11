@@ -1402,7 +1402,7 @@
         google.script.run
           .withSuccessHandler((res) => {
             this.loading = false;
-            if (res.ok) {
+            if (res.data) {
               this.summary = res.data;
               this.$nextTick(() => {
                 this.renderDashboardCharts();

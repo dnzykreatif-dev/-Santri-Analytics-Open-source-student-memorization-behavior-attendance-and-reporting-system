@@ -572,34 +572,35 @@ function convertParentContactsToUsers() {
     const headers = studentsData[0];
 
     // Find column indices
-    const nameCol = headers.indexOf("Name") + 1;
-    const parentContactCol = headers.indexOf("ParentContact") + 1;
-    const studentIdCol = headers.indexOf("StudentID") + 1;
-    const classCol = headers.indexOf("Class/Level") + 1;
+    const nameCol = headers.indexOf("Name");
+    const parentContactCol = headers.indexOf("ParentContact");
+    const studentIdCol = headers.indexOf("StudentID");
+    const classCol = headers.indexOf("Class/Level");
+    const waliUsernameCol = headers.indexOf("WaliUsername");
+    const deletedAtCol = headers.indexOf("DeletedAt");
 
-    if (nameCol === 0 || parentContactCol === 0 || studentIdCol === 0) {
+    if (nameCol === -1 || parentContactCol === -1 || studentIdCol === -1) {
       return {
         ok: false,
         message: "Kolom yang diperlukan tidak ditemukan di sheet Students.",
       };
     }
 
-    // Get existing usernames from Users sheet
+    // Get existing users from Users sheet - build a set of normalized phone numbers
     const usersData = usersSheet.getDataRange().getValues();
     const userHeaders = usersData[0];
-    const usernameCol = userHeaders.indexOf("Username") + 1;
-    const existingUsernames = new Set();
+    const existingNormalizedPhones = new Set();
 
     for (let i = 1; i < usersData.length; i++) {
-      if (usersData[i][usernameCol - 1]) {
-        existingUsernames.add(usersData[i][usernameCol - 1].toString().trim());
-      }
+      const uUsername = String(usersData[i][userHeaders.indexOf("Username")] || "").trim();
+      const uPhone = String(usersData[i][userHeaders.indexOf("Phone")] || "").trim();
+      const normU = normalizePhoneNumber(uUsername);
+      const normP = normalizePhoneNumber(uPhone);
+      if (normU) existingNormalizedPhones.add(normU);
+      if (normP) existingNormalizedPhones.add(normP);
     }
 
-    const salt = Utilities.getUuid().substring(0, 8);
-    const passwordHash = hashPasswordWithSalt("123456", salt);
     const now = new Date().toISOString();
-
     let createdCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
@@ -607,32 +608,44 @@ function convertParentContactsToUsers() {
     // Process each student
     for (let i = 1; i < studentsData.length; i++) {
       try {
-        const studentName = studentsData[i][nameCol - 1];
-        const parentContact = studentsData[i][parentContactCol - 1];
-        const studentId = studentsData[i][studentIdCol - 1];
-        const studentClass = studentsData[i][classCol - 1] || "";
+        const studentName = studentsData[i][nameCol];
+        const parentContact = String(studentsData[i][parentContactCol] || "").trim();
+        const studentId = studentsData[i][studentIdCol];
+        const studentClass = studentsData[i][classCol] || "";
+        const deletedAt = deletedAtCol >= 0 ? String(studentsData[i][deletedAtCol] || "").trim() : "";
+
+        // Skip deleted students
+        if (deletedAt) {
+          skippedCount++;
+          continue;
+        }
 
         if (!parentContact || !studentName || !studentId) {
           skippedCount++;
           continue;
         }
 
-        // Clean phone number to use as username
-        const phoneNumber = parentContact.toString().replace(/\D/g, "");
-        if (phoneNumber.length < 10) {
+        // Normalize phone for duplicate check
+        const normalizedPhone = normalizePhoneNumber(parentContact);
+        if (!normalizedPhone || normalizedPhone.length < 8) {
           skippedCount++;
           continue;
         }
 
-        const username = phoneNumber;
-
-        // Skip if username already exists
-        if (existingUsernames.has(username)) {
+        // Skip if user already exists with this phone number
+        if (existingNormalizedPhones.has(normalizedPhone)) {
           skippedCount++;
           continue;
         }
 
-        // Create user data
+        // Create unique salt and hash for each user
+        const salt = Utilities.getUuid().substring(0, 8);
+        const passwordHash = hashPasswordWithSalt("123456", salt);
+
+        // Use phone number as username
+        const username = parentContact.toString().replace(/\D/g, "");
+
+        // Create user data matching USER_HEADERS order
         const userId = "WALI" + Date.now() + i;
         const userData = [
           userId,
@@ -653,7 +666,7 @@ function convertParentContactsToUsers() {
 
         // Append to Users sheet
         usersSheet.appendRow(userData);
-        existingUsernames.add(username);
+        existingNormalizedPhones.add(normalizedPhone);
         createdCount++;
       } catch (e) {
         errorCount++;
