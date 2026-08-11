@@ -12,10 +12,13 @@
         });
       });
     </script>
+    <style>
+      body { overscroll-behavior-y: none; }
+    </style>
   </head>
 
-  <body class="min-h-screen bg-[#FFF5E6] text-[#111827] pb-20 md:pb-0" @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd">
-    <div x-data="app()" x-init="init()" x-cloak>
+  <body class="min-h-screen bg-[#FFF5E6] text-[#111827] pb-20 md:pb-0">
+    <div x-data="app()" x-init="init()" x-cloak @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd" class="min-h-screen">
       
       <!-- PULL TO REFRESH SPINNER -->
       <div class="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none"
