@@ -124,14 +124,44 @@ function AUTH_getUsersByUsername_() {
 }
 
 function AUTH_findUserRecord_(username) {
-  const normalized = String(username || "").trim();
+  const normalized = normalizeUsername_(username);
   if (!normalized) return null;
   const users = AUTH_getUsersByUsername_();
   return (
     users.find(
-      (row) => String(row.Username || "").trim() === normalized,
+      (row) => normalizeUsername_(row.Username) === normalized,
     ) || null
   );
+}
+
+function AUTH_findUserRecordById_(userId) {
+  const normalized = String(userId || "").trim();
+  if (!normalized) return null;
+  return (
+    AUTH_getUsersByUsername_().find(
+      (row) => String(row.UserID || "").trim() === normalized,
+    ) || null
+  );
+}
+
+function AUTH_safeUser_(user, sessionData) {
+  sessionData = sessionData || {};
+  return {
+    Username: String(user && user.Username ? user.Username : ""),
+    Name: String(user && user.Name ? user.Name : ""),
+    Role: String(user && user.Role ? user.Role : "Wali"),
+    Email: String(user && user.Email ? user.Email : ""),
+    Phone: String(user && user.Phone ? user.Phone : ""),
+    StudentID: String(user && user.StudentID ? user.StudentID : ""),
+    Class: String(user && user.Class ? user.Class : ""),
+    TeacherSourceID: String(
+      user && user.TeacherSourceID ? user.TeacherSourceID : "",
+    ),
+    UserID: String(user && user.UserID ? user.UserID : ""),
+    Status: String(user && user.Status ? user.Status : "Active"),
+    SessionToken: String(sessionData.SessionToken || ""),
+    SessionExpiresAt: String(sessionData.SessionExpiresAt || ""),
+  };
 }
 
 function AUTH_issueSession_(user) {
@@ -162,19 +192,10 @@ function AUTH_issueSession_(user) {
     lock.releaseLock();
   }
 
-  const safeUser = {
-    Username: String(user && user.Username ? user.Username : ""),
-    Name: String(user && user.Name ? user.Name : ""),
-    Role: String(user && user.Role ? user.Role : "Wali"),
-    Email: String(user && user.Email ? user.Email : ""),
-    Phone: String(user && user.Phone ? user.Phone : ""),
-    StudentID: String(user && user.StudentID ? user.StudentID : ""),
-    Class: String(user && user.Class ? user.Class : ""),
-    UserID: String(user && user.UserID ? user.UserID : ""),
-    Status: String(user && user.Status ? user.Status : "Active"),
+  const safeUser = AUTH_safeUser_(user, {
     SessionToken: token,
     SessionExpiresAt: expiresAt,
-  };
+  });
 
   return {
     SessionID: sessionId,
@@ -307,7 +328,9 @@ function resolveSessionUser_(currentUser, options = {}) {
     return allowAnonymous ? null : null;
   }
 
-  const latestUser = AUTH_findUserRecord_(session.Username);
+  const latestUser =
+    AUTH_findUserRecordById_(session.UserID) ||
+    AUTH_findUserRecord_(session.Username);
   if (!latestUser) {
     return allowAnonymous ? null : null;
   }
@@ -317,19 +340,19 @@ function resolveSessionUser_(currentUser, options = {}) {
     return allowAnonymous ? null : null;
   }
 
-  return {
-    UserID: String(latestUser.UserID || ""),
-    Username: String(latestUser.Username || ""),
-    Name: String(latestUser.Name || ""),
-    Role: String(latestUser.Role || "Wali"),
-    Email: String(latestUser.Email || ""),
-    Phone: String(latestUser.Phone || ""),
-    StudentID: String(latestUser.StudentID || ""),
-    Class: String(latestUser.Class || ""),
-    Status: String(latestUser.Status || "Active"),
-    SessionToken: String(token),
-    SessionExpiresAt: String(session.ExpiresAt || ""),
-  };
+  return AUTH_safeUser_(latestUser, {
+    SessionToken: token,
+    SessionExpiresAt: session.ExpiresAt,
+  });
+}
+
+function resumeSession(currentUser) {
+  try {
+    const sessionUser = requireSessionUser_(currentUser);
+    return { ok: true, data: { user: sessionUser }, user: sessionUser };
+  } catch (e) {
+    return { ok: false, message: "Sesi login tidak valid. Silakan login ulang." };
+  }
 }
 
 function requireSessionUser_(currentUser, options = {}) {

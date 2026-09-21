@@ -9,6 +9,7 @@ const USER_HEADERS = [
   "Role",
   "StudentID",
   "Class",
+  "TeacherSourceID",
   "Salt",
   "PasswordHash",
   "Status",
@@ -32,6 +33,7 @@ function getUsers(currentUser) {
   try {
     requireSessionUser_(currentUser, { roles: ["Mudir", "Admin"] });
 
+    setupSheetWithHeaders_(SHEET_USERS, USER_HEADERS);
     const sheet = getSheet_(SHEET_USERS);
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
@@ -72,6 +74,7 @@ function addUser(userData, currentUser) {
       roles: ["Mudir", "Admin"],
     });
 
+    setupSheetWithHeaders_(SHEET_USERS, USER_HEADERS);
     const sheet = getSheet_(SHEET_USERS);
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
@@ -142,6 +145,9 @@ function addUser(userData, currentUser) {
         case "Class":
           newRow.push(userData.Class || "");
           break;
+        case "TeacherSourceID":
+          newRow.push(userData.TeacherSourceID || "");
+          break;
         case "Salt":
           newRow.push(salt);
           break;
@@ -181,6 +187,7 @@ function addUser(userData, currentUser) {
       Role: userData.Role || "Wali",
       StudentID: userData.StudentID,
       Class: userData.Class,
+      TeacherSourceID: userData.TeacherSourceID || "",
       Status: userData.Status || "Active",
       CreatedAt: new Date().toISOString(),
     };
@@ -204,6 +211,7 @@ function updateUser(userId, userData, currentUser) {
       roles: ["Mudir", "Admin"],
     });
 
+    setupSheetWithHeaders_(SHEET_USERS, USER_HEADERS);
     const sheet = getSheet_(SHEET_USERS);
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
@@ -490,6 +498,8 @@ function loginWithSalt(username, password) {
   const inputUsername = String(username || "").trim();
   const inputUsernameNormalized = normalizeUsername_(inputUsername);
   const inputNormalized = normalizePhoneNumber(inputUsername);
+  let matchedUser = false;
+  let matchedInactiveUser = false;
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
@@ -508,6 +518,7 @@ function loginWithSalt(username, password) {
     }
 
     if (isMatch) {
+      matchedUser = true;
       const salt = row[headers.indexOf("Salt")] || "";
       const dbPasswordHash = row[headers.indexOf("PasswordHash")] || "";
       const hashedInput = hashPasswordWithSalt(password || "", salt);
@@ -519,6 +530,12 @@ function loginWithSalt(username, password) {
         (!dbPasswordHash && !salt);
 
       if (passwordMatches) {
+        const status = String(row[headers.indexOf("Status")] || "Active").trim().toLowerCase();
+        if (status === "inactive" || status === "nonaktif") {
+          matchedInactiveUser = true;
+          continue;
+        }
+
         // If user was added without salt/hash, set them up now
         if (!salt || !dbPasswordHash) {
           const newSalt = Utilities.getUuid().substring(0, 8);
@@ -538,20 +555,29 @@ function loginWithSalt(username, password) {
         const userStudentId = row[headers.indexOf("StudentID")] || "";
         const userClass = row[headers.indexOf("Class")] || "";
 
-        return {
-          ok: true,
-          user: {
-            Username: dbUsername,
-            Name: row[headers.indexOf("Name")] || "",
-            Role: row[headers.indexOf("Role")] || "Wali",
-            Email: row[headers.indexOf("Email")] || "",
-            Phone: row[headers.indexOf("Phone")] || "",
-            StudentID: userStudentId,
-            Class: userClass,
-          },
-        };
+	        return {
+	          ok: true,
+	          user: {
+	            UserID: row[headers.indexOf("UserID")] || "",
+	            Username: dbUsername,
+	            Name: row[headers.indexOf("Name")] || "",
+	            Role: row[headers.indexOf("Role")] || "Wali",
+	            Email: row[headers.indexOf("Email")] || "",
+	            Phone: row[headers.indexOf("Phone")] || "",
+	            StudentID: userStudentId,
+	            Class: userClass,
+	            TeacherSourceID: row[headers.indexOf("TeacherSourceID")] || "",
+	            Status: row[headers.indexOf("Status")] || "Active",
+	          },
+	        };
       }
     }
+  }
+  if (matchedInactiveUser) {
+    return { ok: false, message: "Akun ini nonaktif. Hubungi Mudir/Admin." };
+  }
+  if (matchedUser) {
+    return { ok: false, message: "Password salah untuk username tersebut." };
   }
   return { ok: false, message: "Username / Password salah" };
 }

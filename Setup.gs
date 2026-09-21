@@ -55,11 +55,55 @@ const CORE_SHEET_SCHEMAS = {
   ],
   Attendance: [
     "AttendanceID",
+    "SessionID",
+    "ScheduleID",
     "StudentID",
+    "AttendanceDate",
     "DateLogged",
-    "Type",
+    "ClassOrGroupName",
+    "Category",
+    "ActivityName",
+    "Status",
     "Notes",
     "TeacherID",
+    "TeacherSourceID",
+    "CreatedAt",
+    "UpdatedAt",
+  ],
+  AttendanceSessions: [
+    "SessionID",
+    "ScheduleID",
+    "AttendanceDate",
+    "AttendanceType",
+    "DayOfWeek",
+    "ClassOrGroupName",
+    "ActivityName",
+    "TeacherID",
+    "TeacherSourceID",
+    "StartTime",
+    "EndTime",
+    "SubmittedBy",
+    "SubmittedAt",
+    "UpdatedAt",
+    "TotalStudents",
+    "HadirCount",
+    "IzinCount",
+    "SakitCount",
+    "AlpaCount",
+    "TelatCount",
+    "Status",
+  ],
+  Schedules: [
+    "ScheduleID",
+    "Type",
+    "TeacherID",
+    "TeacherSourceID",
+    "SubjectOrActivityName",
+    "ClassOrGroupName",
+    "DayOfWeek",
+    "StartTime",
+    "EndTime",
+    "IsActive",
   ],
   HafalanLinks: [
     "LinkID",
@@ -120,6 +164,16 @@ const CORE_SHEET_SCHEMAS = {
     "Payload",
     "CreatedAt",
   ],
+  AttendanceMigrationBackup: [
+    "BackupID",
+    "SourceSheet",
+    "SourceRow",
+    "RecordID",
+    "Reason",
+    "PayloadJson",
+    "BackedUpAt",
+    "BackedUpBy",
+  ],
   Sessions: [
     "SessionID",
     "TokenHash",
@@ -133,7 +187,7 @@ const CORE_SHEET_SCHEMAS = {
   ],
 };
 
-const SCHEMA_MIGRATION_VERSION = "2026.07.25.1";
+const SCHEMA_MIGRATION_VERSION = "2026.09.16.2";
 
 function setupSheetWithHeaders_(sheetName, requiredHeaders) {
   const spreadsheet = getSpreadsheet_();
@@ -193,8 +247,38 @@ function setupCoreSheets() {
   });
 
   recordSchemaMigration_(
-    SCHEMA_MIGRATION_VERSION,
+    "2026.07.25.1",
     "Add student profile, sessions, audit, and lookup sheets",
+    "system",
+  );
+
+  recordSchemaMigration_(
+    "2026.08.11.1",
+    "Update Attendance schema and add Schedules",
+    "system",
+  );
+
+  recordSchemaMigration_(
+    "2026.08.12.1",
+    "Add StartTime and EndTime to Schedules",
+    "system",
+  );
+
+  recordSchemaMigration_(
+    "2026.09.01.1",
+    "Add attendance sessions and recap-ready attendance headers",
+    "system",
+  );
+
+  recordSchemaMigration_(
+    "2026.09.16.1",
+    "Add canonical teacher identity and attendance migration backup",
+    "system",
+  );
+
+  recordSchemaMigration_(
+    "2026.09.16.2",
+    "Repair canonical teacher sessions and force master schedule reconciliation",
     "system",
   );
 
@@ -503,6 +587,7 @@ function runHealthCheck(currentUser) {
     const requiredFunctions = [
       "login",
       "logoutSession",
+      "resumeSession",
       "getStudents",
       "queryStudents",
       "getDashboardSummary",
@@ -512,6 +597,14 @@ function runHealthCheck(currentUser) {
       "resolveStudentQr",
       "logMemorization",
       "logIncident",
+      "getAttendanceHome",
+      "getAttendanceSession",
+      "saveAttendanceSession",
+      "getAttendanceRecap",
+      "getGuardianAttendanceSummary",
+      "auditAttendanceIntegrity",
+      "repairAttendanceIntegrity",
+      "updateStudentGenderBatch",
       "getUsers",
       "getAcademicSetup",
       "saveAcademicPeriod",

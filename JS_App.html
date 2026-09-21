@@ -75,22 +75,72 @@
         SortOrder: 999,
         IsActive: true,
       },
+      scheduleForm: {
+        ScheduleID: "",
+        Type: "KBM",
+        TeacherID: "",
+        TeacherSourceID: "",
+        SubjectOrActivityName: "",
+        ClassOrGroupName: "",
+        DayOfWeek: "",
+        StartTime: "",
+        EndTime: "",
+      },
+      changePasswordForm: {
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      },
+      manualAttendanceForm: {
+        Type: "KBM",
+        ClassOrGroupName: "",
+        SubjectOrActivityName: "",
+        TeacherID: "",
+        TeacherSourceID: "",
+      }
     };
+
+    const NAVIGATION_ITEMS = [
+      { id: "website", label: "Website Pondok", shortLabel: "Website", icon: "info", group: "utama", roles: ["Wali", "Ustadz", "Mudir", "Admin"], external: true },
+      { id: "dashboard", label: "Dashboard", shortLabel: "Dashboard", icon: "dashboard", group: "utama", roles: ["Wali", "Ustadz", "Mudir", "Admin"] },
+      { id: "santri", label: "Santri", shortLabel: "Santri", icon: "santri", group: "utama", roles: ["Wali", "Ustadz", "Mudir", "Admin"] },
+      { id: "absensi", label: "Absensi Santri", shortLabel: "Absensi", icon: "catatan", group: "operasional", roles: ["Ustadz", "Mudir", "Admin"] },
+      { id: "hafalan", label: "Input Hafalan", shortLabel: "Hafalan", icon: "hafalan", group: "operasional", roles: ["Ustadz", "Mudir", "Admin"] },
+      { id: "akademik", label: "Akademik", shortLabel: "Akademik", icon: "akademik", group: "operasional", roles: ["Ustadz", "Mudir", "Admin"] },
+      { id: "pelanggaran", label: "Input Perilaku", shortLabel: "Perilaku", icon: "perilaku", group: "operasional", roles: ["Ustadz", "Mudir", "Admin"] },
+      { id: "list_perilaku", label: "Catatan Perilaku", shortLabel: "Catatan", icon: "catatan", group: "operasional", roles: ["Ustadz", "Mudir", "Admin"] },
+      { id: "link_live", label: "Link Hafalan", shortLabel: "Link", icon: "link_live", group: "operasional", roles: ["Ustadz", "Mudir", "Admin"] },
+      { id: "informasi_pesantren", label: "Sistem Informasi", shortLabel: "Info", icon: "info", group: "lainnya", roles: ["Wali", "Ustadz", "Mudir", "Admin"] },
+      { id: "pulang_bulanan", label: "Pulang Bulanan", shortLabel: "Pulang", icon: "pulang_bulanan", group: "lainnya", roles: ["Wali", "Ustadz", "Mudir", "Admin"] },
+      { id: "panduan", label: "Panduan Ustadz", shortLabel: "Panduan", icon: "panduan", group: "lainnya", roles: ["Ustadz", "Mudir"] },
+      { id: "panduan_wali", label: "Panduan Wali", shortLabel: "Panduan", icon: "panduan", group: "lainnya", roles: ["Wali", "Ustadz", "Mudir", "Admin"] },
+      { id: "users", label: "Manajemen User", shortLabel: "User", icon: "users", group: "administrator", roles: ["Mudir", "Admin"] },
+      { id: "jadwal_admin", label: "Manajemen Jadwal", shortLabel: "Jadwal", icon: "akademik", group: "administrator", roles: ["Mudir", "Admin"] },
+    ];
 
     // ===== HELPER: Google Script Call Wrapper =====
     function callGoogleScript(methodName, ...args) {
       return {
         onSuccess: function (callback) {
-          google.script.run
-            .withSuccessHandler((res) => {
-              if (res && res.ok) {
-                callback(null, res.data);
-              } else {
-                callback(new Error(res ? res.message : "Unknown error"));
-              }
-            })
-            .withFailureHandler((err) => callback(err))
-            [methodName](...args);
+          try {
+            google.script.run
+              .withSuccessHandler((res) => {
+                if (res && res.ok) {
+                  callback(null, res.data);
+                } else {
+                  callback(new Error(
+                    res?.message ||
+                    "Server tidak mengirim respons untuk " + methodName + ". Silakan refresh lalu coba lagi.",
+                  ));
+                }
+              })
+              .withFailureHandler((err) => callback(new Error(
+                err?.message || String(err || "Koneksi ke server gagal."),
+              )))
+              [methodName](...args);
+          } catch (err) {
+            callback(new Error(err?.message || "Data tidak dapat dikirim ke server."));
+          }
           return this;
         },
         onSuccessRaw: function (callback) {
@@ -106,7 +156,9 @@
     return {
       // ===== STATE =====
       isLoggedIn: false,
+      authRestoring: true,
       user: { Username: "", Role: "" },
+      authGeneration: 0,
       students: [],
       summary: {
         totalStudents: 0,
@@ -537,6 +589,7 @@
       newStudent: { ...FORM_DEFAULTS.newStudent },
       memoForm: { ...FORM_DEFAULTS.memoForm },
       incidentForm: { ...FORM_DEFAULTS.incidentForm },
+      changePasswordForm: { ...FORM_DEFAULTS.changePasswordForm },
       attendanceForm: {
         Type: FORM_DEFAULTS.attendanceForm.Type,
         Notes: FORM_DEFAULTS.attendanceForm.Notes,
@@ -850,24 +903,49 @@
 
       // ===== INITIALIZATION =====
       init() {
+        this.initScheduleWatchers();
         const savedUser = sessionStorage.getItem("user");
         if (savedUser) {
           try {
-            this.user = JSON.parse(savedUser);
-            if (this.user?.SessionToken) {
+            const storedUser = JSON.parse(savedUser);
+            if (storedUser?.SessionToken) {
+              const savedView = this.readViewState(storedUser);
+              const generation = ++this.authGeneration;
+              this.loading = true;
+              this.user = storedUser;
               this.isLoggedIn = true;
-              this.refreshData();
-            } else {
-              sessionStorage.removeItem("user");
-              this.user = { Username: "", Role: "" };
+              callGoogleScript("resumeSession", storedUser).onSuccess((err, data) => {
+                if (generation !== this.authGeneration) return;
+                this.loading = false;
+                const canonicalUser = data?.user;
+                if (!err && canonicalUser?.SessionToken) {
+                  this.resetUserScopedState();
+                  this.user = canonicalUser;
+                  this.isLoggedIn = true;
+                  this.restoreViewState(savedView, canonicalUser);
+                  this.authRestoring = false;
+                  sessionStorage.setItem("user", JSON.stringify(canonicalUser));
+                  this.refreshData();
+                } else {
+                  this.resetUserScopedState();
+                  this.isLoggedIn = false;
+                  this.user = { Username: "", Role: "" };
+                  this.authRestoring = false;
+                  sessionStorage.removeItem("user");
+                  this.loadPublicLandingInfo();
+                }
+              });
+              return;
             }
           } catch (e) {
-            sessionStorage.removeItem("user");
+            // Data sesi yang rusak diperlakukan sebagai sesi yang sudah berakhir.
           }
         }
-        if (!this.isLoggedIn) {
-          this.loadPublicLandingInfo();
-        }
+        sessionStorage.removeItem("user");
+        this.isLoggedIn = false;
+        this.user = { Username: "", Role: "" };
+        this.authRestoring = false;
+        this.loadPublicLandingInfo();
       },
 
       // ===== HELPER: TOAST NOTIFICATION =====
@@ -889,6 +967,7 @@
       },
 
       setCurrentTab(tab) {
+        if (!this.isNavigationAllowed(tab)) tab = "dashboard";
         this.currentTab = tab;
         this.mobileMoreOpen = false;
         this.mobileDrawerOpen = false;
@@ -899,6 +978,8 @@
           this.fetchStudents();
           this.loadAcademicSetup();
         }
+        if (tab === "jadwal_admin") this.loadSchedules();
+        if (tab === "absensi") this.loadMySchedulesToday();
         if (tab === "pulang_bulanan") this.loadPulangBulanan();
         if (tab === "informasi_pesantren") {
           this.pesantrenInfoSection = this.canManagePesantrenInfo()
@@ -906,6 +987,145 @@
             : "beranda";
           this.loadPesantrenInfo();
         }
+        this.saveViewState();
+      },
+
+      viewStateStorageKey(user = this.user) {
+        const identity = String(user?.UserID || user?.Username || "").trim();
+        return identity ? "santriAnalytics:view:" + encodeURIComponent(identity) : "";
+      },
+
+      isNavigationAllowed(tab, user = this.user) {
+        const item = NAVIGATION_ITEMS.find(candidate => candidate.id === tab && !candidate.external);
+        return !!item && item.roles.includes(user?.Role);
+      },
+
+      readViewState(user = this.user) {
+        const key = this.viewStateStorageKey(user);
+        if (!key) return null;
+        try {
+          return JSON.parse(sessionStorage.getItem(key) || "null");
+        } catch (error) {
+          sessionStorage.removeItem(key);
+          return null;
+        }
+      },
+
+      saveViewState() {
+        if (!this.isLoggedIn || this.authRestoring) return;
+        const key = this.viewStateStorageKey();
+        if (!key) return;
+        const activeSchedule = this.attendanceActiveSession && this.attendanceSessionData
+          ? this.attendanceSchedulePayload(this.attendanceSessionData)
+          : null;
+        sessionStorage.setItem(key, JSON.stringify({
+          currentTab: this.currentTab,
+          attendanceView: this.attendanceView,
+          attendanceDate: this.attendanceDate,
+          attendanceShowAllSchedules: !!this.attendanceShowAllSchedules,
+          attendanceActiveSchedule: activeSchedule,
+        }));
+      },
+
+      restoreViewState(state, user = this.user) {
+        state = state || {};
+        this.currentTab = this.isNavigationAllowed(state.currentTab, user)
+          ? state.currentTab
+          : "dashboard";
+        const attendanceViews = ["today", "Pondok", "KBM", "Kegiatan", "recap"];
+        this.attendanceView = attendanceViews.includes(state.attendanceView)
+          ? state.attendanceView
+          : "today";
+        if (/^\d{4}-\d{2}-\d{2}$/.test(String(state.attendanceDate || ""))) {
+          this.attendanceDate = state.attendanceDate;
+        }
+        this.attendanceShowAllSchedules =
+          ["Mudir", "Admin"].includes(user?.Role) && !!state.attendanceShowAllSchedules;
+        this.attendanceRestoreSchedule =
+          this.currentTab === "absensi" && state.attendanceActiveSchedule
+            ? state.attendanceActiveSchedule
+            : null;
+      },
+
+      clearViewState(user = this.user) {
+        const key = this.viewStateStorageKey(user);
+        if (key) sessionStorage.removeItem(key);
+      },
+
+      visibleNavigationItems(group = "") {
+        return NAVIGATION_ITEMS.filter(item =>
+          (!group || item.group === group) && item.roles.includes(this.user?.Role),
+        );
+      },
+
+      navigationGroupLabel(group) {
+        return { operasional: "Operasional", lainnya: "Lainnya", administrator: "Administrator" }[group] || "";
+      },
+
+      handleNavigationItem(item) {
+        if (!item) return;
+        if (item.external) this.openPublicWebsite();
+        else this.setCurrentTab(item.id);
+      },
+
+      mobilePrimaryNavItems() {
+        const role = this.user?.Role;
+        const ids = role === "Wali"
+          ? ["dashboard", "santri", "informasi_pesantren", "pulang_bulanan"]
+          : role === "Admin"
+            ? ["dashboard", "santri", "absensi", "users"]
+            : ["dashboard", "santri", "absensi", "hafalan"];
+        return ids.map(id => NAVIGATION_ITEMS.find(item => item.id === id)).filter(Boolean);
+      },
+
+      mobileMoreNavItems() {
+        const primary = new Set(this.mobilePrimaryNavItems().map(item => item.id));
+        return this.visibleNavigationItems().filter(item => !item.external && !primary.has(item.id));
+      },
+
+      isMobileMoreActive() {
+        return this.mobileMoreOpen || this.mobileMoreNavItems().some(item => item.id === this.currentTab);
+      },
+
+      resetUserScopedState() {
+        this.authGeneration = (this.authGeneration || 0) + 1;
+        this.attendanceRequestId = (this.attendanceRequestId || 0) + 1;
+        this.attendanceSessionRequestId = (this.attendanceSessionRequestId || 0) + 1;
+        this.attendanceRecapRequestId = (this.attendanceRecapRequestId || 0) + 1;
+        this.attendanceHomeInFlightKey = "";
+        this.attendanceSessionInFlightKey = "";
+        this.attendanceHomeCache = {};
+        this.attendanceSessionCache = {};
+        this.mySchedulesToday = [];
+        this.attendanceStudents = [];
+        this.attendanceSessionData = null;
+        this.attendanceActiveSession = false;
+        this.attendanceActiveCacheKey = "";
+        this.attendanceActiveScheduleId = "";
+        this.attendanceRestoreSchedule = null;
+        this.attendanceLoadError = "";
+        this.attendanceSessionError = "";
+        this.attendanceLoading = false;
+        this.attendanceSessionLoading = false;
+        this.attendanceSaving = false;
+        this.attendanceOpeningScheduleId = "";
+        this.attendanceSearchQuery = "";
+        this.attendanceGenderScope = "Sesuai";
+        this.attendanceSessionBaseline = "";
+        this.attendanceShowAllSchedules = false;
+        this.attendanceView = "today";
+        this.attendanceDate = new Date().toISOString().split("T")[0];
+        this.schedules = [];
+        this.filteredSchedules = [];
+        this.students = [];
+        this.users = [];
+        this.selectedStudent = null;
+        this.studentHistory = [];
+        this.studentIncidents = [];
+        this.attendanceRecap = null;
+        this.currentTab = "dashboard";
+        this.mobileMoreOpen = false;
+        this.mobileDrawerOpen = false;
       },
 
       // ===== HELPER: SCROLL TO FORM =====
@@ -1161,22 +1381,28 @@
           this.error = "Username dan Password harus diisi";
           return;
         }
+        const loginGeneration = ++this.authGeneration;
         this.loading = true;
         this.error = "";
 
         google.script.run
           .withSuccessHandler((res) => {
+            if (loginGeneration !== this.authGeneration) return;
             this.loading = false;
             if (res.ok) {
+              this.resetUserScopedState();
               this.user = res.user;
               sessionStorage.setItem("user", JSON.stringify(res.user));
               this.isLoggedIn = true;
+              this.authRestoring = false;
+              this.saveViewState();
               this.refreshData();
             } else {
               this.error = res.message;
             }
           })
           .withFailureHandler((err) => {
+            if (loginGeneration !== this.authGeneration) return;
             this.loading = false;
             this.error = "Terjadi kesalahan koneksi: " + err;
           })
@@ -1215,9 +1441,12 @@
       },
 
       logout() {
-        if (this.user?.SessionToken) {
+        const previousUser = { ...(this.user || {}) };
+        this.clearViewState(previousUser);
+        this.resetUserScopedState();
+        if (previousUser?.SessionToken) {
           try {
-            google.script.run.logoutSession(this.user);
+            google.script.run.logoutSession(previousUser);
           } catch (e) {}
         }
         this.isLoggedIn = false;
@@ -1376,6 +1605,12 @@
         }
         if (this.currentTab === "pulang_bulanan") {
           this.loadPulangBulanan();
+        }
+        if (this.currentTab === "jadwal_admin") {
+          this.loadSchedules();
+        }
+        if (this.currentTab === "absensi") {
+          this.loadMySchedulesToday();
         }
       },
 
@@ -3354,6 +3589,733 @@
             this.showToast(err.message || "Gagal menghapus data.", "error");
           })
           .deletePulangBulanan(item.PulangID, this.user);
+      },
+
+      // ===== SCHEDULE & ATTENDANCE METHODS =====
+      schedules: [],
+      filteredSchedules: [],
+      scheduleFilterDay: "",
+      scheduleSearchQuery: "",
+      showAddScheduleModal: false,
+      attendanceView: "today",
+      attendanceDate: new Date().toISOString().split("T")[0],
+      attendanceShowAllSchedules: false,
+      attendanceHome: { classes: [], types: ["Pondok", "KBM", "Kegiatan"], statuses: ["Hadir", "Izin", "Sakit", "Alpa", "Telat"] },
+      attendanceLoading: false,
+      attendanceSessionLoading: false,
+      attendanceSaving: false,
+      attendanceGenderSavingId: "",
+      attendanceOpeningScheduleId: "",
+      attendanceSessionError: "",
+      attendanceSessionBaseline: "",
+      attendanceActiveCacheKey: "",
+      attendanceActiveScheduleId: "",
+      attendanceHomeCache: {},
+      attendanceSessionCache: {},
+      attendanceHomeInFlightKey: "",
+      attendanceSessionInFlightKey: "",
+      attendanceLoadError: "",
+      attendanceSearchQuery: "",
+      attendanceGenderScope: "Sesuai",
+      attendanceRecap: null,
+      attendanceRecapFilters: {
+        month: new Date().toISOString().slice(0, 7),
+        type: "",
+        className: "",
+        teacherId: "",
+        activityName: "",
+      },
+      mySchedulesToday: [],
+      attendanceActiveSession: false,
+      attendanceSessionData: null,
+      attendanceRestoreSchedule: null,
+      attendanceStudents: [],
+      showManualAttendanceModal: false,
+      scheduleForm: { ...FORM_DEFAULTS.scheduleForm },
+      manualAttendanceForm: { ...FORM_DEFAULTS.manualAttendanceForm },
+      attendanceAudit: null,
+      attendanceAuditLoading: false,
+      attendanceRepairPreview: null,
+      attendanceRepairConfirming: false,
+
+      loadSchedules() {
+        if (this.user?.Role !== "Admin" && this.user?.Role !== "Mudir") return;
+        const generation = this.authGeneration;
+        this.loading = true;
+        callGoogleScript("getSchedules", this.user)
+          .onSuccess((err, data) => {
+            if (generation !== this.authGeneration) return;
+            this.loading = false;
+            if (err) return this.showToast(err.message, "error");
+            this.schedules = data.schedules || [];
+            this.filterSchedules();
+          });
+      },
+
+      runSeedSchedules() {
+        this.loading = true;
+        callGoogleScript("importMasterScheduleForAttendance", this.user)
+          .onSuccess((err, data) => {
+            this.loading = false;
+            if (err) return this.showToast(err.message, "error");
+            this.clearAttendanceCaches();
+            this.showToast(data.message || "Berhasil", "success");
+            this.loadSchedules();
+            this.loadMySchedulesToday();
+          });
+      },
+
+      filterSchedules() {
+        let filtered = this.schedules;
+        if (this.scheduleFilterDay) {
+          filtered = filtered.filter(s => s.DayOfWeek === this.scheduleFilterDay);
+        }
+        if (this.scheduleSearchQuery) {
+          const q = this.scheduleSearchQuery.toLowerCase();
+          filtered = filtered.filter(s =>
+            (s.SubjectOrActivityName && s.SubjectOrActivityName.toLowerCase().includes(q)) ||
+            (s.ClassOrGroupName && s.ClassOrGroupName.toLowerCase().includes(q)) ||
+            (s.TeacherID && s.TeacherID.toLowerCase().includes(q))
+          );
+        }
+        this.filteredSchedules = filtered;
+      },
+
+      openAddScheduleModal() {
+        this.scheduleForm = { ...FORM_DEFAULTS.scheduleForm };
+        this.showAddScheduleModal = true;
+      },
+
+      submitScheduleForm() {
+        this.loading = true;
+        callGoogleScript("saveSchedule", this.scheduleForm, this.user)
+          .onSuccess((err, data) => {
+            this.loading = false;
+            if (err) return this.showToast(err.message, "error");
+            this.showToast("Jadwal berhasil disimpan", "success");
+            this.showAddScheduleModal = false;
+            this.clearAttendanceCaches();
+            this.loadSchedules();
+          });
+      },
+
+      deleteSchedule(id) {
+        if(!confirm("Yakin ingin menghapus jadwal ini?")) return;
+        this.loading = true;
+        callGoogleScript("deleteSchedule", id, this.user)
+          .onSuccess((err, data) => {
+            this.loading = false;
+            if (err) return this.showToast(err.message, "error");
+            this.showToast("Jadwal berhasil dihapus", "success");
+            this.clearAttendanceCaches();
+            this.loadSchedules();
+          });
+      },
+
+      attendanceHomeCacheKey() {
+        return [
+          this.attendanceViewerKey(),
+          this.attendanceDate || "",
+          this.attendanceShowAllSchedules ? "all" : "mine",
+        ].join("|");
+      },
+
+      attendanceViewerKey(user = this.user) {
+        return [
+          user?.UserID || "",
+          user?.TeacherSourceID || "",
+          String(user?.Username || "").trim().toLowerCase(),
+          user?.Role || "",
+        ].join(":");
+      },
+
+      attendanceViewerMatches(viewerContext) {
+        if (!viewerContext) return false;
+        const responseUsername = String(viewerContext.Username || "").trim().toLowerCase();
+        const activeUsername = String(this.user?.Username || "").trim().toLowerCase();
+        if (!responseUsername || responseUsername !== activeUsername) return false;
+
+        const responseUserId = String(viewerContext.UserID || "").trim();
+        const activeUserId = String(this.user?.UserID || "").trim();
+        if (responseUserId && activeUserId && responseUserId !== activeUserId) return false;
+
+        // Sesi lama belum selalu membawa ID kanonis. Respons ini berasal dari
+        // token yang baru saja divalidasi server, sehingga aman untuk melengkapinya.
+        if (!activeUserId && responseUserId && this.user) this.user.UserID = responseUserId;
+        if (!this.user?.TeacherSourceID && viewerContext.TeacherSourceID && this.user) {
+          this.user.TeacherSourceID = viewerContext.TeacherSourceID;
+        }
+        return true;
+      },
+
+      clearAttendanceCaches() {
+        this.attendanceHomeCache = {};
+        this.attendanceSessionCache = {};
+        this.attendanceHomeInFlightKey = "";
+        this.attendanceSessionInFlightKey = "";
+      },
+
+      applyAttendanceHome(data) {
+        data = data || {};
+        if (!this.attendanceViewerMatches(data.viewerContext)) return false;
+        this.attendanceHome = {
+          classes: data.classes || [],
+          types: data.types || ["Pondok", "KBM", "Kegiatan"],
+          statuses: data.statuses || ["Hadir", "Izin", "Sakit", "Alpa", "Telat"],
+          scheduleDataStatus: data.scheduleDataStatus || null,
+        };
+        this.mySchedulesToday = data.schedules || [];
+        Object.values(this.attendanceSessionCache || {}).forEach(cached => {
+          if (!cached?.isLocalDraft) return;
+          const scheduleId = String(cached.scheduleId || cached.session.ScheduleID || "");
+          this.mySchedulesToday.forEach(item => {
+            if (String(item.ScheduleID || "") === scheduleId) item.SessionStatus = "Draft";
+          });
+        });
+        return true;
+      },
+
+      loadMySchedulesToday(forceRefresh = false) {
+        const cacheKey = this.attendanceHomeCacheKey();
+        const cached = this.attendanceHomeCache[cacheKey];
+        if (!forceRefresh && cached) {
+          this.attendanceLoadError = "";
+          if (this.applyAttendanceHome(cached)) this.restoreAttendanceSessionFromView();
+          return;
+        }
+        if (this.attendanceHomeInFlightKey === cacheKey) return;
+        const requestId = (this.attendanceRequestId || 0) + 1;
+        const generation = this.authGeneration;
+        this.attendanceRequestId = requestId;
+        this.attendanceHomeInFlightKey = cacheKey;
+        this.attendanceLoading = true;
+        this.attendanceLoadError = "";
+        callGoogleScript("getAttendanceHome", this.user, {
+          date: this.attendanceDate,
+          showAll: this.attendanceShowAllSchedules,
+        })
+          .onSuccess((err, data) => {
+            if (requestId !== this.attendanceRequestId || generation !== this.authGeneration) return;
+            if (this.attendanceHomeInFlightKey === cacheKey) this.attendanceHomeInFlightKey = "";
+            this.attendanceLoading = false;
+            if (err) {
+              this.mySchedulesToday = [];
+              this.attendanceLoadError = err.message || "Jadwal gagal dimuat.";
+              return this.showToast(this.attendanceLoadError, "error");
+            }
+            if (!this.applyAttendanceHome(data)) return;
+            this.attendanceHomeCache[cacheKey] = data;
+            this.restoreAttendanceSessionFromView();
+          });
+      },
+
+      restoreAttendanceSessionFromView() {
+        const pending = this.attendanceRestoreSchedule;
+        if (!pending || this.currentTab !== "absensi" || this.attendanceActiveSession) return;
+        const pendingId = String(pending.ScheduleID || "");
+        const pendingSources = new Set((pending.SourceScheduleIDs || []).map(id => String(id)));
+        const matchingSchedule = this.mySchedulesToday.find(schedule => {
+          if (pendingId && String(schedule.ScheduleID || "") === pendingId) return true;
+          const scheduleSources = Array.isArray(schedule.SourceScheduleIDs)
+            ? schedule.SourceScheduleIDs.map(id => String(id))
+            : [];
+          return pendingSources.size > 0 && scheduleSources.some(id => pendingSources.has(id));
+        });
+        this.attendanceRestoreSchedule = null;
+        if (matchingSchedule) {
+          this.startAttendanceSession(matchingSchedule);
+        } else {
+          this.saveViewState();
+        }
+      },
+
+      handleAttendanceDateChange() {
+        this.attendanceActiveSession = false;
+        this.attendanceSessionData = null;
+        this.attendanceStudents = [];
+        this.attendanceActiveCacheKey = "";
+        this.attendanceActiveScheduleId = "";
+        this.attendanceRestoreSchedule = null;
+        this.saveViewState();
+        this.loadMySchedulesToday();
+      },
+
+      runAttendanceAudit() {
+        if (!['Mudir', 'Admin'].includes(this.user?.Role) || this.attendanceAuditLoading) return;
+        const generation = this.authGeneration;
+        this.attendanceAuditLoading = true;
+        callGoogleScript("auditAttendanceIntegrity", this.user).onSuccess((err, data) => {
+          if (generation !== this.authGeneration) return;
+          this.attendanceAuditLoading = false;
+          if (err) return this.showToast(err.message, "error");
+          this.attendanceAudit = data;
+          this.attendanceRepairPreview = null;
+          this.attendanceRepairConfirming = false;
+        });
+      },
+
+      previewAttendanceRepair() {
+        if (this.attendanceAuditLoading) return;
+        const generation = this.authGeneration;
+        this.attendanceAuditLoading = true;
+        callGoogleScript("repairAttendanceIntegrity", { dryRun: true }, this.user)
+          .onSuccess((err, data) => {
+            if (generation !== this.authGeneration) return;
+            this.attendanceAuditLoading = false;
+            if (err) return this.showToast(err.message, "error");
+            this.attendanceRepairPreview = data;
+            this.attendanceAudit = data.before || this.attendanceAudit;
+            this.attendanceRepairConfirming = false;
+          });
+      },
+
+      applyAttendanceRepair() {
+        if (!this.attendanceRepairConfirming) {
+          this.attendanceRepairConfirming = true;
+          return;
+        }
+        if (this.attendanceAuditLoading) return;
+        const generation = this.authGeneration;
+        this.attendanceAuditLoading = true;
+        callGoogleScript("repairAttendanceIntegrity", { dryRun: false }, this.user)
+          .onSuccess((err, data) => {
+            if (generation !== this.authGeneration) return;
+            this.attendanceAuditLoading = false;
+            this.attendanceRepairConfirming = false;
+            if (err) return this.showToast(err.message, "error");
+            this.attendanceAudit = data.after || null;
+            this.attendanceRepairPreview = null;
+            this.clearAttendanceCaches();
+            this.loadSchedules();
+            this.showToast("Audit dan perbaikan data selesai", "success");
+          });
+      },
+
+      getCurrentDayName() {
+        const days = ["Ahad", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        return days[new Date((this.attendanceDate || new Date().toISOString().split("T")[0]) + "T00:00:00").getDay()];
+      },
+
+      formatAttendanceDateLabel() {
+        const rawDate = this.attendanceDate || new Date().toISOString().split("T")[0];
+        const date = new Date(rawDate + "T00:00:00");
+        if (Number.isNaN(date.getTime())) return rawDate;
+        return new Intl.DateTimeFormat("id-ID", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(date);
+      },
+
+      startAttendanceSession(schedule) {
+        const cacheKey = this.attendanceSessionCacheKey(schedule);
+        if (this.attendanceSessionInFlightKey === cacheKey) return;
+        const sessionRequestId = (this.attendanceSessionRequestId || 0) + 1;
+        const generation = this.authGeneration;
+        this.attendanceSessionRequestId = sessionRequestId;
+        this.attendanceActiveCacheKey = cacheKey;
+        this.attendanceActiveScheduleId = String(schedule.ScheduleID || "");
+        this.attendanceSearchQuery = "";
+        this.attendanceGenderScope = "Sesuai";
+        this.attendanceActiveSession = true;
+        this.attendanceSessionError = "";
+        this.attendanceOpeningScheduleId = String(schedule.ScheduleID || schedule.SessionID || "");
+        this.attendanceSessionData = {
+          ...schedule,
+          AttendanceType: schedule.Type,
+          ActivityName: schedule.SubjectOrActivityName || schedule.ActivityName,
+          AttendanceDate: this.attendanceDate,
+        };
+        this.attendanceRestoreSchedule = null;
+        this.saveViewState();
+        const cached = this.attendanceSessionCache[cacheKey];
+        if (cached) {
+          this.applyAttendanceSession(cached, schedule);
+          this.attendanceSessionLoading = false;
+          this.attendanceOpeningScheduleId = "";
+          return;
+        }
+        this.attendanceSessionLoading = true;
+        this.attendanceSessionInFlightKey = cacheKey;
+        this.attendanceStudents = [];
+        const payload = this.attendanceSchedulePayload({
+          ...schedule,
+          AttendanceDate: this.attendanceDate,
+        });
+        callGoogleScript("getAttendanceSession", payload, this.user)
+          .onSuccess((err, data) => {
+            if (sessionRequestId !== this.attendanceSessionRequestId || generation !== this.authGeneration) return;
+            if (this.attendanceSessionInFlightKey === cacheKey) this.attendanceSessionInFlightKey = "";
+            this.attendanceSessionLoading = false;
+            this.attendanceOpeningScheduleId = "";
+            if (err) {
+              this.attendanceSessionError = err.message || "Daftar santri gagal dimuat.";
+              return;
+            }
+            if ((data.records || []).length > 0) {
+              this.attendanceSessionCache[cacheKey] = {
+                ...data,
+                isLocalDraft: false,
+                scheduleId: String(schedule.ScheduleID || ""),
+              };
+            } else {
+              delete this.attendanceSessionCache[cacheKey];
+            }
+            this.applyAttendanceSession(data, schedule);
+            if (this.attendanceStudents.length === 0) {
+              const total = Number(data?.diagnostics?.totalActiveStudents || 0);
+              const classes = (data?.diagnostics?.availableClasses || []).join(", ");
+              this.attendanceSessionError = total > 0
+                ? `Terbaca ${total} santri aktif, tetapi tidak ada yang cocok dengan kelas "${schedule.ClassOrGroupName}".${classes ? ` Kelas pada data santri: ${classes}.` : ""}`
+                : "Belum ada data santri aktif yang dapat dimuat.";
+            }
+          });
+      },
+
+      attendanceSessionCacheKey(schedule) {
+        const sourceIds = Array.isArray(schedule?.SourceScheduleIDs)
+          ? schedule.SourceScheduleIDs.join(",")
+          : "";
+        return [
+          this.attendanceViewerKey(),
+          this.attendanceDate || "",
+          schedule?.ScheduleID || sourceIds || "manual",
+          schedule?.ClassOrGroupName || "",
+          schedule?.SubjectOrActivityName || schedule?.ActivityName || "",
+        ].join("|");
+      },
+
+      attendanceSchedulePayload(schedule) {
+        schedule = schedule || {};
+        const sourceScheduleIds = Array.isArray(schedule.SourceScheduleIDs)
+          ? Array.from(schedule.SourceScheduleIDs)
+          : String(schedule.SourceScheduleIDs || "").split(",");
+        return {
+          ScheduleID: String(schedule.ScheduleID || ""),
+          SourceScheduleIDs: sourceScheduleIds.map(id => String(id).trim()).filter(Boolean),
+          Type: String(schedule.Type || schedule.AttendanceType || "KBM"),
+          AttendanceType: String(schedule.AttendanceType || schedule.Type || "KBM"),
+          TeacherID: String(schedule.TeacherID || this.user?.Username || ""),
+          TeacherSourceID: String(schedule.TeacherSourceID || this.user?.TeacherSourceID || ""),
+          SubjectOrActivityName: String(
+            schedule.SubjectOrActivityName || schedule.ActivityName || "Umum",
+          ),
+          ActivityName: String(
+            schedule.ActivityName || schedule.SubjectOrActivityName || "Umum",
+          ),
+          ClassOrGroupName: String(schedule.ClassOrGroupName || ""),
+          DayOfWeek: String(schedule.DayOfWeek || this.getCurrentDayName()),
+          StartTime: String(schedule.StartTime || ""),
+          EndTime: String(schedule.EndTime || ""),
+          AttendanceDate: String(schedule.AttendanceDate || this.attendanceDate || ""),
+        };
+      },
+
+      attendanceRecordsSignature(records = this.attendanceStudents) {
+        return JSON.stringify((records || []).map(record => [
+          String(record.StudentID || ""),
+          record.status || record.Status || "Hadir",
+          record.notes || record.Notes || "",
+        ]));
+      },
+
+      applyAttendanceSession(data, schedule) {
+        this.attendanceSessionData = data.session || this.attendanceSessionData;
+        this.attendanceStudents = (data.records || []).map(record => ({
+          StudentID: record.StudentID,
+          NIS: record.NIS,
+          Name: record.Name,
+          ClassOrGroupName: record.ClassOrGroupName,
+          Gender: record.Gender || "",
+          status: record.Status || "Hadir",
+          notes: record.Notes || "",
+          AttendanceID: record.AttendanceID || "",
+        }));
+        this.attendanceSessionBaseline = this.attendanceRecordsSignature();
+        this.attendanceSessionError = "";
+        this.saveViewState();
+      },
+
+      retryAttendanceSession() {
+        const schedule = { ...(this.attendanceSessionData || {}) };
+        if (this.attendanceActiveScheduleId) {
+          schedule.ScheduleID = this.attendanceActiveScheduleId;
+        }
+        const cacheKey = this.attendanceActiveCacheKey || this.attendanceSessionCacheKey(schedule);
+        delete this.attendanceSessionCache[cacheKey];
+        this.startAttendanceSession(schedule);
+      },
+
+      startManualAttendanceSession() {
+        if (!this.manualAttendanceForm.ClassOrGroupName || !this.manualAttendanceForm.SubjectOrActivityName) {
+          return this.showToast("Lengkapi form terlebih dahulu", "error");
+        }
+        this.showManualAttendanceModal = false;
+        this.startAttendanceSession({
+          Type: this.manualAttendanceForm.Type,
+          ClassOrGroupName: this.manualAttendanceForm.ClassOrGroupName,
+          SubjectOrActivityName: this.manualAttendanceForm.SubjectOrActivityName,
+          ActivityName: this.manualAttendanceForm.SubjectOrActivityName,
+          TeacherID: this.manualAttendanceForm.TeacherID || this.user?.Username || "",
+          DayOfWeek: this.getCurrentDayName(),
+          StartTime: "",
+          EndTime: "",
+        });
+      },
+
+      closeAttendanceSession() {
+        this.attendanceSessionRequestId = (this.attendanceSessionRequestId || 0) + 1;
+        this.attendanceSessionInFlightKey = "";
+        const hasChanges =
+          this.attendanceStudents.length > 0 &&
+          this.attendanceRecordsSignature() !== this.attendanceSessionBaseline;
+        if (hasChanges) {
+          const cacheKey = this.attendanceActiveCacheKey ||
+            this.attendanceSessionCacheKey(this.attendanceSessionData || {});
+          this.attendanceSessionCache[cacheKey] = {
+            isLocalDraft: true,
+            scheduleId: this.attendanceActiveScheduleId,
+            session: { ...(this.attendanceSessionData || {}), Status: "Draft" },
+            records: this.attendanceStudents.map(student => ({
+              StudentID: student.StudentID,
+              NIS: student.NIS,
+              Name: student.Name,
+              ClassOrGroupName: student.ClassOrGroupName,
+              Gender: student.Gender || "",
+              Status: student.status,
+              Notes: student.notes,
+              AttendanceID: student.AttendanceID,
+            })),
+          };
+          const scheduleId = this.attendanceActiveScheduleId ||
+            String(this.attendanceSessionData?.ScheduleID || "");
+          this.mySchedulesToday.forEach(item => {
+            if (String(item.ScheduleID || "") === scheduleId) item.SessionStatus = "Draft";
+          });
+          this.showToast("Perubahan disimpan sementara sebagai draft di perangkat ini.", "success");
+        }
+        this.attendanceActiveSession = false;
+        this.attendanceSessionLoading = false;
+        this.attendanceOpeningScheduleId = "";
+        this.attendanceSessionError = "";
+        this.attendanceSessionData = null;
+        this.attendanceStudents = [];
+        this.attendanceGenderScope = "Sesuai";
+        this.attendanceSessionBaseline = "";
+        this.attendanceActiveCacheKey = "";
+        this.attendanceActiveScheduleId = "";
+        this.attendanceRestoreSchedule = null;
+        this.saveViewState();
+      },
+
+      submitBatchAttendance() {
+        const recordsToSave = this.attendanceScopedStudents();
+        if (this.attendanceSaving || recordsToSave.length === 0) return;
+        this.attendanceSaving = true;
+        const generation = this.authGeneration;
+
+        const payload = {
+          session: this.attendanceSchedulePayload(this.attendanceSessionData),
+          AttendanceDate: this.attendanceDate,
+          records: recordsToSave.map(s => ({
+            StudentID: s.StudentID,
+            Status: s.status,
+            Notes: s.notes
+          }))
+        };
+
+        callGoogleScript("saveAttendanceSession", payload, this.user)
+          .onSuccess((err, data) => {
+            if (generation !== this.authGeneration) return;
+            if (err) {
+              this.verifyAttendanceSave(payload, generation, err.message);
+              return;
+            }
+            this.finishAttendanceSave(data?.savedCount || payload.records.length);
+          });
+      },
+
+      verifyAttendanceSave(payload, generation, originalMessage) {
+        callGoogleScript("getAttendanceSession", {
+          ...payload.session,
+          AttendanceDate: payload.AttendanceDate,
+        }, this.user).onSuccess((err, data) => {
+          if (generation !== this.authGeneration) return;
+          if (!err && this.attendanceSaveMatches(payload.records, data?.records || [])) {
+            this.finishAttendanceSave(payload.records.length, "Absensi sudah tersimpan dan berhasil diverifikasi");
+            return;
+          }
+          this.attendanceSaving = false;
+          this.showToast(originalMessage || err?.message || "Absensi belum dapat dikonfirmasi.", "error");
+        });
+      },
+
+      attendanceSaveMatches(expectedRecords, serverRecords) {
+        const serverByStudent = {};
+        (serverRecords || []).forEach(record => {
+          serverByStudent[String(record.StudentID || "")] = record;
+        });
+        return (expectedRecords || []).length > 0 && (expectedRecords || []).every(expected => {
+          const actual = serverByStudent[String(expected.StudentID || "")];
+          return actual &&
+            String(actual.Status || "Hadir") === String(expected.Status || "Hadir") &&
+            String(actual.Notes || "") === String(expected.Notes || "");
+        });
+      },
+
+      finishAttendanceSave(savedCount, message = "Absensi berhasil disimpan") {
+        this.attendanceSaving = false;
+        this.clearAttendanceCaches();
+        this.showToast(message + (savedCount ? " (" + savedCount + " santri)" : ""), "success");
+        this.attendanceActiveSession = false;
+        this.attendanceSessionData = null;
+        this.attendanceStudents = [];
+        this.attendanceActiveCacheKey = "";
+        this.attendanceActiveScheduleId = "";
+        this.attendanceRestoreSchedule = null;
+        this.saveViewState();
+        this.loadMySchedulesToday(true);
+        if (this.attendanceView === "recap") this.loadAttendanceRecap();
+      },
+
+      setAttendanceStatusAll(status = "Hadir") {
+        this.attendanceScopedStudents().forEach(s => s.status = status);
+      },
+
+      setAttendanceView(view) {
+        this.attendanceView = view;
+        if (view === "recap") this.loadAttendanceRecap();
+        this.saveViewState();
+      },
+
+      toggleAttendanceScheduleScope() {
+        this.setAttendanceScheduleScope(!this.attendanceShowAllSchedules);
+      },
+
+      setAttendanceScheduleScope(showAll) {
+        this.attendanceShowAllSchedules = !!showAll;
+        this.saveViewState();
+        this.loadMySchedulesToday();
+      },
+
+      loadAttendanceRecap() {
+        const requestId = (this.attendanceRecapRequestId || 0) + 1;
+        const generation = this.authGeneration;
+        this.attendanceRecapRequestId = requestId;
+        this.attendanceLoading = true;
+        callGoogleScript("getAttendanceRecap", this.attendanceRecapFilters, this.user)
+          .onSuccess((err, data) => {
+            if (requestId !== this.attendanceRecapRequestId || generation !== this.authGeneration) return;
+            this.attendanceLoading = false;
+            if (err) return this.showToast(err.message, "error");
+            this.attendanceRecap = data;
+          });
+      },
+
+      attendanceStatusClass(status) {
+        const normalized = status === "Alpha" ? "Alpa" : status;
+        return {
+          "bg-green-100 text-green-800 border-green-200": normalized === "Hadir",
+          "bg-yellow-100 text-yellow-800 border-yellow-200": normalized === "Izin",
+          "bg-blue-100 text-blue-800 border-blue-200": normalized === "Sakit",
+          "bg-red-100 text-red-800 border-red-200": normalized === "Alpa",
+          "bg-orange-100 text-orange-800 border-orange-200": normalized === "Telat",
+        };
+      },
+
+      attendanceStatusShort(status) {
+        return { Hadir: "H", Izin: "I", Sakit: "S", Alpa: "A", Telat: "T" }[status] || status;
+      },
+
+      attendanceStatusCount(status) {
+        return this.attendanceScopedStudents().filter(s => s.status === status).length;
+      },
+
+      filteredAttendanceStudents() {
+        const q = String(this.attendanceSearchQuery || "").trim().toLowerCase();
+        const scoped = this.attendanceScopedStudents();
+        if (!q) return scoped;
+        return scoped.filter(student =>
+          String(student.Name || "").toLowerCase().includes(q) ||
+          String(student.NIS || "").toLowerCase().includes(q)
+        );
+      },
+
+      attendanceDefaultGenderScope(schedule = this.attendanceSessionData) {
+        const group = this.attendanceGroupFromText(schedule?.ClassOrGroupName || "");
+        return group || "";
+      },
+
+      attendanceGroupFromText(value) {
+        const text = String(value || "").toLowerCase();
+        if (/(^|\s)(ikhwan|putra|laki|lk|male)(\s|$)/.test(text)) return "Ikhwan";
+        if (/(^|\s)(akhwat|putri|perempuan|pr|female)(\s|$)/.test(text)) return "Akhwat";
+        return "";
+      },
+
+      attendanceStudentGender(student) {
+        return this.attendanceGroupFromText(
+          [student?.Gender, student?.ClassOrGroupName].filter(Boolean).join(" "),
+        );
+      },
+
+      attendanceScopedStudents() {
+        const scope = this.attendanceGenderScope === "Sesuai"
+          ? this.attendanceDefaultGenderScope()
+          : this.attendanceGenderScope;
+        if (!scope || scope === "Semua") return this.attendanceStudents;
+        if (scope === "Belum") return this.attendanceUnknownStudents();
+        return this.attendanceStudents.filter(student => this.attendanceStudentGender(student) === scope);
+      },
+
+      attendanceUnknownStudents() {
+        return this.attendanceStudents.filter(student => !this.attendanceStudentGender(student));
+      },
+
+      attendanceUnknownGenderCount() {
+        const defaultScope = this.attendanceDefaultGenderScope();
+        if (!defaultScope || this.attendanceGenderScope === "Semua") return 0;
+        return this.attendanceUnknownStudents().length;
+      },
+
+      setAttendanceGenderScope(scope) {
+        this.attendanceGenderScope = scope;
+        this.attendanceSearchQuery = "";
+      },
+
+      markAttendanceStudentGender(student, gender) {
+        if (!student?.StudentID || this.attendanceGenderSavingId) return;
+        this.attendanceGenderSavingId = String(student.StudentID);
+        callGoogleScript("updateStudentGenderBatch", [student.StudentID], gender, this.user)
+          .onSuccess((err, data) => {
+            this.attendanceGenderSavingId = "";
+            if (err) return this.showToast(err.message, "error");
+            const normalizedGender = data?.gender || gender;
+            student.Gender = normalizedGender;
+            this.showToast(data?.message || "Klasifikasi santri diperbarui.", "success");
+          });
+      },
+
+      filteredAttendanceSchedules(type) {
+        if (!type || type === "today") return this.mySchedulesToday;
+        return this.mySchedulesToday.filter(schedule => schedule.Type === type);
+      },
+
+      getUniqueClasses() {
+        const source = this.attendanceHome?.classes?.length ? this.attendanceHome.classes : this.students.map(s => s["Class/Level"]).filter(Boolean);
+        const classes = source.filter(Boolean);
+        return [...new Set(classes)].sort();
+      },
+
+      getUserNameById(username) {
+        const u = this.users.find(u => u.Username === username);
+        return u ? u.Name : username;
+      },
+
+      initScheduleWatchers() {
+        this.$watch('scheduleFilterDay', () => this.filterSchedules());
+        this.$watch('scheduleSearchQuery', () => this.filterSchedules());
       },
 
       // ===== CLEANUP =====

@@ -109,6 +109,25 @@ function getDashboardSummary(user, filters = {}) {
     return true;
   });
 
+  const studentById = {};
+  students.forEach((student) => {
+    studentById[String(student.StudentID)] = student;
+  });
+
+  const withStudentInfo = (log) => {
+    const student = studentById[String(log.StudentID)] || {};
+    return {
+      ...log,
+      StudentName: student.Name || log.StudentName || "Santri",
+      StudentNIS: student.NIS || log.StudentNIS || "",
+      StudentClass: student["Class/Level"] || log.StudentClass || "",
+      StudentLevel: student.Level || log.StudentLevel || "",
+      StudentSchoolUnit: student.SchoolUnit || log.StudentSchoolUnit || "",
+    };
+  };
+
+  const decoratedMemorizationLogs = filteredMemorizationLogs.map(withStudentInfo);
+
   const filteredIncidents = incidents.filter((incident) => {
     if (!filterByDate(incident.DateOfIncident)) return false;
     if (filters.classFilter) {
@@ -139,18 +158,18 @@ function getDashboardSummary(user, filters = {}) {
       );
     }
 
-    // Tandai sebagai 'Keterangan' agar frontend mengenalinya
-    attendanceLogs = rawAttendanceLogs.map((log) => ({
-      ...log,
-      Category: "Keterangan",
-      Surah: log.Type, // Gunakan field Surah untuk menampilkan Type di frontend
-      StudentName:
-        students.find((s) => s.StudentID === log.StudentID)?.Name || "Santri",
-    }));
+    attendanceLogs = rawAttendanceLogs
+      .filter((log) => filterByDate(log.AttendanceDate || log.DateLogged))
+      .map((log) => ({
+        ...log,
+        Category: "Keterangan",
+        Surah: log.Status || log.Type || "Hadir",
+      }))
+      .map(withStudentInfo);
   }
 
   // 2. Gabungkan log hafalan dan absensi
-  let allLogs = [...filteredMemorizationLogs, ...attendanceLogs];
+  let allLogs = [...decoratedMemorizationLogs, ...attendanceLogs];
 
   // 3. Sort gabungan
   const recentLogs = allLogs.sort(

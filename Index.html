@@ -35,8 +35,18 @@
         </div>
       </div>
 
+      <!-- SESSION RESTORE SHELL -->
+      <template x-if="authRestoring">
+        <div class="min-h-screen flex items-center justify-center bg-[#FFF5E6] px-6">
+          <div class="flex items-center gap-3 rounded-lg border border-emerald-100 bg-white px-5 py-4 text-emerald-800 shadow-sm" role="status" aria-live="polite">
+            <span class="h-5 w-5 rounded-full border-2 border-emerald-200 border-t-emerald-700 animate-spin"></span>
+            <span class="text-sm font-bold">Memulihkan halaman terakhir...</span>
+          </div>
+        </div>
+      </template>
+
       <!-- AUTHENTICATION SHELL -->
-      <template x-if="!isLoggedIn">
+      <template x-if="!authRestoring && !isLoggedIn">
         <div>
           <?!= include('Layout_Login'); ?> <?!= include('Layout_Register'); ?>
         </div>
@@ -45,7 +55,7 @@
       <?!= include('Tab_PublicLanding'); ?>
 
       <!-- APP SHELL -->
-      <div x-show="isLoggedIn" class="app-container">
+      <div x-show="!authRestoring && isLoggedIn" class="app-container">
         <?!= include('Layout_Header'); ?> <?!= include('Layout_NavMobile'); ?>
         <?!= include('Layout_NavDesktop'); ?>
         <!-- Main Content Wrapper -->
@@ -57,6 +67,7 @@
           <?!= include('Tab_PulangBulanan'); ?> <?!=
           include('Tab_PanduanUstadz'); ?> <?!= include('Tab_PanduanWali'); ?>
           <?!= include('Tab_Users'); ?> <?!= include('Tab_InformasiPesantren'); ?>
+          <?!= include('Tab_JadwalAdmin'); ?> <?!= include('Tab_Absensi'); ?>
         </main>
       </div>
 

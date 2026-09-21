@@ -138,7 +138,7 @@
         class="block text-[10px] font-bold text-orange-400 uppercase mb-1 tracking-widest"
         >Catatan Pembinaan</label
       >
-      <template x-if="user.Role === 'Mudir' || user.Role === 'Ustadz'">
+      <template x-if="selectedStudent && (user.Role === 'Mudir' || user.Role === 'Ustadz')">
         <div class="flex gap-2">
           <textarea
             x-model="selectedStudent.CatatanPembinaan"

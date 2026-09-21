@@ -85,6 +85,58 @@ to the end of the first row. Existing rows and existing columns are preserved.
 - Inactive Wali status is synced to linked student rows through
   `syncStudentStatus()` and also filtered from active dashboard counts.
 
+## Attendance Module
+
+Attendance is now session-based so one teacher schedule on one date maps to a
+single editable attendance session. The operational types are `Pondok`, `KBM`,
+and `Kegiatan`.
+
+Key sheets:
+
+- `Schedules` stores the source schedule used by the HP/PWA attendance flow.
+- `AttendanceSessions` stores one row per attendance session/date/schedule.
+- `Attendance` stores one row per student inside a session.
+- `SeedSchedulesMaster.gs` contains the generated importer from
+  `Database_Jadwal_Pesantren_2026_MASTER_APP_REVISI.xlsx`. It seeds missing
+  teacher accounts and upserts the 2026 KBM/non-KBM schedules with stable
+  `ScheduleID` values, so it can be run repeatedly without duplicating master
+  rows.
+
+Primary API flow:
+
+1. `getAttendanceHome(currentUser, { date })` loads the user's schedule cards
+   for the selected date and includes existing session counts.
+2. `getAttendanceSession(payload, currentUser)` opens or creates a draft
+   session and returns all students in `ClassOrGroupName`.
+3. `saveAttendanceSession(payload, currentUser)` upserts student statuses for
+   that session and updates the session summary counts.
+4. `getAttendanceRecap(filters, currentUser)` returns monthly/statistical
+   summaries by student, class, activity, and teacher.
+5. `getGuardianAttendanceSummary(studentId, month, currentUser)` returns the
+   Wali-facing monthly attendance summary for one student.
+
+Compatibility notes:
+
+- Existing `Attendance` rows without `SessionID` are still readable.
+- The old single-student `logAttendance(data)` path remains available for
+  older keterangan forms, but new class attendance should use sessions.
+- `Alpha` and `Alpa` are normalized to `Alpa` in new summaries.
+
+### Attendance student source of truth
+
+- Attendance participants are read from the `Students` sheet.
+- `Class/Level` is the canonical attendance class and should match
+  `Schedules.ClassOrGroupName`.
+- `Level + Gender` is only a fallback when `Class/Level` is empty or does not
+  yet include an Ikhwan/Akhwat group. Conflicting fallback fields must not add
+  a student to a second class.
+- Rows with `DeletedAt` are excluded.
+- Only blank, `Active`, or `Aktif` student statuses enter new attendance
+  sessions. `Lulus`, `Berhenti`, and `Inactive` remain available as historical
+  records but are excluded from attendance.
+- Operational guidance and the no-code product roadmap are documented in
+  `PANDUAN_DATA_MASTER.md`.
+
 ## Sistem Informasi Pesantren
 
 `Sistem Informasi Pesantren` is now a real content module backed by the
@@ -354,3 +406,104 @@ step-by-step format for staff.
 These notes describe the current stabilized baseline. Future UI/UX upgrades
 should build on this contract instead of reintroducing hidden menu paths or
 clamping the score logic back to 0-100.
+
+## Attendance Identity and Schedule Integrity (2026-09-16)
+
+- `TeacherSourceID` is the canonical teacher key across `Users`, `Schedules`,
+  `AttendanceSessions`, and `Attendance`. Username matching is retained only
+  for legacy rows and must be exact after normalization.
+- Session restoration resolves `Sessions.UserID` first. The browser validates
+  the session with `resumeSession()` before showing user-scoped data.
+- Attendance caches are scoped by user, teacher source, date, and schedule
+  mode. Login and logout invalidate all user-scoped state, and stale async
+  responses are rejected by an authentication generation number.
+- `SeedSchedulesMaster.gs` contains 420 official rows: 342 KBM and 78
+  activities. KBM times come from `Jadwal_KBM.waktu` in the official workbook.
+- Regenerate the constants with `tools/generate_schedule_seed.py` whenever the
+  official workbook changes. The generator validates row counts, teacher IDs,
+  and every KBM time before writing the seed.
+- `auditAttendanceIntegrity()` is read-only. `repairAttendanceIntegrity()`
+  defaults to dry-run, backs up removable empty drafts in
+  `AttendanceMigrationBackup`, preserves submitted history, and is idempotent.
+- Desktop sidebar, mobile drawer, mobile bottom bar, and the `Lainnya` menu all
+  read from one `NAVIGATION_ITEMS` configuration in `JS_App.html`.
+
+## Session Restore and Attendance Response Safety (2026-09-21)
+
+### Refresh lifecycle
+
+- The Alpine application starts with `authRestoring: true` and does not render
+  the public login page while a stored session is being checked.
+- `resumeSession()` validates the token and returns the canonical user identity
+  before any user-scoped request is allowed to populate the screen.
+- A lightweight restore shell is shown during validation. On success, the app
+  restores the previous page; on failure, it clears the invalid session and
+  shows the login page.
+- Each login/logout increments the authentication generation. Success or
+  failure callbacks created by an earlier generation are ignored.
+
+### Per-user view state
+
+The browser stores the following object in `sessionStorage`, keyed by the
+canonical user identity:
+
+```text
+{
+  currentTab,
+  attendanceView,
+  attendanceDate,
+  attendanceShowAllSchedules,
+  attendanceActiveSchedule
+}
+```
+
+Restore remains role-safe: a stored tab is accepted only if it is present in
+the active role's `NAVIGATION_ITEMS`. An attendance session is reopened only
+when its `ScheduleID` is present in the freshly authorized home response.
+
+`resetUserScopedState()` clears schedules, attendance sessions, students,
+recaps, active selections, request flags, and in-memory caches. Logout also
+removes the persisted view state so a later account cannot inherit it.
+
+### Apps Script serialization boundary
+
+Rows read with `getValues()` may contain JavaScript `Date` objects. Returning a
+raw row object through `google.script.run` can result in a success callback
+with no usable payload. This is particularly visible when reopening an
+attendance session after refresh because `AttendanceDate`, `SubmittedAt`, or
+`UpdatedAt` may be real Spreadsheet dates.
+
+All attendance responses crossing the browser boundary must use explicit DTO
+helpers:
+
+- `ATT_clientSessionSummary_()` for list/save responses; and
+- `ATT_clientSessionDetail_()` for the session editor.
+
+These helpers convert dates to ISO strings, normalize text and counts, and do
+not expose internal fields such as `_rowNumber`. New endpoints must follow the
+same rule: return arrays, plain objects, strings, numbers, booleans, or null;
+never return a raw Spreadsheet row.
+
+### Ambiguous save verification
+
+The attendance write is idempotent and keyed by session plus student. If the
+save callback has no valid response, the browser reopens the same session and
+compares every submitted `StudentID`, `Status`, and `Notes` value. A matching
+server state is treated as success; a mismatch remains an actionable error.
+This prevents a committed write from being reported as failed merely because
+the callback payload could not be serialized.
+
+### Regression commands
+
+```powershell
+node tools/test_attendance_identity_sync.js
+node tools/test_view_state.js
+```
+
+The identity test covers teacher isolation, official class matching, schedule
+card counts, legacy fallback behavior, and session-response date
+serialization. The view-state test covers per-user persistence and restoration
+of tabs, attendance filters, dates, and active sessions.
+
+The production deployment containing this fix is version `201` at deployment
+ID `AKfycbxP3xqiB3va56ipHb-aVyS4nIN1oBdgWsTsSmDnc0L24TBpV2tE4PexMMmj0Uwgu0YVsQ`.

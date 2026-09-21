@@ -1,144 +1,225 @@
-Struktur folder dibuat berdasarkan file sumber yang diunggah.
-Isi file berupa placeholder awal agar setiap file mudah dikenali.
-Anda memberikan 43 file kode yang terpisah. Berikut adalah daftar file dan isi singkatnya:
+# Santri Analytics
 
-Pembaruan terbaru yang sudah ditambahkan di workspace ini:
+Santri Analytics adalah web app Google Apps Script untuk mengelola data
+santri, absensi, hafalan, perilaku, akademik, informasi pesantren, dan laporan
+wali. Aplikasi memakai Google Sheets sebagai penyimpanan utama dan dirancang
+agar dapat digunakan dari desktop maupun HP.
 
-- Modul `Akademik` untuk raport akademik lengkap, termasuk setup periode,
-  master mapel, bobot komponen, matrix nilai, staging import, dan publish.
-- `Level` dan `Gender` pada profil santri agar mapel SMP/SMA serta
-  ikhwan/akhwat bisa difilter dengan benar.
-- `Panduan Ustadz` yang menjelaskan alur input akademik, perilaku, hafalan,
-  kehadiran, link, dan penggunaan `Sistem Informasi Pesantren`.
-- Raport santri sekarang menampilkan akademik, hafalan, perilaku, dan
-  kehadiran dalam satu tampilan yang bisa dicetak.
+Dokumentasi ini menggambarkan baseline deployment versi 201.
 
-Code.gs (Fragment 1 dari 43)
-Ini adalah bagian dari file Code.gs yang berisi fungsi-fungsi untuk mencatat dan mengambil data kehadiran santri (logAttendance, getStudentAttendance).
+## Fitur Utama
 
-Code.gs (Fragment 2 dari 43)
-Bagian lain dari Code.gs ini berisi fungsi login dan registerUser (juga createAccount) untuk manajemen autentikasi pengguna, termasuk pengecekan username duplikat, pembuatan UserID, dan hashing password dengan salt.
+- Absensi berbasis jadwal untuk `Pondok`, `KBM`, dan `Kegiatan`.
+- Sesi absensi yang dapat disimpan, dibuka kembali, dan diperbarui tanpa
+  membuat duplikasi.
+- Rekap kehadiran per santri, kelas, guru, mata pelajaran/kegiatan, dan bulan.
+- Pengelolaan santri, hafalan, perilaku, nilai akademik, dan laporan wali.
+- Sinkronisasi identitas guru melalui `TeacherSourceID`.
+- Navigasi konsisten pada sidebar desktop, drawer HP, bar bawah, dan menu
+  `Lainnya`.
+- Pemulihan halaman aktif sesudah refresh tanpa menampilkan halaman login
+  sementara.
 
-Code.gs (Fragment 3 dari 43)
-Fragment ini berisi fungsi doGet untuk melayani halaman web utama. Juga ada fungsi helper runParentContactConversion dan runCompleteSetup yang memerlukan otorisasi Mudir/Admin. Kemudian ada fungsi untuk mendapatkan laporan santri lengkap (getFullStudentReport), dan beberapa fungsi helper untuk mendapatkan daftar santri, log hafalan, dan log insiden. Bagian akhir dari fragment ini adalah modul lengkap untuk fitur "Pulang Bulanan" dengan berbagai fungsi helper (PB*getSpreadsheet*, PB*getOrCreateSheet*, PB*sheetToObjects*, dll.), fungsi CRUD (getPulangBulananLogs, savePulangBulanan, updatePulangBulanan, deletePulangBulanan), dan fungsi summary (getPulangBulananSummary).
+## Hak Akses
 
-Config.gs
-File ini mendefinisikan SPREADSHEET_ID dan REPORT_TEMPLATE_ID.
+| Peran | Akses utama |
+| --- | --- |
+| Admin | Seluruh data, user, jadwal, audit, dan perbaikan integritas |
+| Mudir | Monitoring seluruh data, semua jadwal, rekap, dan audit |
+| Ustadz | Jadwal sendiri, absensi kelas yang diampu, hafalan, dan data operasional |
+| Wali | Data dan laporan anak yang terhubung ke akun wali |
 
-Code.gs (Fragment 4 dari 43)
-Ini adalah bagian dari Code.gs yang berisi fungsi getDashboardSummary untuk mengambil ringkasan data dashboard, termasuk logika filter tanggal, penggabungan data hafalan dan absensi, serta identifikasi santri yang perlu perhatian khusus.
+Pembatasan jadwal guru diterapkan di backend. Mengubah payload dari browser
+tidak memberi Ustadz akses ke jadwal guru lain.
 
-Code.gs (Fragment 5 dari 43)
-Fragment ini berisi fungsi-fungsi helper umum seperti getSpreadsheet*, getSheet*, serializeRow, normalizeSheetData, findRowIndexById\_, dan hashPassword.
+## Arsitektur
 
-Head.html
-File ini berisi tag meta HTML dan referensi CDN untuk Tailwind CSS, Chart.js, dan font Inter.
+```text
+Browser / PWA-like UI
+        |
+        | google.script.run
+        v
+Google Apps Script backend
+        |
+        v
+Google Sheets database
+```
 
-Code.gs (Fragment 6 dari 43)
-Bagian dari Code.gs ini berisi fungsi-fungsi untuk mencatat, memperbarui, menghapus, dan mengambil data insiden (perilaku) santri (getDailyStats, logIncident, updateIncident, deleteIncident, getRecentIncidents, getStudentIncidents).
+File penting:
 
-Index.html
-Ini adalah file HTML utama yang mengintegrasikan berbagai layout dan modal menggunakan Alpine.js, termasuk kondisi login/register dan toast notification.
+| File | Tanggung jawab |
+| --- | --- |
+| `Index.html` | Shell aplikasi dan pemilihan tampilan login/aplikasi |
+| `JS_App.html` | State Alpine.js, autentikasi, cache, navigasi, dan aksi UI |
+| `Attendance.gs` | Sesi absensi, penyimpanan detail, rekap, dan laporan wali |
+| `AttendanceIntegrity.gs` | Audit serta perbaikan integritas akun/jadwal/absensi |
+| `Schedule.gs` | Pengambilan dan pengelolaan jadwal |
+| `SeedSchedulesMaster.gs` | Seed jadwal resmi tahun 2026 |
+| `Students.gs` | Pengelolaan dan pembacaan data santri |
+| `Auth.gs` | Login, logout, validasi token, dan pemulihan sesi |
+| `Layout_NavDesktop.html` | Sidebar desktop dari konfigurasi navigasi bersama |
+| `Layout_NavMobile.html` | Drawer, bar bawah, dan menu tambahan pada HP |
+| `Tab_Absensi.html` | Antarmuka jadwal dan daftar status kehadiran |
+| `Tab_JadwalAdmin.html` | Pengelolaan jadwal dan panel audit |
 
-JS_App.html
-File ini berisi kode JavaScript Alpine.js utama untuk aplikasi, termasuk manajemen state, fungsi helper (callGoogleScript, showToast, resetForm), aksi autentikasi, pengambilan data, aksi CRUD untuk santri, hafalan, kehadiran, insiden, laporan, manajemen user, dan fitur Pulang Bulanan.
+## Sumber Data Spreadsheet
 
-JS_Data.html
-File ini mendefinisikan konstanta JavaScript INCIDENT_CATEGORIES yang digunakan untuk data statis kategori insiden.
+| Sheet | Fungsi |
+| --- | --- |
+| `Students` | Data master santri dan kelas aktif |
+| `Users` | Akun aplikasi serta relasi guru/wali |
+| `Sessions` | Token sesi login |
+| `Schedules` | Jadwal Pondok, KBM, dan Kegiatan |
+| `AttendanceSessions` | Header satu sesi absensi per jadwal dan tanggal |
+| `Attendance` | Status kehadiran tiap santri |
+| `AttendanceMigrationBackup` | Cadangan draft kosong sebelum perbaikan data |
 
-Layout_Header.html
-File ini berisi markup HTML untuk header aplikasi, menampilkan nama pengguna dan peran, serta tombol logout.
+Daftar santri absensi berasal dari `Students`. Santri hanya dimuat jika
+`DeletedAt` kosong dan `Status` kosong, `Active`, atau `Aktif`. Nilai
+`Students[Class/Level]` harus cocok dengan `Schedules[ClassOrGroupName]`.
+Petunjuk koreksi data lengkap tersedia di `PANDUAN_DATA_MASTER.md`.
 
-Layout_Login.html
-File ini berisi markup HTML untuk form login.
+## Modul Absensi
 
-Layout_NavDesktop.html
-File ini berisi markup HTML untuk navigasi desktop, menampilkan tombol tab berdasarkan peran pengguna.
+Alur Ustadz:
 
-Layout_NavMobile.html
-File ini berisi markup HTML untuk navigasi bawah (bottom navigation) yang responsif untuk tampilan mobile, juga dengan tombol tab berdasarkan peran pengguna.
+1. Login dan buka `Absensi Santri`.
+2. Aplikasi mengambil jadwal milik akun berdasarkan `TeacherSourceID`, hari,
+   tanggal, dan kategori.
+3. Pilih satu jadwal.
+4. Aplikasi membuat atau membuka kembali satu draft sesi yang sama.
+5. Daftar santri diambil dari kelas jadwal dan awalnya ditandai `Hadir`.
+6. Ubah status menjadi `Izin`, `Sakit`, `Alpa`, atau `Telat` bila diperlukan.
+7. Simpan. Detail santri di-upsert berdasarkan sesi, bukan ditambahkan ulang.
 
-Layout_Register.html
-File ini berisi markup HTML untuk form registrasi akun Wali Santri.
+Endpoint utama:
 
-Layout_Toast.html
-File ini berisi markup HTML untuk komponen toast notification yang ditampilkan di bagian bawah layar.
+- `getAttendanceHome(currentUser, date)`
+- `getAttendanceSession(payload, currentUser)`
+- `saveAttendanceSession(payload, currentUser)`
+- `getAttendanceRecap(filters, currentUser)`
+- `getGuardianAttendanceSummary(studentId, month, currentUser)`
+- `auditAttendanceIntegrity(currentUser)`
+- `repairAttendanceIntegrity(options, currentUser)`
 
-Code.gs (Fragment 7 dari 43)
-Bagian dari Code.gs ini berisi fungsi-fungsi CRUD untuk tautan hafalan santri (getStudentLinks, addHafalanLink, updateHafalanLink, deleteHafalanLink).
+Identitas guru menggunakan `TeacherSourceID` sebagai kunci kanonis.
+`Username` hanya menjadi fallback tepat untuk data lama. Satu sesi ditentukan
+oleh jadwal dan tanggal sehingga membuka jadwal yang sama tidak membuat kartu
+atau sesi duplikat.
 
-Code.gs (Fragment 8 dari 43)
-Bagian dari Code.gs ini berisi fungsi-fungsi CRUD untuk log hafalan santri (logMemorization, updateMemorization, deleteMemorization, getMemorizationHistory).
+## Refresh dan Pemulihan Halaman
 
-Modal_AddStudent.html
-File ini berisi markup HTML untuk modal (pop-up) yang digunakan untuk menambahkan data santri baru.
+Browser menyimpan state tampilan per akun di `sessionStorage`, mencakup:
 
-Modal_Detail_Grafik.html
-File ini berisi markup HTML untuk konten tab "Grafik" di modal detail santri, menampilkan grafik hafalan dan perilaku.
+- tab utama;
+- subtab absensi;
+- tanggal absensi;
+- mode `Jadwal Saya` / `Semua Jadwal`; dan
+- jadwal atau sesi yang sedang dibuka.
 
-Modal_Detail_Hafalan.html
-File ini berisi markup HTML untuk konten tab "Hafalan" di modal detail santri, termasuk form input hafalan dan riwayat hafalan.
+Saat refresh, aplikasi menjalankan `resumeSession()` lebih dahulu. Shell
+pemulihan tampil sampai identitas tervalidasi, kemudian halaman sebelumnya
+dibuka kembali. State akun lama dibersihkan saat login dan logout. Respons
+asynchronous dari sesi lama ditolak memakai nomor generasi autentikasi.
 
-Modal_Detail_Laporan.html
-File ini berisi markup HTML untuk konten tab "Laporan" di modal detail santri, memungkinkan pembuatan PDF dan pengiriman laporan via WhatsApp/Email.
+## Keandalan Penyimpanan
 
-Modal_Detail_Links.html
-File ini berisi markup HTML untuk konten tab "Link Live" di modal detail santri, termasuk form input link dan daftar link yang tersimpan.
+Nilai `Date` dari Spreadsheet tidak boleh dikirim mentah ke browser karena
+`google.script.run` dapat menyelesaikan callback tanpa payload. Respons sesi
+selalu melewati DTO client yang mengubah tanggal menjadi string ISO dan hanya
+mengirim tipe data primitif.
 
-Modal_Detail_Perilaku.html
-File ini berisi markup HTML untuk konten tab "Catatan Perilaku" di modal detail santri, termasuk form input insiden dan rekam jejak perilaku.
+Jika callback penyimpanan tidak membawa respons yang valid, UI tidak langsung
+menyatakan gagal. Aplikasi membuka ulang sesi dan membandingkan `StudentID`,
+`Status`, dan `Notes`. Notifikasi berhasil ditampilkan bila data di server
+sudah sama dengan input pengguna.
 
-Modal_Detail_Raport.html
-File ini berisi markup HTML untuk konten tab "Raport" di modal detail santri, menampilkan ringkasan raport digital dan tombol cetak.
+## Jadwal Master 2026
 
-Modal_StudentDetail.html
-File ini berisi markup HTML untuk modal utama yang menampilkan detail santri, termasuk header, tab navigasi, dan area konten untuk setiap tab detail.
+Seed resmi berisi 420 jadwal:
 
-Code.gs (Fragment 9 dari 43)
-Bagian dari Code.gs ini berisi fungsi generateStudentReportPdf untuk membuat laporan PDF dari template Google Docs, getStudentFullReport (yang tampaknya tidak digunakan atau digantikan oleh getStudentReportData di fragment lain), dan sendReportToEmail.
+- 342 jadwal KBM; dan
+- 78 jadwal kegiatan.
 
-Code.gs (Fragment 10 dari 43)
-Bagian dari Code.gs ini berisi fungsi-fungsi untuk setup awal sheet Users (setupUsersSheet), inisialisasi aplikasi (initializeApp), setup lengkap aplikasi termasuk konversi kontak orang tua ke user Wali (setupCompleteApp, convertParentContactsToUsers), dan fungsi testUserManagement.
+Jam KBM mengikuti kolom `Jadwal_KBM.waktu` pada workbook master. Setelah
+workbook resmi berubah, regenerasi konstanta dengan:
 
-Code.gs (Fragment 11 dari 43)
-Bagian dari Code.gs ini berisi fungsi getStudents (termasuk logika filter berdasarkan peran dan perhitungan skor perilaku), addStudent (yang juga mendaftarkan user Wali), updateStudentNote, getStudentDetailData, getStudentAnalytics untuk data grafik, dan getStudentReportData untuk data raport.
+```powershell
+python tools/generate_schedule_seed.py
+```
 
-Style.html
-File ini berisi gaya CSS kustom untuk aplikasi, termasuk gaya Bento UI, scrollbar, navigasi aktif, dan animasi skeleton loading.
+Periksa hasil audit sebelum menerapkan perubahan ke spreadsheet produksi.
 
-Tab_Dashboard.html
-File ini berisi markup HTML untuk tab dashboard, menampilkan filter tanggal, ringkasan statistik, daftar santri yang perlu perhatian, serta log hafalan dan insiden terbaru.
+## Setup
 
-Tab_Hafalan.html
-File ini berisi markup HTML untuk tab "Input Aktivitas Santri", dengan toggle antara form input hafalan dan form input keterangan (sakit/izin/alpha), serta daftar 5 aktivitas terakhir.
+1. Isi `SPREADSHEET_ID` dan konfigurasi lain di `Config.gs`.
+2. Pastikan seluruh sheet dan header wajib tersedia melalui fungsi setup.
+3. Jalankan seed jadwal hanya dari akun Mudir/Admin yang berwenang.
+4. Isi `TeacherSourceID` pada akun pengajar dan jadwal.
+5. Deploy sebagai Google Apps Script Web App.
+6. Uji login minimal sebagai Mudir, Ustadz, Ustadzah, Admin, dan Wali.
 
-Tab_LinkLive.html
-File ini berisi markup HTML untuk tab "Link Live Hafalan Santri", termasuk form untuk menambah/mengedit link dan daftar link yang tersimpan.
+Migrasi dan setup dibuat idempoten: menjalankannya kembali tidak boleh membuat
+header, jadwal, atau sesi yang sama menjadi berlipat.
 
-Tab_PanduanUstadz.html
-File ini berisi markup HTML untuk tab "Panduan Ustadz", menjelaskan aturan pencatatan pelanggaran dan prestasi.
+## Pengujian Lokal
 
-Tab_PanduanWali.html
-File ini berisi markup HTML untuk tab "Panduan Wali Santri", menjelaskan cara memantau perkembangan, membaca laporan, dan kerjasama pembinaan.
+Jalankan regresi identitas, jadwal, kelas, dan serialisasi:
 
-Tab_PerilakuInput.html
-File ini berisi markup HTML untuk tab "Input Catatan Perilaku", termasuk form input dan tombol cepat untuk insiden umum, serta daftar evaluasi perilaku terbaru.
+```powershell
+node tools/test_attendance_identity_sync.js
+```
 
-Tab_PerilakuList.html
-File ini berisi markup HTML untuk tab "Daftar Kasus Perilaku", menampilkan daftar insiden terbaru dan tombol untuk menambah catatan baru.
+Jalankan regresi pemulihan halaman:
 
-Tab_PulangBulanan.html
-File ini berisi markup HTML untuk tab "Pulang Bulanan", menampilkan header, filter, ringkasan statistik pulang bulanan, tabel log pulang bulanan, dan modal form untuk mencatat/mengedit data pulang bulanan.
+```powershell
+node tools/test_view_state.js
+```
 
-Tab_Students.html
-File ini berisi markup HTML untuk tab "Daftar Santri", termasuk fitur pencarian dan filter kelas, daftar santri dalam tampilan kartu (mobile) dan tabel (desktop), serta tombol untuk menambah santri.
+Sebelum deploy, parse seluruh `.gs` dan JavaScript dalam `JS_App.html`, lalu
+jalankan:
 
-Tab_Users.html
-File ini berisi markup HTML untuk tab "Manajemen User", termasuk header, tombol konversi kontak parent dan tambah user, filter dan pencarian user, tabel daftar user, ringkasan statistik user, dan modal form untuk menambah/mengedit user.
+```powershell
+git diff --check
+```
 
-Code.gs (Fragment 12 dari 43)
-Bagian dari Code.gs ini berisi fungsi-fungsi CRUD untuk manajemen user (getUsers, addUser, updateUser, deleteUser), fungsi hashPasswordWithSalt untuk keamanan password, dan loginWithSalt untuk proses login yang lebih aman.
+## Deployment
 
-Untuk mempercantik tampilan UI, warna, tombol, dan animasi:
-Style.html (File 32): Untuk menambahkan CSS kustom, animasi global, gaya scrollbar, atau mendefinisikan kelas utilitas baru seperti .nav-active.
-File-file HTML parsial (Contoh: Layout_Header.html, Tab_Dashboard.html, Modal_AddStudent.html): Di sinilah Anda akan mengubah atau menambahkan kelas-kelas Tailwind CSS (misalnya bg-blue-500, text-white, rounded-xl, shadow-sm, hover:bg-red-100, transition-all, animate-pulse) pada elemen-elemen HTML seperti div, button, input, dan p untuk mengontrol warna, bentuk, bayangan, dan efek hover/animasi.
+Alur deployment yang disarankan:
+
+```powershell
+clasp push
+clasp version "Ringkasan perubahan"
+clasp deploy --deploymentId <DEPLOYMENT_ID> --versionNumber <VERSION>
+```
+
+Deployment produksi yang didokumentasikan:
+
+```text
+Version: 201
+Deployment ID: AKfycbxP3xqiB3va56ipHb-aVyS4nIN1oBdgWsTsSmDnc0L24TBpV2tE4PexMMmj0Uwgu0YVsQ
+```
+
+## Audit dan Pemulihan
+
+- Jalankan `auditAttendanceIntegrity()` untuk pemeriksaan tanpa perubahan.
+- Gunakan `repairAttendanceIntegrity({ dryRun: true })` terlebih dahulu.
+- Terapkan perbaikan hanya sesudah hasil dry-run diperiksa.
+- Draft kosong yang dibersihkan dicadangkan ke
+  `AttendanceMigrationBackup`.
+- Sesi `Submitted` dan riwayat lama tidak dihapus hanya karena belum memiliki
+  `TeacherSourceID`.
+
+## Dokumentasi Lanjutan
+
+- `TECHNICAL_NOTES.md`: kontrak teknis, integrasi, dan keputusan arsitektur.
+- `PANDUAN_DATA_MASTER.md`: koreksi kelas/status santri serta roadmap
+  pengaturan tanpa kode.
+- `CHANGELOG.md`: riwayat versi penting modul absensi.
+
+## Catatan Keamanan
+
+- Jangan menyimpan password plaintext di sheet atau source code.
+- Jangan membagikan token sesi melalui URL atau log publik.
+- Hak akses harus selalu diperiksa di backend, bukan hanya menyembunyikan menu.
+- Buat cadangan spreadsheet sebelum migrasi atau perbaikan massal.

@@ -1,185 +1,36 @@
 <!-- Layout Navigation Mobile -->
-<nav
-  class="app-mobile-nav md:hidden"
-  role="navigation"
-  aria-label="Navigasi mobile"
-  @keydown.escape.window="mobileMoreOpen = false; mobileDrawerOpen = false"
->
-  <div
-    x-show="mobileDrawerOpen"
-    x-transition.opacity
-    class="app-mobile-drawer-backdrop"
-    @click="mobileDrawerOpen = false"
-  ></div>
+<nav class="app-mobile-nav md:hidden" role="navigation" aria-label="Navigasi mobile"
+  @keydown.escape.window="mobileMoreOpen = false; mobileDrawerOpen = false">
+  <div x-show="mobileDrawerOpen" x-transition.opacity class="app-mobile-drawer-backdrop"
+    @click="mobileDrawerOpen = false"></div>
 
-  <aside
-    x-show="mobileDrawerOpen"
-    x-transition
-    class="app-mobile-drawer"
-    aria-label="Menu samping mobile"
-    @click.outside="mobileDrawerOpen = false"
-  >
+  <aside x-show="mobileDrawerOpen" x-transition class="app-mobile-drawer"
+    aria-label="Menu samping mobile" @click.outside="mobileDrawerOpen = false">
     <div class="app-mobile-drawer-head">
       <div class="app-sidebar-logo">SA</div>
-      <div class="min-w-0">
+      <div class="min-w-0 flex-1">
         <p class="font-black text-gray-900 leading-tight">Santri Analytics</p>
         <p class="text-xs text-gray-500 truncate" x-text="user?.Role || '-'"></p>
       </div>
-      <button
-        type="button"
-        @click="mobileDrawerOpen = false"
-        class="app-mobile-drawer-close"
-        aria-label="Tutup menu samping"
-      >
-        &times;
-      </button>
+      <button type="button" @click="mobileDrawerOpen = false" class="app-mobile-drawer-close"
+        aria-label="Tutup menu samping">&times;</button>
     </div>
 
     <nav class="app-mobile-drawer-list">
-      <a
-        href="?page=public"
-        target="_blank"
-        rel="noopener"
-        data-public-link
-        class="app-mobile-drawer-item"
-      >
-        <span class="app-mobile-more-icon" x-html="navIcon('info')"></span>
-        Website Pondok
-      </a>
-
-      <button
-        type="button"
-        @click="setCurrentTab('dashboard')"
-        class="app-mobile-drawer-item"
-        :class="{ 'is-active': currentTab === 'dashboard' }"
-      >
-        <span class="app-mobile-more-icon" x-html="navIcon('dashboard')"></span>
-        Dashboard
-      </button>
-
-      <button
-        type="button"
-        @click="setCurrentTab('santri')"
-        class="app-mobile-drawer-item"
-        :class="{ 'is-active': currentTab === 'santri' }"
-      >
-        <span class="app-mobile-more-icon" x-html="navIcon('santri')"></span>
-        Santri
-      </button>
-
-      <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
-        <div class="app-mobile-drawer-group">
-          <p class="app-mobile-drawer-label">Operasional</p>
-          <button
-            type="button"
-            @click="setCurrentTab('hafalan')"
-            class="app-mobile-drawer-item"
-            :class="{ 'is-active': currentTab === 'hafalan' }"
-          >
-            <span class="app-mobile-more-icon" x-html="navIcon('hafalan')"></span>
-            Input Hafalan
-          </button>
-          <button
-            type="button"
-            @click="setCurrentTab('akademik')"
-            class="app-mobile-drawer-item"
-            :class="{ 'is-active': currentTab === 'akademik' }"
-          >
-            <span class="app-mobile-more-icon" x-html="navIcon('akademik')"></span>
-            Akademik
-          </button>
-          <button
-            type="button"
-            @click="setCurrentTab('pelanggaran')"
-            class="app-mobile-drawer-item"
-            :class="{ 'is-active': currentTab === 'pelanggaran' }"
-          >
-            <span class="app-mobile-more-icon" x-html="navIcon('perilaku')"></span>
-            Input Perilaku
-          </button>
-          <button
-            type="button"
-            @click="setCurrentTab('list_perilaku')"
-            class="app-mobile-drawer-item"
-            :class="{ 'is-active': currentTab === 'list_perilaku' }"
-          >
-            <span class="app-mobile-more-icon" x-html="navIcon('catatan')"></span>
-            Catatan Perilaku
-          </button>
-          <button
-            type="button"
-            @click="setCurrentTab('link_live')"
-            class="app-mobile-drawer-item"
-            :class="{ 'is-active': currentTab === 'link_live' }"
-          >
-            <span class="app-mobile-more-icon" x-html="navIcon('link_live')"></span>
-            Link Hafalan
-          </button>
-        </div>
-      </template>
-
-      <div class="app-mobile-drawer-group">
-        <p class="app-mobile-drawer-label">Lainnya</p>
-        <button
-          type="button"
-          @click="setCurrentTab('informasi_pesantren')"
-          class="app-mobile-drawer-item"
-          :class="{ 'is-active': currentTab === 'informasi_pesantren' }"
-        >
-          <span class="app-mobile-more-icon" x-html="navIcon('info')"></span>
-          Sistem Informasi
-        </button>
-        <button
-          type="button"
-          @click="setCurrentTab('pulang_bulanan')"
-          class="app-mobile-drawer-item"
-          :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
-        >
-          <span class="app-mobile-more-icon" x-html="navIcon('pulang_bulanan')"></span>
-          Pulang Bulanan
-        </button>
-        <button
-          type="button"
-          @click="setCurrentTab('panduan_wali')"
-          class="app-mobile-drawer-item"
-          :class="{ 'is-active': currentTab === 'panduan_wali' }"
-        >
-          <span class="app-mobile-more-icon" x-html="navIcon('panduan')"></span>
-          Panduan Wali
-        </button>
-      </div>
-
-      <template x-if="user?.Role === 'Mudir' || user?.Role === 'Admin'">
-        <div class="app-mobile-drawer-group">
-          <p class="app-mobile-drawer-label">Administrator</p>
-          <button
-            type="button"
-            @click="setCurrentTab('users')"
-            class="app-mobile-drawer-item"
-            :class="{ 'is-active': currentTab === 'users' }"
-          >
-            <span class="app-mobile-more-icon" x-html="navIcon('users')"></span>
-            Manajemen User
-          </button>
-          <template x-if="user?.Role === 'Admin'">
-            <button
-              type="button"
-              @click="setCurrentTab('akademik')"
-              class="app-mobile-drawer-item"
-              :class="{ 'is-active': currentTab === 'akademik' }"
-            >
-              <span class="app-mobile-more-icon" x-html="navIcon('akademik')"></span>
-              Akademik
+      <template x-for="group in ['utama', 'operasional', 'lainnya', 'administrator']" :key="group">
+        <div class="app-mobile-drawer-group" x-show="visibleNavigationItems(group).length">
+          <p x-show="group !== 'utama'" class="app-mobile-drawer-label"
+            x-text="navigationGroupLabel(group)"></p>
+          <template x-for="item in visibleNavigationItems(group)" :key="item.id">
+            <button type="button" @click="handleNavigationItem(item)" class="app-mobile-drawer-item"
+              :class="{ 'is-active': !item.external && currentTab === item.id }">
+              <span class="app-mobile-more-icon" x-html="navIcon(item.icon)"></span>
+              <span x-text="item.label"></span>
             </button>
           </template>
         </div>
       </template>
-
-      <button
-        type="button"
-        @click="openChangePasswordModal()"
-        class="app-mobile-drawer-item"
-      >
+      <button type="button" @click="openChangePasswordModal()" class="app-mobile-drawer-item">
         <span class="app-mobile-more-icon" x-html="navIcon('lock')"></span>
         Ganti Password
       </button>
@@ -191,244 +42,41 @@
     </button>
   </aside>
 
-  <div
-    x-show="mobileMoreOpen"
-    x-transition.opacity
-    class="app-mobile-more-backdrop"
-    @click="mobileMoreOpen = false"
-  ></div>
-
-  <div
-    x-show="mobileMoreOpen"
-    x-transition
-    class="app-mobile-more"
-    @click.outside="mobileMoreOpen = false"
-  >
-    <p class="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
-      Menu lainnya
-    </p>
-
-    <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
-      <div class="space-y-2">
-        <button
-          type="button"
-          @click="setCurrentTab('pelanggaran')"
-          class="app-mobile-more-item"
-          :class="{ 'is-active': currentTab === 'pelanggaran' }"
-        >
-          <span class="app-mobile-more-icon" x-html="navIcon('perilaku')"></span>
-          Input Perilaku
-        </button>
-        <button
-          type="button"
-          @click="setCurrentTab('akademik')"
-          class="app-mobile-more-item"
-          :class="{ 'is-active': currentTab === 'akademik' }"
-        >
-          <span class="app-mobile-more-icon" x-html="navIcon('akademik')"></span>
-          Akademik
-        </button>
-        <button
-          type="button"
-          @click="setCurrentTab('link_live')"
-          class="app-mobile-more-item"
-          :class="{ 'is-active': currentTab === 'link_live' }"
-        >
-          <span class="app-mobile-more-icon" x-html="navIcon('link_live')"></span>
-          Link Hafalan
-        </button>
-        <button
-          type="button"
-          @click="setCurrentTab('panduan')"
-          class="app-mobile-more-item"
-          :class="{ 'is-active': currentTab === 'panduan' }"
-        >
-          <span class="app-mobile-more-icon" x-html="navIcon('panduan')"></span>
-          Panduan Ustadz
-        </button>
-      </div>
+  <div x-show="mobileMoreOpen" x-transition.opacity class="app-mobile-more-backdrop"
+    @click="mobileMoreOpen = false"></div>
+  <div x-show="mobileMoreOpen" x-transition class="app-mobile-more"
+    @click.outside="mobileMoreOpen = false">
+    <p class="text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Menu lainnya</p>
+    <template x-for="item in mobileMoreNavItems()" :key="item.id">
+      <button type="button" @click="handleNavigationItem(item)" class="app-mobile-more-item"
+        :class="{ 'is-active': currentTab === item.id }">
+        <span class="app-mobile-more-icon" x-html="navIcon(item.icon)"></span>
+        <span x-text="item.label"></span>
+      </button>
     </template>
-
-    <button
-      type="button"
-      @click="setCurrentTab('informasi_pesantren')"
-      class="app-mobile-more-item"
-      :class="{ 'is-active': currentTab === 'informasi_pesantren' }"
-    >
-      <span class="app-mobile-more-icon" x-html="navIcon('info')"></span>
-      Sistem Informasi
+    <button type="button" @click="openChangePasswordModal()" class="app-mobile-more-item">
+      <span class="app-mobile-more-icon" x-html="navIcon('lock')"></span>
+      Ganti Password
     </button>
-
-    <button
-      type="button"
-      @click="setCurrentTab('pulang_bulanan')"
-      class="app-mobile-more-item"
-      x-show="user?.Role !== 'Wali'"
-      :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
-    >
-      <span class="app-mobile-more-icon" x-html="navIcon('pulang_bulanan')"></span>
-      Pulang Bulanan
-    </button>
-
-    <button
-      type="button"
-      @click="setCurrentTab('panduan_wali')"
-      class="app-mobile-more-item"
-      :class="{ 'is-active': currentTab === 'panduan_wali' }"
-    >
-      <span class="app-mobile-more-icon" x-html="navIcon('panduan')"></span>
-      Panduan Wali
-    </button>
-
-    <template x-if="user?.Role === 'Mudir' || user?.Role === 'Admin'">
-      <div class="space-y-2">
-        <button
-          type="button"
-          @click="setCurrentTab('users')"
-          class="app-mobile-more-item"
-          :class="{ 'is-active': currentTab === 'users' }"
-        >
-          <span class="app-mobile-more-icon" x-html="navIcon('users')"></span>
-          Manajemen User
-        </button>
-        <button
-          x-show="user?.Role === 'Admin'"
-          type="button"
-          @click="setCurrentTab('akademik')"
-          class="app-mobile-more-item"
-          :class="{ 'is-active': currentTab === 'akademik' }"
-        >
-          <span class="app-mobile-more-icon" x-html="navIcon('akademik')"></span>
-          Akademik
-        </button>
-      </div>
-    </template>
-
-    <button
-      type="button"
-      @click="logout()"
-      class="app-mobile-more-item text-red-600"
-    >
+    <button type="button" @click="logout()" class="app-mobile-more-item text-red-600">
       <span class="app-mobile-more-icon" x-html="navIcon('logout')"></span>
       Keluar
     </button>
   </div>
 
   <div class="app-mobile-nav-grid">
-    <button
-      type="button"
-      @click="setCurrentTab('dashboard')"
-      class="app-mobile-nav-item"
-      :class="{ 'is-active': currentTab === 'dashboard' }"
-    >
-      <span class="app-mobile-nav-icon" x-html="navIcon('dashboard')"></span>
-      <span>Home</span>
-    </button>
-
-    <button
-      type="button"
-      @click="setCurrentTab('santri')"
-      class="app-mobile-nav-item"
-      :class="{ 'is-active': currentTab === 'santri' }"
-    >
-      <span class="app-mobile-nav-icon" x-html="navIcon('santri')"></span>
-      <span>Santri</span>
-    </button>
-
-    <template x-if="user?.Role === 'Wali'">
-      <button
-        type="button"
-        @click="setCurrentTab('informasi_pesantren')"
-        class="app-mobile-nav-item app-mobile-nav-primary"
-        :class="{ 'is-active': currentTab === 'informasi_pesantren' }"
-      >
-        <span class="app-mobile-nav-icon" x-html="navIcon('info')"></span>
-        <span>Info</span>
+    <template x-for="item in mobilePrimaryNavItems()" :key="item.id">
+      <button type="button" @click="handleNavigationItem(item)" class="app-mobile-nav-item"
+        :class="{ 'is-active': currentTab === item.id }">
+        <span class="app-mobile-nav-icon" x-html="navIcon(item.icon)"></span>
+        <span x-text="item.shortLabel"></span>
       </button>
     </template>
-
-    <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
-      <button
-        type="button"
-        @click="setCurrentTab('hafalan')"
-        class="app-mobile-nav-item app-mobile-nav-primary"
-        :class="{ 'is-active': currentTab === 'hafalan' }"
-      >
-        <span class="app-mobile-nav-icon" x-html="navIcon('hafalan')"></span>
-        <span>Hafalan</span>
-      </button>
-    </template>
-
-    <template x-if="user?.Role === 'Admin'">
-      <button
-        type="button"
-        @click="setCurrentTab('users')"
-        class="app-mobile-nav-item app-mobile-nav-primary"
-        :class="{ 'is-active': currentTab === 'users' }"
-      >
-        <span class="app-mobile-nav-icon" x-html="navIcon('users')"></span>
-        <span>User</span>
-      </button>
-    </template>
-
-    <template x-if="!['Wali', 'Mudir', 'Ustadz', 'Admin'].includes(user?.Role)">
-      <button
-        type="button"
-        @click="setCurrentTab('pulang_bulanan')"
-        class="app-mobile-nav-item app-mobile-nav-primary"
-        :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
-      >
-        <span class="app-mobile-nav-icon" x-html="navIcon('pulang_bulanan')"></span>
-        <span>Pulang</span>
-      </button>
-    </template>
-
-    <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
-      <button
-        type="button"
-        @click="setCurrentTab('list_perilaku')"
-        class="app-mobile-nav-item"
-        :class="{ 'is-active': currentTab === 'list_perilaku' }"
-      >
-        <span class="app-mobile-nav-icon" x-html="navIcon('catatan')"></span>
-        <span>Catatan</span>
-      </button>
-    </template>
-
-    <template x-if="user?.Role === 'Wali'">
-      <button
-        type="button"
-        @click="setCurrentTab('pulang_bulanan')"
-        class="app-mobile-nav-item"
-        :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
-      >
-        <span class="app-mobile-nav-icon" x-html="navIcon('pulang_bulanan')"></span>
-        <span>Pulang</span>
-      </button>
-    </template>
-
-    <template x-if="user?.Role === 'Admin'">
-      <button
-        type="button"
-        @click="setCurrentTab('informasi_pesantren')"
-        class="app-mobile-nav-item"
-        :class="{ 'is-active': currentTab === 'informasi_pesantren' }"
-      >
-        <span class="app-mobile-nav-icon" x-html="navIcon('info')"></span>
-        <span>Info</span>
-      </button>
-    </template>
-
-    <button
-      type="button"
-      @click.stop="mobileMoreOpen = !mobileMoreOpen"
-      class="app-mobile-nav-item"
-      :class="{ 'is-active': mobileMoreOpen || (user?.Role === 'Wali' && ['panduan_wali'].includes(currentTab)) || ((user?.Role === 'Mudir' || user?.Role === 'Ustadz') && ['akademik', 'pelanggaran', 'link_live', 'panduan', 'panduan_wali', 'users', 'informasi_pesantren', 'pulang_bulanan'].includes(currentTab)) || (user?.Role === 'Admin' && ['akademik', 'pulang_bulanan', 'panduan_wali'].includes(currentTab)) }"
-      aria-haspopup="menu"
-      :aria-expanded="mobileMoreOpen.toString()"
-    >
+    <button type="button" @click.stop="mobileMoreOpen = !mobileMoreOpen" class="app-mobile-nav-item"
+      :class="{ 'is-active': isMobileMoreActive() }" aria-haspopup="menu"
+      :aria-expanded="mobileMoreOpen.toString()">
       <span class="app-mobile-nav-icon" x-html="navIcon('more')"></span>
-      <span>More</span>
+      <span>Lainnya</span>
     </button>
   </div>
 </nav>

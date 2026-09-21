@@ -1,0 +1,368 @@
+<!-- Tab: Absensi -->
+<template x-if="currentTab === 'absensi' && (user?.Role === 'Mudir' || user?.Role === 'Admin' || user?.Role === 'Ustadz')">
+  <div class="space-y-5">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-800">Absensi Santri</h2>
+        <p class="text-gray-600 mt-1">Catat kehadiran pondok, KBM, dan kegiatan dari HP.</p>
+        <p class="text-sm font-semibold text-[#0f5f4a] mt-1" x-text="formatAttendanceDateLabel()"></p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input type="date" x-model="attendanceDate" @change="handleAttendanceDateChange()" :disabled="attendanceLoading" class="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm disabled:opacity-60">
+        <div x-show="user?.Role === 'Mudir' || user?.Role === 'Admin'" class="inline-flex rounded-lg border border-gray-300 bg-white p-1">
+          <button @click="setAttendanceScheduleScope(false)" :disabled="attendanceLoading && !attendanceShowAllSchedules" :class="!attendanceShowAllSchedules ? 'bg-[#0f5f4a] text-white' : 'text-gray-700 hover:bg-gray-50'" class="px-3 py-1.5 rounded-md text-sm font-bold disabled:opacity-60">
+            Jadwal Saya
+          </button>
+          <button @click="setAttendanceScheduleScope(true)" :disabled="attendanceLoading && attendanceShowAllSchedules" :class="attendanceShowAllSchedules ? 'bg-[#0f5f4a] text-white' : 'text-gray-700 hover:bg-gray-50'" class="px-3 py-1.5 rounded-md text-sm font-bold disabled:opacity-60">
+            Semua Jadwal
+          </button>
+        </div>
+        <button @click="loadMySchedulesToday(true)" :disabled="attendanceLoading" class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-70">
+          <svg class="w-5 h-5" :class="attendanceLoading ? 'animate-spin' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8 8 0 004.582 9m0 0H9m11 11v-5h-.581m0 0A8.001 8.001 0 014.582 15m15.356 2H15"/></svg>
+          <span x-text="attendanceLoading ? 'Memuat' : 'Refresh'"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="flex gap-2 overflow-x-auto pb-1">
+      <button @click="setAttendanceView('today')" :class="attendanceView === 'today' ? 'bg-[#0f5f4a] text-white' : 'bg-white text-gray-600 border border-gray-200'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap">Hari Ini</button>
+      <button @click="setAttendanceView('Pondok')" :class="attendanceView === 'Pondok' ? 'bg-[#0f5f4a] text-white' : 'bg-white text-gray-600 border border-gray-200'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap">Kehadiran Pondok</button>
+      <button @click="setAttendanceView('KBM')" :class="attendanceView === 'KBM' ? 'bg-[#0f5f4a] text-white' : 'bg-white text-gray-600 border border-gray-200'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap">KBM</button>
+      <button @click="setAttendanceView('Kegiatan')" :class="attendanceView === 'Kegiatan' ? 'bg-[#0f5f4a] text-white' : 'bg-white text-gray-600 border border-gray-200'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap">Kegiatan</button>
+      <button @click="setAttendanceView('recap')" :class="attendanceView === 'recap' ? 'bg-[#0f5f4a] text-white' : 'bg-white text-gray-600 border border-gray-200'" class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap">Rekap</button>
+    </div>
+
+    <div x-show="!attendanceActiveSession && attendanceView !== 'recap'" class="space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-lg font-bold text-gray-800">
+          Jadwal <span x-text="attendanceView === 'today' ? 'Hari Ini' : attendanceView"></span>
+          (<span x-text="getCurrentDayName()"></span>)
+        </h3>
+        <button @click="showManualAttendanceModal = true" class="px-3 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm font-bold">
+          + Manual
+        </button>
+      </div>
+
+      <div x-show="attendanceLoading" class="bg-blue-50 text-blue-800 px-4 py-3 rounded-lg border border-blue-200 flex items-center gap-3" role="status">
+        <div class="h-4 w-4 rounded-full border-2 border-blue-300 border-t-blue-700 animate-spin"></div>
+        <p class="text-sm font-bold">Memuat jadwal...</p>
+      </div>
+
+      <div x-show="!attendanceLoading && attendanceLoadError" class="bg-red-50 text-red-800 p-4 rounded-lg border border-red-200" role="alert">
+        <p class="font-bold">Jadwal gagal dimuat</p>
+        <p class="text-sm mt-1" x-text="attendanceLoadError"></p>
+        <button @click="loadMySchedulesToday()" class="mt-3 px-3 py-2 bg-white border border-red-300 text-red-900 rounded-lg text-sm font-bold">
+          Coba Lagi
+        </button>
+      </div>
+
+      <p x-show="!attendanceLoadError && filteredAttendanceSchedules(attendanceView).length > 0" class="text-sm font-semibold text-gray-600">
+        <span x-text="filteredAttendanceSchedules(attendanceView).length"></span> jadwal ditemukan.
+      </p>
+
+      <div x-show="!attendanceLoadError" :class="attendanceLoading ? 'opacity-60 pointer-events-none' : 'opacity-100'" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 transition-opacity">
+        <template x-for="(sched, schedIndex) in filteredAttendanceSchedules(attendanceView)" :key="String(sched.ScheduleID || sched.SessionID || 'jadwal') + '-' + schedIndex">
+          <button @click="startAttendanceSession(sched)" :disabled="attendanceSessionLoading" class="text-left bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:border-[#0f5f4a] transition-colors disabled:opacity-70">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex flex-wrap gap-2 items-center">
+                  <span class="px-2 py-1 text-[11px] font-black rounded-full" :class="sched.Type === 'Pondok' ? 'bg-emerald-100 text-emerald-800' : (sched.Type === 'KBM' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800')" x-text="sched.Type"></span>
+                  <span class="px-2 py-1 text-[11px] font-bold rounded-full bg-gray-100 text-gray-700" x-show="sched.StartTime" x-text="sched.StartTime + (sched.EndTime ? ' - ' + sched.EndTime : '')"></span>
+                  <span class="px-2 py-1 text-[11px] font-black rounded-full bg-orange-100 text-orange-700" x-show="sched.IsCurrentTime">Jam ini</span>
+                </div>
+                <h4 class="text-lg font-black text-gray-900 mt-2 leading-tight" x-text="sched.SubjectOrActivityName || sched.ActivityName"></h4>
+                <p class="text-sm text-gray-600 mt-1">Kelas: <strong x-text="sched.ClassOrGroupName"></strong></p>
+              </div>
+              <span class="text-[11px] font-bold px-2 py-1 rounded-full shrink-0" :class="attendanceOpeningScheduleId === String(sched.ScheduleID || sched.SessionID || '') ? 'bg-blue-100 text-blue-700' : (sched.SessionStatus === 'Submitted' ? 'bg-green-100 text-green-700' : (sched.SessionStatus === 'Draft' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'))" x-text="attendanceOpeningScheduleId === String(sched.ScheduleID || sched.SessionID || '') ? 'Membuka...' : (sched.SessionStatus || 'Belum Absen')"></span>
+            </div>
+            <div class="grid grid-cols-5 gap-2 mt-4 text-center text-xs" x-show="sched.TotalStudents">
+              <div class="rounded bg-green-50 py-2"><strong x-text="sched.HadirCount || 0"></strong><br>Hadir</div>
+              <div class="rounded bg-yellow-50 py-2"><strong x-text="sched.IzinCount || 0"></strong><br>Izin</div>
+              <div class="rounded bg-blue-50 py-2"><strong x-text="sched.SakitCount || 0"></strong><br>Sakit</div>
+              <div class="rounded bg-red-50 py-2"><strong x-text="sched.AlpaCount || 0"></strong><br>Alpa</div>
+              <div class="rounded bg-orange-50 py-2"><strong x-text="sched.TelatCount || 0"></strong><br>Telat</div>
+            </div>
+          </button>
+        </template>
+
+        <div x-show="!attendanceLoading && filteredAttendanceSchedules(attendanceView).length === 0" class="col-span-full bg-yellow-50 text-yellow-800 p-4 rounded-lg border border-yellow-200">
+          <p class="font-bold" x-text="attendanceShowAllSchedules ? 'Tidak ada jadwal pada kategori ini.' : 'Tidak ada jadwal untuk akun ini pada kategori ini.'"></p>
+          <p class="text-sm mt-1" x-text="attendanceShowAllSchedules ? 'Cek tanggal, kategori, atau data jadwal master.' : 'Untuk Mudir/Admin, gunakan Semua Jadwal bila ingin melihat jadwal seluruh pengajar.'"></p>
+          <div x-show="user?.Role === 'Mudir' || user?.Role === 'Admin'" class="mt-3 flex flex-wrap gap-2">
+            <button x-show="!attendanceShowAllSchedules" @click="setAttendanceScheduleScope(true)" class="px-3 py-2 bg-[#0f5f4a] text-white rounded-lg text-sm font-bold">
+              Lihat Semua Jadwal
+            </button>
+            <button @click="runSeedSchedules()" class="px-3 py-2 bg-white border border-yellow-300 text-yellow-900 rounded-lg text-sm font-bold">
+              Import Jadwal Master 2026
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="attendanceActiveSession" class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200" style="display: none;">
+      <div class="p-4 border-b bg-gray-50 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <button @click="closeAttendanceSession()" class="text-blue-700 hover:text-blue-900 text-sm font-bold mb-2">&larr; Kembali</button>
+          <div class="flex flex-wrap gap-2 items-center">
+            <span class="px-2 py-1 text-[11px] font-black rounded-full bg-blue-100 text-blue-800" x-text="attendanceSessionData?.AttendanceType || attendanceSessionData?.Type"></span>
+            <span class="px-2 py-1 text-[11px] font-bold rounded-full bg-gray-100 text-gray-700" x-text="attendanceDate"></span>
+          </div>
+          <h3 class="text-xl font-black text-gray-900 mt-2" x-text="attendanceSessionData?.ActivityName || attendanceSessionData?.SubjectOrActivityName"></h3>
+          <p class="text-sm text-gray-600">Kelas: <span class="font-semibold" x-text="attendanceSessionData?.ClassOrGroupName"></span></p>
+        </div>
+        <div class="w-full md:w-auto">
+          <span class="block text-xs font-bold text-gray-500 mb-2 md:inline md:mb-0 md:mr-2">Tandai semua:</span>
+          <div class="grid grid-cols-5 gap-2 md:inline-flex md:flex-wrap md:items-center">
+          <template x-for="status in attendanceHome.statuses" :key="status">
+            <button @click="setAttendanceStatusAll(status)" :class="attendanceStatusClass(status)" class="border px-2 py-2 text-xs font-black rounded-lg min-w-0" x-text="status"></button>
+          </template>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-white border-b space-y-3">
+        <div x-show="attendanceSessionLoading" class="bg-blue-50 text-blue-800 px-3 py-2 rounded-lg border border-blue-200 flex items-center gap-3">
+          <div class="h-4 w-4 rounded-full border-2 border-blue-300 border-t-blue-700 animate-spin"></div>
+          <p class="text-sm font-bold">Memuat nama santri...</p>
+        </div>
+        <div x-show="!attendanceSessionLoading && attendanceSessionError" class="bg-red-50 text-red-800 px-3 py-3 rounded-lg border border-red-200" role="alert">
+          <p class="text-sm font-bold" x-text="attendanceSessionError"></p>
+          <button @click="retryAttendanceSession()" class="mt-2 px-3 py-2 bg-white border border-red-300 text-red-900 rounded-lg text-sm font-bold">
+            Coba muat lagi
+          </button>
+        </div>
+        <p x-show="attendanceStudents.length > 0" class="text-sm font-bold text-gray-700">
+          Sudah dicek <span x-text="attendanceScopedStudents().length"></span>/<span x-text="attendanceScopedStudents().length"></span>
+          <span class="mx-1">•</span> Hadir <span x-text="attendanceStatusCount('Hadir')"></span>
+          <span class="mx-1">•</span> Izin <span x-text="attendanceStatusCount('Izin')"></span>
+          <span class="mx-1">•</span> Sakit <span x-text="attendanceStatusCount('Sakit')"></span>
+          <span class="mx-1">•</span> Alpa <span x-text="attendanceStatusCount('Alpa')"></span>
+          <span class="mx-1">•</span> Telat <span x-text="attendanceStatusCount('Telat')"></span>
+        </p>
+        <div x-show="attendanceStudents.length > 0" class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div class="inline-flex w-full md:w-auto rounded-lg border border-gray-300 bg-white p-1 overflow-x-auto">
+            <template x-for="scope in ['Sesuai', 'Ikhwan', 'Akhwat', 'Belum', 'Semua']" :key="scope">
+              <button
+                @click="setAttendanceGenderScope(scope)"
+                :class="attendanceGenderScope === scope ? 'bg-[#0f5f4a] text-white' : 'text-gray-700 hover:bg-gray-50'"
+                class="px-3 py-1.5 rounded-md text-xs font-black whitespace-nowrap"
+                x-text="scope === 'Sesuai' ? 'Sesuai Jadwal' : (scope === 'Belum' ? 'Belum Klasifikasi' : scope)">
+              </button>
+            </template>
+          </div>
+          <p x-show="attendanceUnknownGenderCount() > 0" class="text-xs font-semibold text-amber-700">
+            <button @click="setAttendanceGenderScope('Belum')" class="underline font-black">
+              <span x-text="attendanceUnknownGenderCount()"></span> santri belum punya klasifikasi
+            </button>
+            <span> Ikhwan/Akhwat di data.</span>
+          </p>
+        </div>
+        <input x-show="attendanceStudents.length > 0" type="search" x-model="attendanceSearchQuery" placeholder="Cari nama santri..." class="w-full px-3 py-3 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+      </div>
+
+      <div class="md:hidden bg-white">
+        <div class="bg-blue-700 text-white px-4 py-3 text-xs font-black uppercase tracking-wide">
+          Daftar Santri
+        </div>
+        <div class="divide-y divide-gray-200">
+          <template x-for="(student, index) in filteredAttendanceStudents()" :key="'mobile-' + student.StudentID">
+            <div class="p-4 space-y-3 bg-white">
+              <div class="flex items-start gap-3">
+                <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-black text-gray-600" x-text="index + 1"></span>
+                <div class="min-w-0 flex-1">
+                  <p class="font-black text-gray-900 leading-snug break-words" x-text="student.Name"></p>
+                  <div x-show="(user?.Role === 'Mudir' || user?.Role === 'Admin') && !attendanceStudentGender(student)" class="mt-2 flex flex-wrap gap-1">
+                    <button
+                      @click="markAttendanceStudentGender(student, 'Ikhwan')"
+                      :disabled="!!attendanceGenderSavingId"
+                      class="px-2 py-1 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-800 text-[11px] font-black disabled:opacity-60">
+                      Ikhwan
+                    </button>
+                    <button
+                      @click="markAttendanceStudentGender(student, 'Akhwat')"
+                      :disabled="!!attendanceGenderSavingId"
+                      class="px-2 py-1 rounded-md border border-pink-200 bg-pink-50 text-pink-800 text-[11px] font-black disabled:opacity-60">
+                      Akhwat
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="grid grid-cols-5 gap-2">
+                <template x-for="status in attendanceHome.statuses" :key="status">
+                  <button
+                    @click="student.status = status"
+                    :class="student.status === status ? attendanceStatusClass(status) : 'bg-white text-gray-700 border-gray-300'"
+                    class="border rounded-lg h-11 min-w-0 text-sm font-black shadow-sm"
+                    x-text="attendanceStatusShort(status)">
+                  </button>
+                </template>
+              </div>
+              <input x-show="student.status !== 'Hadir'" type="text" x-model="student.notes" placeholder="Catatan..." class="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            </div>
+          </template>
+          <div x-show="attendanceSessionLoading" class="px-4 py-8 text-center text-blue-700 font-bold">Daftar santri sedang dimuat...</div>
+          <div x-show="!attendanceSessionLoading && !attendanceSessionError && filteredAttendanceStudents().length === 0" class="px-4 py-8 text-center text-gray-500">Nama santri tidak ditemukan.</div>
+        </div>
+      </div>
+
+      <div class="hidden md:block overflow-x-auto">
+        <table class="min-w-full table-fixed">
+          <thead>
+            <tr class="bg-blue-700 text-white text-xs uppercase">
+              <th class="px-3 py-3 text-left w-10">No</th>
+              <th class="px-3 py-3 text-left">Nama Lengkap</th>
+              <th class="px-3 py-3 text-center w-[224px]">Status Kehadiran</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <template x-for="(student, index) in filteredAttendanceStudents()" :key="'desktop-' + student.StudentID">
+              <tr class="bg-white hover:bg-gray-50">
+                <td class="px-3 py-3 text-sm text-gray-500" x-text="index + 1"></td>
+                <td class="px-3 py-3 min-w-[180px]">
+                  <p class="font-bold text-gray-900 break-words" x-text="student.Name"></p>
+                  <div x-show="(user?.Role === 'Mudir' || user?.Role === 'Admin') && !attendanceStudentGender(student)" class="mt-2 flex flex-wrap gap-1">
+                    <button
+                      @click="markAttendanceStudentGender(student, 'Ikhwan')"
+                      :disabled="!!attendanceGenderSavingId"
+                      class="px-2 py-1 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-800 text-[11px] font-black disabled:opacity-60">
+                      Ikhwan
+                    </button>
+                    <button
+                      @click="markAttendanceStudentGender(student, 'Akhwat')"
+                      :disabled="!!attendanceGenderSavingId"
+                      class="px-2 py-1 rounded-md border border-pink-200 bg-pink-50 text-pink-800 text-[11px] font-black disabled:opacity-60">
+                      Akhwat
+                    </button>
+                  </div>
+                  <input x-show="student.status !== 'Hadir'" type="text" x-model="student.notes" placeholder="Catatan..." class="mt-2 w-full text-xs px-2 py-1.5 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </td>
+                <td class="px-2 py-3">
+                  <div class="grid grid-cols-5 gap-1.5 justify-items-center">
+                    <template x-for="status in attendanceHome.statuses" :key="status">
+                      <button @click="student.status = status" :class="student.status === status ? attendanceStatusClass(status) : 'bg-white text-gray-600 border-gray-300'" class="border rounded-md h-9 w-9 text-sm font-black shadow-sm" x-text="attendanceStatusShort(status)"></button>
+                    </template>
+                  </div>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="attendanceSessionLoading">
+              <td colspan="3" class="px-4 py-8 text-center text-blue-700 font-bold">Daftar santri sedang dimuat...</td>
+            </tr>
+            <tr x-show="!attendanceSessionLoading && !attendanceSessionError && filteredAttendanceStudents().length === 0">
+              <td colspan="3" class="px-4 py-8 text-center text-gray-500">Nama santri tidak ditemukan.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="p-4 border-t bg-white sticky bottom-[5.75rem] md:bottom-0 z-20 shadow-[0_-8px_20px_rgba(15,23,42,0.06)] md:shadow-none">
+        <button @click="submitBatchAttendance()" :disabled="attendanceSaving || attendanceSessionLoading || attendanceScopedStudents().length === 0" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-lg disabled:opacity-50">
+          <span x-text="attendanceSaving ? 'Menyimpan...' : 'Simpan Absensi'"></span>
+        </button>
+      </div>
+    </div>
+
+    <div x-show="attendanceView === 'recap' && !attendanceActiveSession" class="space-y-4" style="display: none;">
+      <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm grid grid-cols-1 md:grid-cols-5 gap-3">
+        <input type="month" x-model="attendanceRecapFilters.month" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+        <select x-model="attendanceRecapFilters.type" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="">Semua Jenis</option>
+          <option value="Pondok">Pondok</option>
+          <option value="KBM">KBM</option>
+          <option value="Kegiatan">Kegiatan</option>
+        </select>
+        <select x-model="attendanceRecapFilters.className" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+          <option value="">Semua Kelas</option>
+          <template x-for="cls in getUniqueClasses()" :key="cls">
+            <option :value="cls" x-text="cls"></option>
+          </template>
+        </select>
+        <input type="text" x-model="attendanceRecapFilters.activityName" placeholder="Mapel/kegiatan" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+        <button @click="loadAttendanceRecap()" class="px-4 py-2 bg-[#0f5f4a] text-white rounded-lg text-sm font-bold">Tampilkan</button>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <div class="bg-white rounded-lg p-4 border border-gray-200"><p class="text-xs font-bold text-gray-500">Total</p><p class="text-2xl font-black" x-text="attendanceRecap?.summary?.total || 0"></p></div>
+        <div class="bg-white rounded-lg p-4 border border-green-100"><p class="text-xs font-bold text-green-600">Hadir</p><p class="text-2xl font-black" x-text="attendanceRecap?.summary?.hadir || 0"></p></div>
+        <div class="bg-white rounded-lg p-4 border border-yellow-100"><p class="text-xs font-bold text-yellow-600">Izin</p><p class="text-2xl font-black" x-text="attendanceRecap?.summary?.izin || 0"></p></div>
+        <div class="bg-white rounded-lg p-4 border border-blue-100"><p class="text-xs font-bold text-blue-600">Sakit</p><p class="text-2xl font-black" x-text="attendanceRecap?.summary?.sakit || 0"></p></div>
+        <div class="bg-white rounded-lg p-4 border border-red-100"><p class="text-xs font-bold text-red-600">Alpa</p><p class="text-2xl font-black" x-text="attendanceRecap?.summary?.alpa || 0"></p></div>
+        <div class="bg-white rounded-lg p-4 border border-orange-100"><p class="text-xs font-bold text-orange-600">Telat</p><p class="text-2xl font-black" x-text="attendanceRecap?.summary?.telat || 0"></p></div>
+      </div>
+
+      <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+        <div class="px-4 py-3 border-b">
+          <h3 class="font-black text-gray-800">Rekap Per Santri</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Santri</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Kelas</th>
+                <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Hadir</th>
+                <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Izin</th>
+                <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Sakit</th>
+                <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Alpa</th>
+                <th class="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">%</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <template x-for="row in attendanceRecap?.byStudent || []" :key="row.StudentID">
+                <tr>
+                  <td class="px-4 py-3 text-sm font-bold text-gray-900" x-text="row.Name"></td>
+                  <td class="px-4 py-3 text-sm text-gray-600" x-text="row.ClassOrGroupName"></td>
+                  <td class="px-4 py-3 text-sm text-center" x-text="row.hadir"></td>
+                  <td class="px-4 py-3 text-sm text-center" x-text="row.izin"></td>
+                  <td class="px-4 py-3 text-sm text-center" x-text="row.sakit"></td>
+                  <td class="px-4 py-3 text-sm text-center" x-text="row.alpa"></td>
+                  <td class="px-4 py-3 text-sm text-center font-black" x-text="row.percentage + '%'"></td>
+                </tr>
+              </template>
+              <tr x-show="!(attendanceRecap?.byStudent || []).length">
+                <td colspan="7" class="px-4 py-8 text-center text-gray-500">Belum ada data rekap.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="showManualAttendanceModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+      <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="showManualAttendanceModal = false"></div>
+        <div class="relative inline-block w-full max-w-md p-6 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
+          <h3 class="text-lg font-black leading-6 text-gray-900 mb-4">Absensi Manual</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Jenis</label>
+              <select x-model="manualAttendanceForm.Type" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                <option value="Pondok">Pondok</option>
+                <option value="KBM">KBM</option>
+                <option value="Kegiatan">Kegiatan</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Kelas / Asrama</label>
+              <select x-model="manualAttendanceForm.ClassOrGroupName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                <option value="">-- Pilih Kelas --</option>
+                <template x-for="cls in getUniqueClasses()" :key="cls">
+                  <option :value="cls" x-text="cls"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Mapel / Kegiatan</label>
+              <input type="text" x-model="manualAttendanceForm.SubjectOrActivityName" placeholder="Kehadiran Pondok, Tahfizh, Kajian..." class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end gap-3">
+            <button class="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" @click="showManualAttendanceModal = false">Batal</button>
+            <button class="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700" @click="startManualAttendanceSession()">Mulai Absen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

@@ -247,16 +247,23 @@ function getStudentReportData(studentId, periodId, currentUser) {
     (inc) => inc.IncidentType === "Improvement",
   ).length;
 
-  let statsHadir = { sakit: 0, izin: 0, alpha: 0 };
-  const attSheet = ss.getSheetByName("Attendance");
-  if (attSheet) {
-    const attendance = normalizeSheetData(
-      attSheet.getDataRange().getValues(),
-    ).filter((att) => String(att.StudentID) === String(studentId));
-
-    statsHadir.sakit = attendance.filter((a) => a.Type === "Sakit").length;
-    statsHadir.izin = attendance.filter((a) => a.Type === "Izin").length;
-    statsHadir.alpha = attendance.filter((a) => a.Type === "Alpha").length;
+  let statsHadir = { sakit: 0, izin: 0, alpha: 0, alpa: 0, hadir: 0, total: 0, percentage: 0 };
+  const currentMonth = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM");
+  if (typeof getGuardianAttendanceSummary === "function") {
+    const attendanceRes = getGuardianAttendanceSummary(studentId, currentMonth, sessionUser);
+    if (attendanceRes && attendanceRes.ok && attendanceRes.data) {
+      statsHadir = {
+        sakit: attendanceRes.data.sakit || 0,
+        izin: attendanceRes.data.izin || 0,
+        alpha: attendanceRes.data.alpa || 0,
+        alpa: attendanceRes.data.alpa || 0,
+        hadir: attendanceRes.data.hadir || 0,
+        total: attendanceRes.data.total || 0,
+        percentage: attendanceRes.data.percentage || 0,
+        month: attendanceRes.data.Month || currentMonth,
+        byActivity: attendanceRes.data.byActivity || [],
+      };
+    }
   }
 
   let predikat = "Cukup";

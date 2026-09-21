@@ -9,160 +9,22 @@
   </div>
 
   <nav class="app-sidebar-nav">
-    <a
-      href="?page=public"
-      target="_blank"
-      rel="noopener"
-      data-public-link
-      class="app-sidebar-item"
-    >
-      <span class="app-sidebar-icon" x-html="navIcon('info')"></span>
-      <span>Website Pondok</span>
-    </a>
-
-    <button
-      type="button"
-      @click="setCurrentTab('dashboard')"
-      class="app-sidebar-item"
-      :class="{ 'is-active': currentTab === 'dashboard' }"
-    >
-      <span class="app-sidebar-icon" x-html="navIcon('dashboard')"></span>
-      <span>Dashboard</span>
-    </button>
-
-    <button
-      type="button"
-      @click="setCurrentTab('santri')"
-      class="app-sidebar-item"
-      :class="{ 'is-active': currentTab === 'santri' }"
-    >
-      <span class="app-sidebar-icon" x-html="navIcon('santri')"></span>
-      <span>Santri</span>
-    </button>
-
-    <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
-      <div class="app-sidebar-section">
-        <p class="app-sidebar-label">Operasional</p>
-
-        <button
-          type="button"
-          @click="setCurrentTab('hafalan')"
-          class="app-sidebar-item"
-          :class="{ 'is-active': currentTab === 'hafalan' }"
-        >
-          <span class="app-sidebar-icon" x-html="navIcon('hafalan')"></span>
-          <span>Input Hafalan</span>
-        </button>
-
-        <button
-          type="button"
-          @click="setCurrentTab('akademik')"
-          class="app-sidebar-item"
-          :class="{ 'is-active': currentTab === 'akademik' }"
-        >
-          <span class="app-sidebar-icon" x-html="navIcon('akademik')"></span>
-          <span>Akademik</span>
-        </button>
-
-        <button
-          type="button"
-          @click="setCurrentTab('pelanggaran')"
-          class="app-sidebar-item"
-          :class="{ 'is-active': currentTab === 'pelanggaran' }"
-        >
-          <span class="app-sidebar-icon" x-html="navIcon('perilaku')"></span>
-          <span>Input Perilaku</span>
-        </button>
-
-        <button
-          type="button"
-          @click="setCurrentTab('list_perilaku')"
-          class="app-sidebar-item"
-          :class="{ 'is-active': currentTab === 'list_perilaku' }"
-        >
-          <span class="app-sidebar-icon" x-html="navIcon('catatan')"></span>
-          <span>Catatan Perilaku</span>
-        </button>
-
-        <button
-          type="button"
-          @click="setCurrentTab('link_live')"
-          class="app-sidebar-item"
-          :class="{ 'is-active': currentTab === 'link_live' }"
-        >
-          <span class="app-sidebar-icon" x-html="navIcon('link_live')"></span>
-          <span>Link Hafalan</span>
-        </button>
-      </div>
+    <template x-for="item in visibleNavigationItems('utama')" :key="item.id">
+      <button type="button" @click="handleNavigationItem(item)" class="app-sidebar-item"
+        :class="{ 'is-active': !item.external && currentTab === item.id }">
+        <span class="app-sidebar-icon" x-html="navIcon(item.icon)"></span>
+        <span x-text="item.label"></span>
+      </button>
     </template>
 
-    <div class="app-sidebar-section">
-      <p class="app-sidebar-label">Lainnya</p>
-
-      <button
-        type="button"
-        @click="setCurrentTab('informasi_pesantren')"
-        class="app-sidebar-item"
-        :class="{ 'is-active': currentTab === 'informasi_pesantren' }"
-      >
-        <span class="app-sidebar-icon" x-html="navIcon('info')"></span>
-        <span>Sistem Informasi</span>
-      </button>
-
-      <button
-        type="button"
-        @click="setCurrentTab('pulang_bulanan')"
-        class="app-sidebar-item"
-        :class="{ 'is-active': currentTab === 'pulang_bulanan' }"
-      >
-        <span class="app-sidebar-icon" x-html="navIcon('pulang_bulanan')"></span>
-        <span>Pulang Bulanan</span>
-      </button>
-
-      <template x-if="user?.Role === 'Mudir' || user?.Role === 'Ustadz'">
-        <button
-          type="button"
-          @click="setCurrentTab('panduan')"
-          class="app-sidebar-item"
-          :class="{ 'is-active': currentTab === 'panduan' }"
-        >
-          <span class="app-sidebar-icon" x-html="navIcon('panduan')"></span>
-          <span>Panduan Ustadz</span>
-        </button>
-      </template>
-
-      <button
-        type="button"
-        @click="setCurrentTab('panduan_wali')"
-        class="app-sidebar-item"
-        :class="{ 'is-active': currentTab === 'panduan_wali' }"
-      >
-        <span class="app-sidebar-icon" x-html="navIcon('panduan')"></span>
-        <span>Panduan Wali</span>
-      </button>
-    </div>
-
-    <template x-if="user?.Role === 'Mudir' || user?.Role === 'Admin'">
-      <div class="app-sidebar-section">
-        <p class="app-sidebar-label">Administrator</p>
-        <button
-          type="button"
-          @click="setCurrentTab('users')"
-          class="app-sidebar-item"
-          :class="{ 'is-active': currentTab === 'users' }"
-        >
-          <span class="app-sidebar-icon" x-html="navIcon('users')"></span>
-          <span>Manajemen User</span>
-        </button>
-        <template x-if="user?.Role === 'Admin'">
-          <button
-            type="button"
-            @click="setCurrentTab('akademik')"
-            class="app-sidebar-item"
-            :class="{ 'is-active': currentTab === 'akademik' }"
-          >
-            <span class="app-sidebar-icon" x-html="navIcon('akademik')"></span>
-            <span>Akademik</span>
+    <template x-for="group in ['operasional', 'lainnya', 'administrator']" :key="group">
+      <div class="app-sidebar-section" x-show="visibleNavigationItems(group).length">
+        <p class="app-sidebar-label" x-text="navigationGroupLabel(group)"></p>
+        <template x-for="item in visibleNavigationItems(group)" :key="item.id">
+          <button type="button" @click="handleNavigationItem(item)" class="app-sidebar-item"
+            :class="{ 'is-active': currentTab === item.id }">
+            <span class="app-sidebar-icon" x-html="navIcon(item.icon)"></span>
+            <span x-text="item.label"></span>
           </button>
         </template>
       </div>
@@ -170,10 +32,8 @@
   </nav>
 
   <div class="app-sidebar-user">
-    <div
-      class="w-10 h-10 rounded-2xl bg-gradient-islamic text-white flex items-center justify-center font-black"
-      x-text="(user?.Name || user?.Username || 'U').charAt(0).toUpperCase()"
-    ></div>
+    <div class="w-10 h-10 rounded-2xl bg-gradient-islamic text-white flex items-center justify-center font-black"
+      x-text="(user?.Name || user?.Username || 'U').charAt(0).toUpperCase()"></div>
     <div class="min-w-0 flex-1">
       <p class="font-black text-sm text-gray-900 truncate" x-text="user?.Name || user?.Username"></p>
       <p class="text-xs text-gray-500 truncate" x-text="user?.Role"></p>
