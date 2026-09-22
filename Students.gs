@@ -187,6 +187,13 @@ function getStudentReportData(studentId, periodId, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     allowAnonymous: false,
   });
+  if (
+    typeof isReportV2EnabledFor_ === "function" &&
+    isReportV2EnabledFor_(sessionUser) &&
+    typeof REPORT_buildStudentReportData_ === "function"
+  ) {
+    return REPORT_buildStudentReportData_(studentId, periodId, sessionUser);
+  }
   const ss = getSpreadsheet_();
   const studentSheet = getSheet_("Students");
   const studentData = studentSheet.getDataRange().getValues();

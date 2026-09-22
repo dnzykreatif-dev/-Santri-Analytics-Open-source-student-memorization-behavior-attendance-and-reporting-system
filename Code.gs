@@ -20,7 +20,7 @@ function doGet(e) {
   return response;
 }
 
-function testWaliDashboard() {
+function testWaliDashboard_() {
   const fakeUser = {
     Username: "81345217799",
     Role: "Wali",
@@ -58,6 +58,13 @@ function doPost(e) {
       });
     }
 
+    if (!isExternalActionAllowed_(action)) {
+      return jsonResponse_({
+        ok: false,
+        message: "Action tidak diizinkan.",
+      });
+    }
+
     const handler = globalThis[action];
     if (typeof handler !== "function") {
       return jsonResponse_({
@@ -82,6 +89,87 @@ function doPost(e) {
       message: error && error.message ? error.message : String(error),
     });
   }
+}
+
+function isExternalActionAllowed_(action) {
+  const allowed = [
+    "login",
+    "createAccount",
+    "resumeSession",
+    "logoutSession",
+    "changeOwnPassword",
+    "getDashboardSummary",
+    "getStudents",
+    "addStudent",
+    "updateStudentNote",
+    "getStudentDetailData",
+    "getStudentAnalytics",
+    "getStudentLinks",
+    "getStudentReportData",
+    "getStudentStatistics",
+    "exportStudentsCsv",
+    "issueStudentQr",
+    "resolveStudentQr",
+    "logMemorization",
+    "updateMemorization",
+    "deleteMemorization",
+    "logIncident",
+    "updateIncident",
+    "deleteIncident",
+    "logAttendance",
+    "addHafalanLink",
+    "updateHafalanLink",
+    "deleteHafalanLink",
+    "getSchedules",
+    "saveSchedule",
+    "deleteSchedule",
+    "importMasterScheduleForAttendance",
+    "getAttendanceHome",
+    "getAttendanceSession",
+    "saveAttendanceSession",
+    "getAttendanceRecap",
+    "getGuardianAttendanceSummary",
+    "auditAttendanceIntegrity",
+    "repairAttendanceIntegrity",
+    "updateStudentGenderBatch",
+    "getUsers",
+    "addUser",
+    "updateUser",
+    "deleteUser",
+    "getAcademicSetup",
+    "saveAcademicPeriod",
+    "setAcademicPeriodStatus",
+    "saveAcademicSubject",
+    "saveAssessmentComponent",
+    "getAcademicScoreMatrix",
+    "saveAcademicScores",
+    "importAcademicScoresFromStaging",
+    "updateStudentAcademicProfile",
+    "saveAcademicTeacherAssignment",
+    "setAcademicTeacherAssignmentStatus",
+    "syncAcademicTeacherAssignmentsFromSchedules",
+    "getExamEligibility",
+    "saveExamEligibilityOverride",
+    "downloadStudentReportPdf",
+    "generateStudentReportPdf",
+    "getFullStudentReport",
+    "getStudentFullReport",
+    "sendReportToEmail",
+    "getPesantrenInfo",
+    "getPublicPesantrenInfo",
+    "savePesantrenInfo",
+    "setPesantrenInfoStatus",
+    "deletePesantrenInfo",
+    "getPulangBulananLogs",
+    "getPulangBulananSummary",
+    "savePulangBulanan",
+    "updatePulangBulanan",
+    "deletePulangBulanan",
+    "runHealthCheck",
+    "runCompleteSetup",
+    "runParentContactConversion",
+  ];
+  return allowed.includes(String(action || ""));
 }
 
 function parseExternalRequest_(e) {
@@ -114,7 +202,7 @@ function runParentContactConversion(currentUser) {
       roles: ["Mudir", "Admin"],
     });
 
-    return convertParentContactsToUsers(sessionUser);
+    return convertParentContactsToUsers_(sessionUser);
   } catch (e) {
     return { ok: false, message: "Error: " + e.message };
   }
@@ -127,7 +215,7 @@ function runCompleteSetup(currentUser) {
       roles: ["Mudir", "Admin"],
     });
 
-    return setupCompleteApp(sessionUser);
+    return setupCompleteApp_(sessionUser);
   } catch (e) {
     return { ok: false, message: "Error: " + e.message };
   }
@@ -135,10 +223,10 @@ function runCompleteSetup(currentUser) {
 
 function getFullStudentReport(studentId, currentUser) {
   try {
-    requireSessionUser_(currentUser, { allowAnonymous: false });
-    const students = getStudentsList();
-    const hafalan = getHafalanLogs();
-    const perilaku = getBehaviorLogs();
+    const sessionUser = requireSessionUser_(currentUser, { allowAnonymous: false });
+    const students = getStudentsList_();
+    const hafalan = getHafalanLogs_();
+    const perilaku = getBehaviorLogs_();
 
     const student = students.find(
       (s) => String(s.StudentID) === String(studentId),
@@ -149,6 +237,11 @@ function getFullStudentReport(studentId, currentUser) {
         success: false,
         message: "Data santri tidak ditemukan",
       };
+    }
+    if (
+      typeof REPORT_requireStudentAccess_ === "function"
+    ) {
+      REPORT_requireStudentAccess_(sessionUser, student, "");
     }
 
     // Filter hafalan dan perilaku berdasarkan studentId
@@ -176,7 +269,7 @@ function getFullStudentReport(studentId, currentUser) {
 }
 
 // Helper functions untuk mengambil data dari spreadsheet
-function getStudentsList() {
+function getStudentsList_() {
   try {
     const ss = getSpreadsheet_();
     const sheet = getSheet_("Students");
@@ -196,7 +289,7 @@ function getStudentsList() {
   }
 }
 
-function getHafalanLogs() {
+function getHafalanLogs_() {
   try {
     const sheet = getSheet_("MemorizationLogs");
     const data = sheet.getDataRange().getValues();
@@ -210,7 +303,7 @@ function getHafalanLogs() {
   }
 }
 
-function getBehaviorLogs() {
+function getBehaviorLogs_() {
   try {
     const sheet = getSheet_("Incidents");
     const data = sheet.getDataRange().getValues();
@@ -281,7 +374,7 @@ const PULANG_BULANAN_HEADERS = [
 
 // Helper functions untuk Pulang Bulanan
 function PB_getSpreadsheet_() {
-  return SpreadsheetApp.openById(SPREADSHEET_ID);
+  return SpreadsheetApp.openById(getConfiguredSpreadsheetId_());
 }
 
 function PB_getOrCreateSheet_(sheetName, headers) {

@@ -11,6 +11,9 @@ const ACADEMIC_PERIOD_HEADERS = [
   "Title",
   "StartDate",
   "EndDate",
+  "GradeMode",
+  "AttendanceThreshold",
+  "EligibilityCategories",
   "Status",
   "IsLocked",
   "PublishedAt",
@@ -72,6 +75,10 @@ const ACADEMIC_DEFAULT_COMPONENTS = [
   { Name: "PAS/PAT", Weight: 20, MaxScore: 100, SortOrder: 4 },
 ];
 
+const ACADEMIC_SEMESTER_EXAM_COMPONENTS = [
+  { Name: "Ujian Semester", Weight: 100, MaxScore: 100, SortOrder: 1 },
+];
+
 function setupAcademicSheets() {
   const schemas = getAcademicSheetSchemas_();
   const results = [];
@@ -91,7 +98,56 @@ function getAcademicSheetSchemas_() {
   schemas[SHEET_ASSESSMENT_COMPONENTS] = ASSESSMENT_COMPONENT_HEADERS;
   schemas[SHEET_ACADEMIC_SCORES] = ACADEMIC_SCORE_HEADERS;
   schemas[SHEET_ACADEMIC_SCORE_IMPORT] = ACADEMIC_SCORE_IMPORT_HEADERS;
+  if (typeof ACADEMIC_TEACHER_ASSIGNMENT_HEADERS !== "undefined") {
+    schemas[SHEET_ACADEMIC_TEACHER_ASSIGNMENTS] =
+      ACADEMIC_TEACHER_ASSIGNMENT_HEADERS;
+  }
+  if (typeof EXAM_ELIGIBILITY_OVERRIDE_HEADERS !== "undefined") {
+    schemas[SHEET_EXAM_ELIGIBILITY_OVERRIDES] =
+      EXAM_ELIGIBILITY_OVERRIDE_HEADERS;
+  }
   return schemas;
+}
+
+function migrateAcademicReportV2Settings_() {
+  const sheet = getSheet_(SHEET_ACADEMIC_PERIODS);
+  if (!sheet || sheet.getLastRow() < 2) {
+    return { ok: true, data: { updated: 0 }, message: "Tidak ada periode lama." };
+  }
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0].map((header) => AC_text_(header));
+  const modeCol = headers.indexOf("GradeMode");
+  const thresholdCol = headers.indexOf("AttendanceThreshold");
+  const categoriesCol = headers.indexOf("EligibilityCategories");
+  let changed = false;
+  let updated = 0;
+  for (let index = 1; index < values.length; index++) {
+    let rowChanged = false;
+    if (modeCol !== -1 && !AC_text_(values[index][modeCol])) {
+      values[index][modeCol] = "WeightedComponents";
+      changed = true;
+      rowChanged = true;
+    }
+    if (thresholdCol !== -1 && AC_text_(values[index][thresholdCol]) === "") {
+      values[index][thresholdCol] = REPORT_DEFAULT_ATTENDANCE_THRESHOLD;
+      changed = true;
+      rowChanged = true;
+    }
+    if (categoriesCol !== -1 && !AC_text_(values[index][categoriesCol])) {
+      values[index][categoriesCol] = REPORT_DEFAULT_ELIGIBILITY_CATEGORIES.join(",");
+      changed = true;
+      rowChanged = true;
+    }
+    if (rowChanged) updated++;
+  }
+  if (changed) {
+    sheet.getRange(2, 1, values.length - 1, headers.length).setValues(values.slice(1));
+  }
+  return {
+    ok: true,
+    data: { updated },
+    message: updated + " periode lama diperbarui secara kompatibel.",
+  };
 }
 
 function getAcademicSetup(currentUser) {
@@ -100,6 +156,7 @@ function getAcademicSetup(currentUser) {
   }
 
   try {
+    const sessionUser = requireSessionUser_(currentUser, { allowAnonymous: false });
     AC_ensureSheets_();
     return AC_success_(
       {
@@ -108,6 +165,19 @@ function getAcademicSetup(currentUser) {
         components: AC_getComponents_(),
         importHeaders: ACADEMIC_SCORE_IMPORT_HEADERS,
         defaultComponents: ACADEMIC_DEFAULT_COMPONENTS,
+        assignments:
+          typeof REPORT_getTeacherAssignmentsForUser_ === "function"
+            ? REPORT_getTeacherAssignmentsForUser_(sessionUser)
+            : [],
+        teacherOptions:
+          ["Mudir", "Admin"].includes(sessionUser.Role) &&
+          typeof REPORT_getTeacherOptions_ === "function"
+            ? REPORT_getTeacherOptions_()
+            : [],
+        features: {
+          reportV2: isReportV2EnabledFor_(sessionUser),
+          rollout: getReportV2Rollout_().mode,
+        },
       },
       "Data akademik berhasil dimuat.",
     );
@@ -122,12 +192,14 @@ function saveAcademicPeriod(period, currentUser) {
   }
 
   try {
+    const sessionUser = requireSessionUser_(currentUser, { allowAnonymous: false });
     AC_ensureSheets_();
     const sheet = getSheet_(SHEET_ACADEMIC_PERIODS);
     const headers = AC_getHeaders_(sheet);
     const now = new Date().toISOString();
     const periodId = AC_text_(period && period.PeriodID);
     const existing = periodId ? AC_findById_(sheet, periodId, "PeriodID") : null;
+    const reportV2Enabled = isReportV2EnabledFor_(currentUser);
 
     if (existing && AC_bool_(existing.item.IsLocked) && !AC_canAdmin_(currentUser)) {
       return AC_error_("Periode terkunci. Hanya Mudir/Admin yang dapat mengubahnya.");
@@ -140,6 +212,28 @@ function saveAcademicPeriod(period, currentUser) {
       Title: AC_text_(period && period.Title),
       StartDate: AC_text_(period && period.StartDate),
       EndDate: AC_text_(period && period.EndDate),
+      GradeMode:
+        existing
+          ? AC_text_(existing.item.GradeMode) || "WeightedComponents"
+          : reportV2Enabled
+            ? "SemesterExamOnly"
+            : "WeightedComponents",
+      AttendanceThreshold: Math.max(
+        0,
+        Math.min(
+          100,
+          AC_num_(
+            period && period.AttendanceThreshold,
+            existing
+              ? AC_num_(existing.item.AttendanceThreshold, REPORT_DEFAULT_ATTENDANCE_THRESHOLD)
+              : REPORT_DEFAULT_ATTENDANCE_THRESHOLD,
+          ),
+        ),
+      ),
+      EligibilityCategories:
+        AC_text_(period && period.EligibilityCategories) ||
+        (existing && AC_text_(existing.item.EligibilityCategories)) ||
+        REPORT_DEFAULT_ELIGIBILITY_CATEGORIES.join(","),
       Status: AC_normalizeStatus_(period && period.Status),
       IsLocked: existing ? existing.item.IsLocked : false,
       PublishedAt: existing ? existing.item.PublishedAt : "",
@@ -149,6 +243,19 @@ function saveAcademicPeriod(period, currentUser) {
 
     if (!normalized.AcademicYear || !normalized.Semester || !normalized.Title) {
       return AC_error_("Tahun ajaran, semester, dan judul periode wajib diisi.");
+    }
+    if (
+      normalized.GradeMode === "SemesterExamOnly" &&
+      (!normalized.StartDate || !normalized.EndDate)
+    ) {
+      return AC_error_("Tanggal mulai dan selesai wajib diisi untuk raport ujian semester.");
+    }
+    if (
+      normalized.StartDate &&
+      normalized.EndDate &&
+      normalized.StartDate > normalized.EndDate
+    ) {
+      return AC_error_("Tanggal mulai tidak boleh melewati tanggal selesai.");
     }
 
     if (existing) {
@@ -278,6 +385,27 @@ function saveAssessmentComponent(component, currentUser) {
           : true,
     };
 
+    if (AC_text_(period.GradeMode) === "SemesterExamOnly") {
+      const examComponents = AC_getComponents_().filter(
+        (item) =>
+          AC_text_(item.PeriodID) === normalized.PeriodID &&
+          AC_text_(item.SubjectID) === normalized.SubjectID,
+      );
+      if (
+        !existing &&
+        examComponents.some(
+          (item) => AC_text_(item.ComponentID) !== normalized.ComponentID,
+        )
+      ) {
+        return AC_error_("Periode ujian semester hanya boleh memiliki satu komponen nilai.");
+      }
+      normalized.Name = "Ujian Semester";
+      normalized.Weight = 100;
+      normalized.MaxScore = 100;
+      normalized.SortOrder = 1;
+      normalized.IsActive = true;
+    }
+
     if (!normalized.PeriodID || !normalized.SubjectID || !normalized.Name) {
       return AC_error_("Periode, mapel, dan nama komponen wajib diisi.");
     }
@@ -306,6 +434,7 @@ function getAcademicScoreMatrix(filters, currentUser) {
   }
 
   try {
+    const sessionUser = requireSessionUser_(currentUser, { allowAnonymous: false });
     AC_ensureSheets_();
     const periodId = AC_text_(filters && filters.PeriodID);
     const subjectId = AC_text_(filters && filters.SubjectID);
@@ -330,9 +459,20 @@ function getAcademicScoreMatrix(filters, currentUser) {
         AC_text_(score.PeriodID) === periodId &&
         AC_text_(score.SubjectID) === subjectId,
     );
-    const students = AC_getStudents_()
+    let students = AC_getStudents_()
       .filter((student) => !classFilter || AC_getStudentClass_(student) === classFilter)
       .filter((student) => AC_subjectAppliesToStudent_(subject, student));
+    if (isReportV2EnabledFor_(sessionUser)) {
+      students = REPORT_filterAcademicStudents_(
+        students,
+        periodId,
+        subjectId,
+        sessionUser,
+      );
+      if (sessionUser.Role === "Ustadz" && students.length === 0) {
+        return AC_error_("Tidak ada kelas yang ditugaskan untuk mapel dan periode ini.");
+      }
+    }
 
     const rows = students.map((student) => {
       const componentScores = components.map((component) => {
@@ -381,6 +521,7 @@ function saveAcademicScores(payload, currentUser) {
   }
 
   try {
+    const sessionUser = requireSessionUser_(currentUser, { allowAnonymous: false });
     AC_ensureSheets_();
     const periodId = AC_text_(payload && payload.PeriodID);
     const subjectId = AC_text_(payload && payload.SubjectID);
@@ -400,6 +541,15 @@ function saveAcademicScores(payload, currentUser) {
       deduped[key] = item;
     });
     const items = Object.keys(deduped).map((key) => deduped[key]);
+    if (isReportV2EnabledFor_(sessionUser)) {
+      const access = REPORT_validateAcademicScoreAccess_(
+        items,
+        periodId,
+        subjectId,
+        sessionUser,
+      );
+      if (!access.ok) return AC_error_(access.message);
+    }
 
     const sheet = getSheet_(SHEET_ACADEMIC_SCORES);
     const headers = AC_getHeaders_(sheet);
@@ -431,7 +581,7 @@ function saveAcademicScores(payload, currentUser) {
         ComponentID: componentId,
         Score: scoreNumber,
         Notes: notes,
-        TeacherID: AC_text_(item.TeacherID) || AC_text_(currentUser && currentUser.Username) || "System",
+        TeacherID: AC_text_(sessionUser.Username) || "System",
         UpdatedAt: now,
       };
 
@@ -455,6 +605,7 @@ function importAcademicScoresFromStaging(periodId, currentUser) {
   }
 
   try {
+    const sessionUser = requireSessionUser_(currentUser, { allowAnonymous: false });
     AC_ensureSheets_();
     const cleanPeriodId = AC_text_(periodId);
     const period = AC_getPeriod_(cleanPeriodId);
@@ -528,6 +679,20 @@ function importAcademicScoresFromStaging(periodId, currentUser) {
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(item);
     });
+
+    if (isReportV2EnabledFor_(sessionUser)) {
+      const deniedSubject = Object.keys(grouped).find((subjectId) =>
+        !REPORT_validateAcademicScoreAccess_(
+          grouped[subjectId],
+          cleanPeriodId,
+          subjectId,
+          sessionUser,
+        ).ok,
+      );
+      if (deniedSubject) {
+        return AC_error_("Import memuat kelas atau mapel yang tidak ditugaskan kepada guru ini.");
+      }
+    }
 
     let saved = 0;
     Object.keys(grouped).forEach((subjectId) => {
@@ -803,7 +968,7 @@ function AC_ensureDefaultComponents_(periodId, subjectId) {
 
   const sheet = getSheet_(SHEET_ASSESSMENT_COMPONENTS);
   const headers = AC_getHeaders_(sheet);
-  ACADEMIC_DEFAULT_COMPONENTS.forEach((component) => {
+  AC_defaultComponentsForPeriod_(periodId).forEach((component) => {
     sheet.appendRow(
       AC_objectToRow_(
         {
@@ -820,6 +985,13 @@ function AC_ensureDefaultComponents_(periodId, subjectId) {
       ),
     );
   });
+}
+
+function AC_defaultComponentsForPeriod_(periodId) {
+  const period = AC_getPeriod_(periodId);
+  return period && AC_text_(period.GradeMode) === "SemesterExamOnly"
+    ? ACADEMIC_SEMESTER_EXAM_COMPONENTS
+    : ACADEMIC_DEFAULT_COMPONENTS;
 }
 
 function AC_ensureDefaultComponentsForPeriod_(periodId) {

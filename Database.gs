@@ -1,5 +1,5 @@
 function getSpreadsheet_() {
-  return SpreadsheetApp.openById(SPREADSHEET_ID);
+  return SpreadsheetApp.openById(getConfiguredSpreadsheetId_());
 }
 
 function getSheet_(sheetName) {

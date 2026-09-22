@@ -52,7 +52,19 @@
         Title: "",
         StartDate: "",
         EndDate: "",
+        GradeMode: "SemesterExamOnly",
+        AttendanceThreshold: 75,
+        EligibilityCategories: "KBM,Pondok,Kegiatan",
         Status: "Draft",
+      },
+      academicAssignmentForm: {
+        AssignmentID: "",
+        PeriodID: "",
+        SubjectID: "",
+        ClassOrGroupName: "",
+        TeacherSourceID: "",
+        TeacherID: "",
+        IsActive: true,
       },
       academicSubjectForm: {
         SubjectID: "",
@@ -322,6 +334,9 @@
         components: [],
         importHeaders: [],
         defaultComponents: [],
+        assignments: [],
+        teacherOptions: [],
+        features: { reportV2: false, rollout: "off" },
       },
       academicMatrixFilter: {
         PeriodID: "",
@@ -338,6 +353,7 @@
       academicPeriodForm: { ...FORM_DEFAULTS.academicPeriodForm },
       academicSubjectForm: { ...FORM_DEFAULTS.academicSubjectForm },
       academicComponentForm: { ...FORM_DEFAULTS.academicComponentForm },
+      academicAssignmentForm: { ...FORM_DEFAULTS.academicAssignmentForm },
       selectedRaportPeriodId: "",
 
       // === STATE USER MANAGEMENT ===
@@ -1492,6 +1508,9 @@
           components: [],
           importHeaders: [],
           defaultComponents: [],
+          assignments: [],
+          teacherOptions: [],
+          features: { reportV2: false, rollout: "off" },
         };
         this.academicMatrix = {
           period: null,
@@ -1915,6 +1934,10 @@
           Title: period.Title || "",
           StartDate: this.toInputDate(period.StartDate),
           EndDate: this.toInputDate(period.EndDate),
+          GradeMode: period.GradeMode || "WeightedComponents",
+          AttendanceThreshold: period.AttendanceThreshold ?? 75,
+          EligibilityCategories:
+            period.EligibilityCategories || "KBM,Pondok,Kegiatan",
           Status: period.Status || "Draft",
         };
         this.academicSection = "setup";
@@ -1923,6 +1946,13 @@
       saveAcademicPeriod() {
         if (!this.academicPeriodForm.AcademicYear || !this.academicPeriodForm.Semester || !this.academicPeriodForm.Title) {
           this.showToast("Tahun ajaran, semester, dan judul wajib diisi.", "error");
+          return;
+        }
+        if (
+          this.academicPeriodForm.GradeMode === "SemesterExamOnly" &&
+          (!this.academicPeriodForm.StartDate || !this.academicPeriodForm.EndDate)
+        ) {
+          this.showToast("Tanggal mulai dan selesai wajib diisi.", "error");
           return;
         }
         this.loadingAcademic = true;
@@ -1968,6 +1998,114 @@
             this.showToast(err.message || "Gagal mengubah status.", "error");
           })
           .setAcademicPeriodStatus(period.PeriodID, status, this.user);
+      },
+
+      resetAcademicAssignmentForm() {
+        this.academicAssignmentForm = {
+          ...FORM_DEFAULTS.academicAssignmentForm,
+          PeriodID: this.academicMatrixFilter.PeriodID || "",
+          SubjectID: this.academicMatrixFilter.SubjectID || "",
+        };
+      },
+
+      editAcademicAssignment(assignment) {
+        this.academicAssignmentForm = {
+          AssignmentID: assignment.AssignmentID || "",
+          PeriodID: assignment.PeriodID || "",
+          SubjectID: assignment.SubjectID || "",
+          ClassOrGroupName: assignment.ClassOrGroupName || "",
+          TeacherSourceID: assignment.TeacherSourceID || assignment.TeacherID || "",
+          TeacherID: assignment.TeacherID || "",
+          IsActive: assignment.IsActive !== false,
+        };
+      },
+
+      applyAcademicAssignmentTeacher() {
+        const key = this.academicAssignmentForm.TeacherSourceID;
+        const teacher = (this.academicSetup.teacherOptions || []).find(
+          (item) => (item.TeacherSourceID || item.TeacherID) === key,
+        );
+        if (!teacher) return;
+        this.academicAssignmentForm.TeacherSourceID = teacher.TeacherSourceID || "";
+        this.academicAssignmentForm.TeacherID = teacher.TeacherID || "";
+      },
+
+      saveAcademicAssignment() {
+        const form = this.academicAssignmentForm;
+        if (!form.PeriodID || !form.SubjectID || !form.ClassOrGroupName || (!form.TeacherSourceID && !form.TeacherID)) {
+          this.showToast("Periode, mapel, kelas, dan guru wajib diisi.", "error");
+          return;
+        }
+        this.loadingAcademic = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingAcademic = false;
+            if (res?.ok) {
+              this.showToast(res.message || "Penugasan tersimpan.", "success");
+              this.resetAcademicAssignmentForm();
+              this.loadAcademicSetup();
+            } else {
+              this.showToast(res?.message || "Gagal menyimpan penugasan.", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingAcademic = false;
+            this.showToast(err.message || "Gagal menyimpan penugasan.", "error");
+          })
+          .saveAcademicTeacherAssignment(form, this.user);
+      },
+
+      setAcademicAssignmentStatus(assignment, isActive) {
+        this.loadingAcademic = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingAcademic = false;
+            if (res?.ok) this.loadAcademicSetup();
+            else this.showToast(res?.message || "Gagal mengubah penugasan.", "error");
+          })
+          .withFailureHandler((err) => {
+            this.loadingAcademic = false;
+            this.showToast(err.message || "Gagal mengubah penugasan.", "error");
+          })
+          .setAcademicTeacherAssignmentStatus(assignment.AssignmentID, isActive, this.user);
+      },
+
+      syncAcademicAssignments() {
+        const periodId = this.academicAssignmentForm.PeriodID || this.academicMatrixFilter.PeriodID;
+        if (!periodId) return this.showToast("Pilih periode terlebih dahulu.", "error");
+        this.loadingAcademic = true;
+        google.script.run
+          .withSuccessHandler((preview) => {
+            this.loadingAcademic = false;
+            if (!preview?.ok) return this.showToast(preview?.message || "Pratinjau gagal.", "error");
+            const matches = preview.data?.matches?.filter(item => !item.alreadyExists).length || 0;
+            const unmatched = preview.data?.unmatched?.length || 0;
+            const unmatchedPreview = (preview.data?.unmatched || [])
+              .slice(0, 10)
+              .map(item => `${item.subject || '-'} / ${item.className || '-'} / ${item.teacher || '-'}`)
+              .join("\n");
+            const detail = unmatchedPreview ? `\n\nBelum cocok:\n${unmatchedPreview}` : "";
+            if (!confirm(`Tambahkan ${matches} penugasan? ${unmatched} jadwal tidak cocok dan perlu diperiksa manual.${detail}`)) return;
+            this.loadingAcademic = true;
+            google.script.run
+              .withSuccessHandler((res) => {
+                this.loadingAcademic = false;
+                if (res?.ok) {
+                  this.showToast(`${res.data?.created || 0} penugasan ditambahkan.`, "success");
+                  this.loadAcademicSetup();
+                } else this.showToast(res?.message || "Sinkronisasi gagal.", "error");
+              })
+              .withFailureHandler((err) => {
+                this.loadingAcademic = false;
+                this.showToast(err.message || "Sinkronisasi gagal.", "error");
+              })
+              .syncAcademicTeacherAssignmentsFromSchedules(periodId, true, this.user);
+          })
+          .withFailureHandler((err) => {
+            this.loadingAcademic = false;
+            this.showToast(err.message || "Pratinjau gagal.", "error");
+          })
+          .syncAcademicTeacherAssignmentsFromSchedules(periodId, false, this.user);
       },
 
       resetAcademicSubjectForm() {
@@ -2955,24 +3093,70 @@
 
       // ===== REPORT ACTIONS =====
       generatePDF() {
+        if (!this.selectedStudent?.StudentID || !this.selectedRaportPeriodId) {
+          this.showToast("Pilih periode raport terlebih dahulu.", "error");
+          return;
+        }
         this.loadingReport = true;
         google.script.run
           .withSuccessHandler((res) => {
             this.loadingReport = false;
-            if (res.ok) {
-              this.showToast("Laporan PDF berhasil dibuat!", "success");
-              window.open(res.data.viewUrl, "_blank");
+            if (res?.ok && res.data?.base64) {
+              const binary = atob(res.data.base64);
+              const bytes = new Uint8Array(binary.length);
+              for (let index = 0; index < binary.length; index++) {
+                bytes[index] = binary.charCodeAt(index);
+              }
+              const blob = new Blob([bytes], {
+                type: res.data.mimeType || "application/pdf",
+              });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = res.data.filename || "raport-santri.pdf";
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              this.showToast("Raport PDF berhasil diunduh.", "success");
             } else {
-              this.showToast(res.message, "error");
+              this.showToast(res?.message || "Gagal membuat PDF.", "error");
             }
           })
           .withFailureHandler((err) => {
             this.loadingReport = false;
             this.showToast("Gagal membuat PDF: " + err.message, "error");
           })
-          .generateStudentReportPdf(
+          .downloadStudentReportPdf(
             this.selectedStudent.StudentID,
-            this.teacherNote,
+            this.selectedRaportPeriodId,
+            this.user,
+          );
+      },
+
+      updateExamEligibilityOverride(decision) {
+        if (!this.raportData?.academic?.period?.PeriodID || !this.selectedStudent?.StudentID) return;
+        const actionLabel = decision === "Approved" ? "persetujuan" : "pencabutan";
+        const reason = prompt(`Masukkan alasan ${actionLabel} kelayakan ujian:`);
+        if (!reason?.trim()) return;
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res?.ok) {
+              this.showToast(res.message || "Status kelayakan diperbarui.", "success");
+              this.loadFullStudentReport(this.selectedStudent.StudentID, this.selectedRaportPeriodId);
+            } else this.showToast(res?.message || "Gagal memperbarui kelayakan.", "error");
+          })
+          .withFailureHandler((err) => {
+            this.showToast(err.message || "Gagal memperbarui kelayakan.", "error");
+          })
+          .saveExamEligibilityOverride(
+            {
+              PeriodID: this.raportData.academic.period.PeriodID,
+              StudentID: this.selectedStudent.StudentID,
+              Decision: decision,
+              Reason: reason.trim(),
+            },
+            this.user,
           );
       },
 
@@ -3026,6 +3210,7 @@
             this.selectedStudent.StudentID,
             this.teacherNote,
             this.parentEmail,
+            this.user,
           );
       },
 

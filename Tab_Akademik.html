@@ -267,6 +267,17 @@
           <input type="text" x-model="academicPeriodForm.Title" class="app-input md:col-span-2" placeholder="Raport Semester Ganjil 2026/2027" />
           <input type="date" x-model="academicPeriodForm.StartDate" class="app-input" />
           <input type="date" x-model="academicPeriodForm.EndDate" class="app-input" />
+          <select x-show="academicSetup.features?.reportV2" x-model="academicPeriodForm.GradeMode" class="app-input" disabled>
+            <option value="SemesterExamOnly">Ujian Semester 100%</option>
+            <option value="WeightedComponents">Komponen lama</option>
+          </select>
+          <label x-show="academicSetup.features?.reportV2" class="text-xs font-bold text-gray-500">
+            Ambang kehadiran ujian (%)
+            <input type="number" min="0" max="100" step="0.1" x-model.number="academicPeriodForm.AttendanceThreshold" class="app-input mt-1" />
+          </label>
+          <p x-show="academicSetup.features?.reportV2" class="md:col-span-2 text-xs text-gray-500">
+            Kehadiran dihitung dari KBM, Pondok, dan Kegiatan. Status Telat tetap dihitung hadir.
+          </p>
         </div>
         <button type="button" class="app-btn app-btn-primary w-full" @click="saveAcademicPeriod()">Simpan Periode</button>
 
@@ -332,6 +343,62 @@
               <p class="text-xs text-gray-500" x-text="(subject.Category || 'Umum') + ' / ' + (subject.Level || 'Semua') + ' / ' + (subject.Gender || 'Semua')"></p>
             </button>
           </template>
+        </div>
+      </div>
+
+      <div x-show="academicSetup.features?.reportV2" class="app-card p-6 bg-white space-y-4 xl:col-span-2">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="font-black text-gray-900">Penugasan Guru Akademik</h3>
+            <p class="text-sm text-gray-500">Penugasan ini membatasi input nilai dan akses raport guru.</p>
+          </div>
+          <div class="flex gap-2">
+            <button type="button" class="app-btn app-btn-soft" @click="resetAcademicAssignmentForm()">Baru</button>
+            <button type="button" class="app-btn app-btn-soft" @click="syncAcademicAssignments()">Sinkronkan Jadwal</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          <select x-model="academicAssignmentForm.PeriodID" class="app-input">
+            <option value="">Periode</option>
+            <template x-for="period in academicSetup.periods" :key="period.PeriodID">
+              <option :value="period.PeriodID" x-text="period.Title"></option>
+            </template>
+          </select>
+          <select x-model="academicAssignmentForm.SubjectID" class="app-input">
+            <option value="">Mapel</option>
+            <template x-for="subject in academicSetup.subjects" :key="subject.SubjectID">
+              <option :value="subject.SubjectID" x-text="subject.Name"></option>
+            </template>
+          </select>
+          <input type="text" x-model="academicAssignmentForm.ClassOrGroupName" class="app-input" placeholder="Kelas" />
+          <select x-model="academicAssignmentForm.TeacherSourceID" @change="applyAcademicAssignmentTeacher()" class="app-input">
+            <option value="">Guru</option>
+            <template x-for="teacher in academicSetup.teacherOptions || []" :key="teacher.TeacherSourceID || teacher.TeacherID">
+              <option :value="teacher.TeacherSourceID || teacher.TeacherID" x-text="teacher.TeacherID || teacher.TeacherSourceID"></option>
+            </template>
+          </select>
+        </div>
+        <button type="button" class="app-btn app-btn-primary" @click="saveAcademicAssignment()">Simpan Penugasan</button>
+
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[720px] text-sm">
+            <thead><tr class="text-left text-gray-400 border-b"><th class="py-3">Periode</th><th class="py-3">Mapel</th><th class="py-3">Kelas</th><th class="py-3">Guru</th><th class="py-3 text-right">Status</th></tr></thead>
+            <tbody class="divide-y">
+              <template x-for="assignment in academicSetup.assignments || []" :key="assignment.AssignmentID">
+                <tr>
+                  <td class="py-3" x-text="academicPeriodTitle(assignment.PeriodID)"></td>
+                  <td class="py-3" x-text="academicSubjectName(assignment.SubjectID)"></td>
+                  <td class="py-3 font-bold" x-text="assignment.ClassOrGroupName"></td>
+                  <td class="py-3" x-text="assignment.TeacherID || assignment.TeacherSourceID"></td>
+                  <td class="py-3 text-right">
+                    <button type="button" class="app-btn app-btn-soft text-xs" @click="setAcademicAssignmentStatus(assignment, !assignment.IsActive)" x-text="assignment.IsActive ? 'Nonaktifkan' : 'Aktifkan'"></button>
+                    <button type="button" class="app-btn app-btn-soft text-xs" @click="editAcademicAssignment(assignment)">Edit</button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
         </div>
       </div>
 

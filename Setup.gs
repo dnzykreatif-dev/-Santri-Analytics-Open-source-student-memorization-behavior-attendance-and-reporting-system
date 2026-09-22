@@ -187,7 +187,7 @@ const CORE_SHEET_SCHEMAS = {
   ],
 };
 
-const SCHEMA_MIGRATION_VERSION = "2026.09.16.2";
+const SCHEMA_MIGRATION_VERSION = "2026.09.22.1";
 
 function setupSheetWithHeaders_(sheetName, requiredHeaders) {
   const spreadsheet = getSpreadsheet_();
@@ -295,6 +295,23 @@ function setupCoreSheets() {
       task: "Setup academic sheets",
       result: setupAcademicSheets(),
     });
+  }
+  if (functionExists_("migrateAcademicReportV2Settings_")) {
+    const migrationResult = migrateAcademicReportV2Settings_();
+    results.push({
+      task: "Backfill report v2 period settings",
+      result: migrationResult,
+    });
+    if (migrationResult && migrationResult.ok) {
+      results.push({
+        task: "Record report v2 migration",
+        result: recordSchemaMigration_(
+          "2026.09.22.1",
+          "Add report v2 settings, teacher assignments, and exam eligibility overrides",
+          "system",
+        ),
+      });
+    }
   }
 
   return { ok: true, data: { results }, message: "Sheet inti siap." };
@@ -438,7 +455,7 @@ function initializeApp() {
 }
 
 // Setup complete application with parent contact conversion
-function setupCompleteApp() {
+function setupCompleteApp_() {
   const results = [];
 
   // Setup Users sheet
@@ -449,14 +466,14 @@ function setupCompleteApp() {
   results.push({ task: "Setup core sheets", result: coreResult });
 
   // Convert parent contacts to Wali users
-  const conversionResult = convertParentContactsToUsers();
+  const conversionResult = convertParentContactsToUsers_();
   results.push({ task: "Convert parent contacts", result: conversionResult });
 
   return { ok: true, results };
 }
 
 // Repair manual sheet entry by assigning default Wali password
-function setupDefaultWaliPasswords() {
+function setupDefaultWaliPasswords_() {
   try {
     const spreadsheet = getSpreadsheet_();
     const usersSheet = spreadsheet.getSheetByName(SHEET_USERS);
@@ -615,6 +632,12 @@ function runHealthCheck(currentUser) {
       "saveAcademicScores",
       "importAcademicScoresFromStaging",
       "updateStudentAcademicProfile",
+      "saveAcademicTeacherAssignment",
+      "setAcademicTeacherAssignmentStatus",
+      "syncAcademicTeacherAssignmentsFromSchedules",
+      "getExamEligibility",
+      "saveExamEligibilityOverride",
+      "downloadStudentReportPdf",
       "getPesantrenInfo",
       "getPublicPesantrenInfo",
       "savePesantrenInfo",
@@ -647,7 +670,7 @@ function runHealthCheck(currentUser) {
 }
 
 // Convert all parent contacts to Wali users
-function convertParentContactsToUsers() {
+function convertParentContactsToUsers_() {
   try {
     const spreadsheet = getSpreadsheet_();
     const studentsSheet = spreadsheet.getSheetByName("Students");
@@ -782,7 +805,7 @@ function convertParentContactsToUsers() {
 }
 
 // Test function to verify setup
-function testUserManagement() {
+function testUserManagement_() {
   try {
     // Test getUsers function
     const testUser = { Username: "test", Role: "Mudir" };

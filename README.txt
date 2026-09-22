@@ -200,6 +200,18 @@ Version: 201
 Deployment ID: AKfycbxP3xqiB3va56ipHb-aVyS4nIN1oBdgWsTsSmDnc0L24TBpV2tE4PexMMmj0Uwgu0YVsQ
 ```
 
+Peningkatan raport v2 menggunakan feature flag dan tidak aktif otomatis.
+Siapkan project Apps Script, Spreadsheet, serta template laporan staging yang
+terpisah, lalu atur Script Properties `SPREADSHEET_ID`, `REPORT_TEMPLATE_ID`,
+`REPORT_V2_ROLLOUT`, dan `REPORT_V2_CANARY_USERS`. Pertahankan deployment ID
+produksi agar APK tetap menggunakan URL yang sama.
+
+Jalankan regresi raport sebelum deployment:
+
+```powershell
+node tools/test_report_v2.js
+```
+
 ## Audit dan Pemulihan
 
 - Jalankan `auditAttendanceIntegrity()` untuk pemeriksaan tanpa perubahan.

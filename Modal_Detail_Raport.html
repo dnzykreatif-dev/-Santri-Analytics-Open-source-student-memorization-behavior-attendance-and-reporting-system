@@ -11,6 +11,16 @@
   <!-- Tombol Print (Hilang saat print) -->
   <div class="absolute top-4 right-4 flex gap-2 no-print">
     <button
+      x-show="raportData?.reportMeta?.version === 2"
+      @click="generatePDF()"
+      :disabled="loadingReport || !raportData?.reportMeta?.downloadable"
+      class="px-4 py-2 bg-[#0f5f4a] text-white rounded-lg text-sm font-bold hover:bg-[#0b4939] disabled:opacity-50 flex items-center gap-2"
+      title="Unduh PDF raport resmi"
+    >
+      <span aria-hidden="true">&#8595;</span>
+      <span x-text="loadingReport ? 'Menyiapkan...' : 'Unduh PDF'"></span>
+    </button>
+    <button
       @click="window.print()"
       class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-200 flex items-center gap-2"
     >
@@ -29,6 +39,13 @@
       </svg>
       Cetak
     </button>
+  </div>
+
+  <div
+    x-show="raportData?.reportMeta?.isDraft"
+    class="absolute top-20 right-8 border-2 border-yellow-500 text-yellow-700 font-black px-3 py-1 rotate-[-8deg] no-print"
+  >
+    DRAFT
   </div>
 
   <!-- HEADER RAPORT -->
@@ -278,9 +295,38 @@
         </div>
       </div>
       <p class="text-xs text-gray-500 mt-3" x-show="raportData?.attendance?.total">
-        Total catatan bulan ini:
+        <span x-text="raportData?.reportMeta?.version === 2 ? 'Total catatan periode ini:' : 'Total catatan bulan ini:'"></span>
         <span class="font-bold" x-text="raportData?.attendance?.total || 0"></span>
       </p>
+      <div x-show="raportData?.eligibility" class="mt-4 border-t pt-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-xs text-gray-500">Kelayakan Ujian</p>
+          <p
+            class="font-black"
+            :class="raportData?.eligibility?.status === 'Layak' || raportData?.eligibility?.status === 'Disetujui dengan pengecualian' ? 'text-green-700' : 'text-red-700'"
+            x-text="raportData?.eligibility?.status || '-'"
+          ></p>
+          <p class="text-xs text-gray-500">
+            Ambang <span x-text="raportData?.eligibility?.threshold || 75"></span>%
+            <span x-show="raportData?.attendance?.telat"> / Telat: <span x-text="raportData?.attendance?.telat || 0"></span></span>
+          </p>
+          <p x-show="raportData?.eligibility?.override?.reason" class="text-xs text-gray-600 mt-1" x-text="'Alasan: ' + raportData.eligibility.override.reason"></p>
+        </div>
+        <div x-show="user?.Role === 'Admin' || user?.Role === 'Mudir'" class="no-print flex gap-2">
+          <button
+            x-show="raportData?.eligibility?.status === 'Tidak layak' || raportData?.eligibility?.status === 'Data belum cukup'"
+            type="button"
+            class="app-btn app-btn-soft text-xs"
+            @click="updateExamEligibilityOverride('Approved')"
+          >Setujui Pengecualian</button>
+          <button
+            x-show="raportData?.eligibility?.status === 'Disetujui dengan pengecualian'"
+            type="button"
+            class="app-btn app-btn-soft text-xs"
+            @click="updateExamEligibilityOverride('Revoked')"
+          >Cabut Pengecualian</button>
+        </div>
+      </div>
     </div>
   </div>
 

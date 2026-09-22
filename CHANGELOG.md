@@ -68,3 +68,10 @@ pada versi deployment Google Apps Script.
 - Membatasi Ustadz ke jadwal sendiri di backend.
 - Menolak cache dan respons yang identitas penggunanya tidak sama dengan sesi
   aktif.
+# Unreleased - Raport v2
+
+- Added semester-exam-only periods while preserving legacy weighted periods.
+- Added period attendance eligibility, audited overrides, and teacher-scoped access.
+- Added authenticated on-demand PDF downloads with detailed activity appendices.
+- Added environment Script Properties and `off`/`canary`/`on` rollout controls.
+- Restricted the external HTTP dispatcher to an explicit public endpoint allowlist.

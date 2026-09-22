@@ -211,6 +211,40 @@ Student report output:
 - The report modal includes a period selector and a printable academic table.
 - Wali sees an empty state when no period has been published yet.
 
+### Report v2 rollout
+
+Report v2 is additive and disabled by default. Configure it with Script
+Properties instead of changing production IDs in source code:
+
+- `SPREADSHEET_ID`: spreadsheet for the current environment; falls back to
+  the legacy value in `Config.gs` when absent.
+- `REPORT_TEMPLATE_ID`: Google Docs report template for the environment.
+- `REPORT_V2_ROLLOUT`: `off`, `canary`, or `on`.
+- `REPORT_V2_CANARY_USERS`: comma-separated usernames enabled during canary.
+
+In `canary` mode, Mudir/Admin are enabled automatically. New periods created
+while report v2 is enabled use one `Ujian Semester` component at 100%. Existing
+periods are marked `WeightedComponents` and keep their original components.
+
+New sheets are `AcademicTeacherAssignments` and
+`ExamEligibilityOverrides`. Setup only appends missing headers/sheets. Run
+`initializeApp()` twice on a staging copy and confirm the second run creates no
+duplicates before touching production.
+
+Safe activation order:
+
+1. Clone the production spreadsheet, report template, and Apps Script project.
+2. Set staging Script Properties and enable `REPORT_V2_ROLLOUT=on` there.
+3. Run setup, health check, assignment synchronization preview, and role smoke tests.
+4. Deploy production code with `REPORT_V2_ROLLOUT=off`.
+5. Enable `canary`, validate selected users, then switch to `on`.
+6. Roll back by setting the flag to `off`; if necessary, repoint the existing
+   deployment ID to the previous secure version.
+
+Official PDFs are generated on demand, returned as authenticated base64 data,
+and downloaded by the browser. The temporary Google Docs copy is trashed in a
+`finally` block and no public Drive PDF is retained.
+
 ## Behavior Score Rules
 
 Behavior score starts at 100 and is accumulated in chronological order without
