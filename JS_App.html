@@ -1,6 +1,21 @@
 <script>
   window.app = function () {
     // ===== CONSTANTS =====
+    function localDateString(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function localMonthString(date = new Date()) {
+      return localDateString(date).slice(0, 7);
+    }
+
+    function localDayName(date = new Date()) {
+      return ["Ahad", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"][date.getDay()];
+    }
+
     const FORM_DEFAULTS = {
       memoForm: {
         StudentID: "",
@@ -43,6 +58,15 @@
         ResidencyStatus: "",
         DormitoryBlock: "",
         Room: "",
+      },
+      studentEditForm: {
+        StudentID: "",
+        NIS: "",
+        Name: "",
+        ClassLevel: "",
+        Gender: "",
+        ParentContact: "",
+        Status: "Active",
       },
       attendanceForm: { Type: "Sakit", Notes: "", Date: "" },
       academicPeriodForm: {
@@ -87,6 +111,23 @@
         SortOrder: 999,
         IsActive: true,
       },
+      curriculumExamItemForm: {
+        ItemID: "",
+        PeriodID: "",
+        SourceScheduleID: "",
+        Category: "Kegiatan",
+        Name: "",
+        ClassOrGroupName: "",
+        TeacherID: "",
+        TeacherSourceID: "",
+        AssessmentType: "Angka",
+        MaxScore: 100,
+        KKM: 75,
+        Weight: 1,
+        Rubric: "",
+        IncludeInReport: true,
+        IsActive: true,
+      },
       scheduleForm: {
         ScheduleID: "",
         Type: "KBM",
@@ -97,6 +138,7 @@
         DayOfWeek: "",
         StartTime: "",
         EndTime: "",
+        IsActive: true,
       },
       changePasswordForm: {
         oldPassword: "",
@@ -128,6 +170,7 @@
       { id: "panduan_wali", label: "Panduan Wali", shortLabel: "Panduan", icon: "panduan", group: "lainnya", roles: ["Wali", "Ustadz", "Mudir", "Admin"] },
       { id: "users", label: "Manajemen User", shortLabel: "User", icon: "users", group: "administrator", roles: ["Mudir", "Admin"] },
       { id: "jadwal_admin", label: "Manajemen Jadwal", shortLabel: "Jadwal", icon: "akademik", group: "administrator", roles: ["Mudir", "Admin"] },
+      { id: "setup_pondok", label: "Setup Pondok", shortLabel: "Setup", icon: "setup", group: "administrator", roles: ["Mudir", "Admin"] },
     ];
 
     // ===== HELPER: Google Script Call Wrapper =====
@@ -149,7 +192,7 @@
               .withFailureHandler((err) => callback(new Error(
                 err?.message || String(err || "Koneksi ke server gagal."),
               )))
-              [methodName](...args);
+              .runAppAction({ action: methodName, args });
           } catch (err) {
             callback(new Error(err?.message || "Data tidak dapat dikirim ke server."));
           }
@@ -159,7 +202,7 @@
           google.script.run
             .withSuccessHandler(callback)
             .withFailureHandler((err) => callback(null, null, err))
-            [methodName](...args);
+            .runAppAction({ action: methodName, args });
           return this;
         },
       };
@@ -191,6 +234,76 @@
       },
       loadingPublicLanding: false,
       currentTab: "dashboard",
+      productEntitlements: {
+        gatingMode: "off",
+        packageName: "Internal",
+        maxStudents: "",
+        demoMode: "off",
+        modules: {},
+        navModules: {},
+      },
+      productReadiness: {
+        profile: {},
+        settings: {},
+        modules: [],
+        checklist: [],
+        demoAccounts: [],
+        summary: {
+          checklistTotal: 0,
+          checklistDone: 0,
+          activeModules: 0,
+          ready: false,
+        },
+      },
+      productLoading: false,
+      productSaving: false,
+      productSection: "wizard",
+      setupWizardStep: "profil",
+      setupWizardPreview: null,
+      setupWizardCompleting: false,
+      installationForm: {
+        spreadsheetId: "",
+        tenantId: "",
+        ownerEmail: "",
+        supportEmail: "",
+        reportTemplateId: "",
+      },
+      tenantProfileForm: {
+        PondokName: "",
+        ShortName: "",
+        LogoUrl: "",
+        Address: "",
+        ContactPhone: "",
+        ContactEmail: "",
+        AcademicYear: "",
+        Semester: "",
+      },
+      productSettingsForm: {
+        PRODUCT_MODULE_GATING: "off",
+        PRODUCT_PACKAGE_NAME: "Internal",
+        PRODUCT_MAX_STUDENTS: "",
+        DEMO_MODE: "off",
+      },
+      setupChecklistForm: {
+        ChecklistID: "",
+        Category: "Setup",
+        TaskName: "",
+        Status: "Belum",
+        Notes: "",
+      },
+      demoAccountForm: {
+        DemoID: "",
+        Role: "Wali",
+        Username: "",
+        PasswordHint: "",
+        StudentID: "",
+        IsActive: true,
+        IsReadOnly: true,
+        Notes: "",
+      },
+      demoPackageForm: {
+        Password: "",
+      },
       mobileMoreOpen: false,
       mobileDrawerOpen: false,
       error: "",
@@ -198,6 +311,8 @@
       showAddStudent: false,
       showDetailModal: false,
       selectedStudent: null,
+      editingStudentProfile: false,
+      savingStudentProfile: false,
       studentDetailTab: "hafalan",
       studentHistory: [],
       studentIncidents: [],
@@ -221,6 +336,7 @@
       dashboardMemoFilter: "all",
       dashboardMemoVisibleCount: 5,
       fullStudentReport: false,
+      raportLoadError: "",
       teacherNote: "",
       parentEmail: "",
       loadingReport: false,
@@ -311,7 +427,7 @@
         Category: "Pengumuman",
         Summary: "",
         Content: "",
-        DisplayDate: new Date().toISOString().split("T")[0],
+        DisplayDate: localDateString(),
         EventDate: "",
         EndDate: "",
         Location: "",
@@ -354,6 +470,10 @@
       academicSubjectForm: { ...FORM_DEFAULTS.academicSubjectForm },
       academicComponentForm: { ...FORM_DEFAULTS.academicComponentForm },
       academicAssignmentForm: { ...FORM_DEFAULTS.academicAssignmentForm },
+      curriculumExamFilter: { PeriodID: "", ItemID: "", Class: "" },
+      curriculumExamSetup: { items: [], periods: [], classes: [] },
+      curriculumScoreMatrix: { item: null, rows: [] },
+      curriculumExamItemForm: { ...FORM_DEFAULTS.curriculumExamItemForm },
       selectedRaportPeriodId: "",
 
       // === STATE USER MANAGEMENT ===
@@ -609,7 +729,7 @@
       attendanceForm: {
         Type: FORM_DEFAULTS.attendanceForm.Type,
         Notes: FORM_DEFAULTS.attendanceForm.Notes,
-        Date: new Date().toISOString().split("T")[0],
+        Date: localDateString(),
       },
 
       // Static Data
@@ -621,6 +741,63 @@
           .map((s) => s["Class/Level"])
           .filter(Boolean);
         return [...new Set(classes)].sort();
+      },
+
+      get curriculumExamClasses() {
+        const setupClasses = this.curriculumExamSetup.classes || [];
+        if (setupClasses.length) return [...new Set(setupClasses)].sort();
+        const classes = (this.curriculumExamSetup.items || [])
+          .map((item) => item.ClassOrGroupName)
+          .filter(Boolean);
+        return [...new Set([...classes, ...this.uniqueClasses])].sort();
+      },
+
+      get curriculumExamPeriods() {
+        const periods = this.curriculumExamSetup.periods || [];
+        if (periods.length) return periods;
+        return this.academicSetup.periods || [];
+      },
+
+      get filteredCurriculumExamItems() {
+        const selectedClass = this.curriculumExamFilter.Class;
+        return (this.curriculumExamSetup.items || []).filter((item) => {
+          if (!selectedClass) return true;
+          return String(item.ClassOrGroupName || "") === String(selectedClass);
+        });
+      },
+
+      get productSetupPercent() {
+        const total = Number(this.productReadiness.summary?.checklistTotal || 0);
+        if (!total) return 0;
+        return Math.round((Number(this.productReadiness.summary?.checklistDone || 0) / total) * 100);
+      },
+
+      get setupWizardSteps() {
+        return [
+          { id: "profil", label: "Profil", check: "profile" },
+          { id: "paket", label: "Paket", check: "modules" },
+          { id: "data", label: "Data", check: "students" },
+          { id: "jadwal", label: "Jadwal", check: "schedules" },
+          { id: "akademik", label: "Akademik", check: "periods" },
+          { id: "demo", label: "Demo", check: "demo" },
+          { id: "cek", label: "Cek", check: "ready" },
+        ];
+      },
+
+      get productWizardStatus() {
+        return this.productReadiness.wizardStatus || { ready: false, checks: [], counts: {} };
+      },
+
+      get currentSetupWizardIndex() {
+        return this.setupWizardSteps.findIndex((step) => step.id === this.setupWizardStep);
+      },
+
+      get currentSetupWizardStep() {
+        return this.setupWizardSteps[this.currentSetupWizardIndex] || this.setupWizardSteps[0];
+      },
+
+      get setupWizardMissingChecks() {
+        return (this.productWizardStatus.checks || []).filter((check) => !check.ok);
       },
 
       get filteredStudents() {
@@ -920,10 +1097,14 @@
       // ===== INITIALIZATION =====
       init() {
         this.initScheduleWatchers();
-        const savedUser = sessionStorage.getItem("user");
+        const savedUser =
+          localStorage.getItem("user") || sessionStorage.getItem("user");
         if (savedUser) {
           try {
             const storedUser = JSON.parse(savedUser);
+            if (!localStorage.getItem("user")) {
+              localStorage.setItem("user", savedUser);
+            }
             if (storedUser?.SessionToken) {
               const savedView = this.readViewState(storedUser);
               const generation = ++this.authGeneration;
@@ -940,13 +1121,16 @@
                   this.isLoggedIn = true;
                   this.restoreViewState(savedView, canonicalUser);
                   this.authRestoring = false;
-                  sessionStorage.setItem("user", JSON.stringify(canonicalUser));
+                  localStorage.setItem("user", JSON.stringify(canonicalUser));
+                  sessionStorage.removeItem("user");
+                  this.loadAppEntitlements();
                   this.refreshData();
                 } else {
                   this.resetUserScopedState();
                   this.isLoggedIn = false;
                   this.user = { Username: "", Role: "" };
                   this.authRestoring = false;
+                  localStorage.removeItem("user");
                   sessionStorage.removeItem("user");
                   this.loadPublicLandingInfo();
                 }
@@ -957,6 +1141,7 @@
             // Data sesi yang rusak diperlakukan sebagai sesi yang sudah berakhir.
           }
         }
+        localStorage.removeItem("user");
         sessionStorage.removeItem("user");
         this.isLoggedIn = false;
         this.user = { Username: "", Role: "" };
@@ -977,7 +1162,7 @@
         if (FORM_DEFAULTS[formName]) {
           this[formName] = { ...FORM_DEFAULTS[formName] };
           if (formName === "attendanceForm") {
-            this[formName].Date = new Date().toISOString().split("T")[0];
+            this[formName].Date = localDateString();
           }
         }
       },
@@ -994,9 +1179,14 @@
           this.fetchStudents();
           this.loadAcademicSetup();
         }
-        if (tab === "jadwal_admin") this.loadSchedules();
+        if (tab === "jadwal_admin") {
+          // The first view should answer the most common question: what is scheduled today?
+          this.scheduleFilterDay = localDayName();
+          this.loadSchedules();
+        }
         if (tab === "absensi") this.loadMySchedulesToday();
         if (tab === "pulang_bulanan") this.loadPulangBulanan();
+        if (tab === "setup_pondok") this.loadProductReadiness();
         if (tab === "informasi_pesantren") {
           this.pesantrenInfoSection = this.canManagePesantrenInfo()
             ? "kelola"
@@ -1013,7 +1203,7 @@
 
       isNavigationAllowed(tab, user = this.user) {
         const item = NAVIGATION_ITEMS.find(candidate => candidate.id === tab && !candidate.external);
-        return !!item && item.roles.includes(user?.Role);
+        return !!item && item.roles.includes(user?.Role) && this.isNavItemAvailable(item);
       },
 
       readViewState(user = this.user) {
@@ -1070,8 +1260,27 @@
 
       visibleNavigationItems(group = "") {
         return NAVIGATION_ITEMS.filter(item =>
-          (!group || item.group === group) && item.roles.includes(this.user?.Role),
+          (!group || item.group === group) &&
+          item.roles.includes(this.user?.Role) &&
+          this.isNavItemAvailable(item),
         );
+      },
+
+      isNavItemAvailable(item) {
+        if (!item || item.external) return true;
+        if (item.id === "setup_pondok") return ["Mudir", "Admin"].includes(this.user?.Role);
+        const moduleCode = this.productEntitlements.navModules?.[item.id];
+        if (!moduleCode) return true;
+        return this.isProductModuleEnabled(moduleCode);
+      },
+
+      isProductModuleEnabled(moduleCode) {
+        if (!moduleCode) return true;
+        const mode = String(this.productEntitlements.gatingMode || "off").toLowerCase();
+        if (mode === "off") return true;
+        if (mode === "canary" && !["Mudir", "Admin"].includes(this.user?.Role)) return true;
+        const modules = this.productEntitlements.modules || {};
+        return modules[moduleCode] !== false;
       },
 
       navigationGroupLabel(group) {
@@ -1091,7 +1300,9 @@
           : role === "Admin"
             ? ["dashboard", "santri", "absensi", "users"]
             : ["dashboard", "santri", "absensi", "hafalan"];
-        return ids.map(id => NAVIGATION_ITEMS.find(item => item.id === id)).filter(Boolean);
+        return ids
+          .map(id => NAVIGATION_ITEMS.find(item => item.id === id))
+          .filter(item => item && this.isNavItemAvailable(item));
       },
 
       mobileMoreNavItems() {
@@ -1130,7 +1341,7 @@
         this.attendanceSessionBaseline = "";
         this.attendanceShowAllSchedules = false;
         this.attendanceView = "today";
-        this.attendanceDate = new Date().toISOString().split("T")[0];
+        this.attendanceDate = localDateString();
         this.schedules = [];
         this.filteredSchedules = [];
         this.students = [];
@@ -1357,6 +1568,8 @@
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-1.5z"/><path d="M8 7h6"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>',
           users:
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.354a4 4 0 1 1 0 5.292M15 21H3v-1a6 6 0 0 1 12 0v1zm0 0h6v-1a6 6 0 0 0-9-5.197m13.5 0c-.66 0-1.293-.103-1.897-.298"/></svg>',
+          setup:
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M7 7v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>',
           menu:
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>',
           more:
@@ -1408,10 +1621,12 @@
             if (res.ok) {
               this.resetUserScopedState();
               this.user = res.user;
-              sessionStorage.setItem("user", JSON.stringify(res.user));
+              localStorage.setItem("user", JSON.stringify(res.user));
+              sessionStorage.removeItem("user");
               this.isLoggedIn = true;
               this.authRestoring = false;
               this.saveViewState();
+              this.loadAppEntitlements();
               this.refreshData();
             } else {
               this.error = res.message;
@@ -1501,6 +1716,27 @@
         };
         this.loadingPesantrenInfo = false;
         this.editModePesantrenInfo = null;
+        this.productEntitlements = {
+          gatingMode: "off",
+          packageName: "Internal",
+          maxStudents: "",
+          demoMode: "off",
+          modules: {},
+          navModules: {},
+        };
+        this.productReadiness = {
+          profile: {},
+          settings: {},
+          modules: [],
+          checklist: [],
+          demoAccounts: [],
+          summary: {
+            checklistTotal: 0,
+            checklistDone: 0,
+            activeModules: 0,
+            ready: false,
+          },
+        };
         this.academicSection = "nilai";
         this.academicSetup = {
           periods: [],
@@ -1523,6 +1759,7 @@
         this.resetPesantrenInfoForm();
         this.resetLoginRole();
         this.resetForm("changePasswordForm");
+        localStorage.removeItem("user");
         sessionStorage.removeItem("user");
         this.loadPublicLandingInfo();
       },
@@ -1602,6 +1839,9 @@
 
       // ===== DATA FETCHING =====
       refreshData() {
+        if (this.isLoggedIn) {
+          this.loadAppEntitlements();
+        }
         this.fetchStudents();
         this.fetchSummary();
         if (this.user?.Role === "Mudir" || this.user?.Role === "Admin") {
@@ -1626,11 +1866,366 @@
           this.loadPulangBulanan();
         }
         if (this.currentTab === "jadwal_admin") {
+          this.scheduleFilterDay = localDayName();
           this.loadSchedules();
+        }
+        if (this.currentTab === "setup_pondok") {
+          this.loadProductReadiness();
         }
         if (this.currentTab === "absensi") {
           this.loadMySchedulesToday();
         }
+      },
+
+      loadAppEntitlements() {
+        if (!this.isLoggedIn || !this.user?.SessionToken) return;
+        callGoogleScript("getAppEntitlements", this.user).onSuccess((err, data) => {
+          if (err || !data) return;
+          this.productEntitlements = {
+            gatingMode: data.gatingMode || "off",
+            packageName: data.packageName || "Internal",
+            maxStudents: data.maxStudents || "",
+            demoMode: data.demoMode || "off",
+            modules: data.modules || {},
+            navModules: data.navModules || {},
+          };
+          if (!this.isNavigationAllowed(this.currentTab)) {
+            this.currentTab = "dashboard";
+          }
+        });
+      },
+
+      resetSetupChecklistForm() {
+        this.setupChecklistForm = {
+          ChecklistID: "",
+          Category: "Setup",
+          TaskName: "",
+          Status: "Belum",
+          Notes: "",
+        };
+      },
+
+      resetDemoAccountForm() {
+        this.demoAccountForm = {
+          DemoID: "",
+          Role: "Wali",
+          Username: "",
+          PasswordHint: "",
+          StudentID: "",
+          IsActive: true,
+          IsReadOnly: true,
+          Notes: "",
+        };
+      },
+
+      setSetupWizardStep(step) {
+        if (!this.setupWizardSteps.some((item) => item.id === step)) return;
+        this.setupWizardStep = step;
+        this.productSection = "wizard";
+      },
+
+      nextSetupWizardStep() {
+        const index = this.currentSetupWizardIndex;
+        const next = this.setupWizardSteps[index + 1];
+        if (next) this.setSetupWizardStep(next.id);
+      },
+
+      previousSetupWizardStep() {
+        const index = this.currentSetupWizardIndex;
+        const previous = this.setupWizardSteps[index - 1];
+        if (previous) this.setSetupWizardStep(previous.id);
+      },
+
+      loadProductReadiness() {
+        if (!["Mudir", "Admin"].includes(this.user?.Role)) return;
+        this.productLoading = true;
+        callGoogleScript("getProductReadiness", this.user).onSuccess((err, data) => {
+          this.productLoading = false;
+          if (err) {
+            this.showToast(err.message || "Gagal memuat setup pondok.", "error");
+            return;
+          }
+          this.productReadiness = data || this.productReadiness;
+          this.installationForm = {
+            ...this.installationForm,
+            tenantId: this.productReadiness.installation?.tenantId || "",
+            ownerEmail: this.productReadiness.installation?.ownerEmail || "",
+            supportEmail: this.productReadiness.installation?.supportEmail || "",
+          };
+          this.tenantProfileForm = {
+            ...this.tenantProfileForm,
+            ...(this.productReadiness.profile || {}),
+          };
+          this.productSettingsForm = {
+            ...this.productSettingsForm,
+            ...(this.productReadiness.settings || {}),
+          };
+          this.loadAppEntitlements();
+        });
+      },
+
+      createSetupImportTemplatesAction() {
+        this.productSaving = true;
+        callGoogleScript("createSetupImportTemplates", this.user).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Template import gagal dibuat.", "error");
+            return;
+          }
+          this.showToast("Template import siap di Spreadsheet.", "success");
+          if (data?.spreadsheetUrl && confirm("Buka Spreadsheet template import sekarang?")) {
+            window.open(data.spreadsheetUrl, "_blank");
+          }
+          this.loadProductReadiness();
+        });
+      },
+
+      seedSetupDummyDataAction() {
+        if (!confirm("Isi sheet import dengan data contoh? Data contoh lama akan diganti, data pondok utama tidak diubah.")) return;
+        this.productSaving = true;
+        callGoogleScript("seedSetupDummyData", this.user).onSuccess((err) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Data contoh gagal dibuat.", "error");
+            return;
+          }
+          this.showToast("Data contoh sudah diisi. Klik Preview lalu Proses Import.", "success");
+        });
+      },
+
+      importSetupCsvAction(kind, event) {
+        const file = event && event.target && event.target.files ? event.target.files[0] : null;
+        if (!file) return;
+        if (!/\.(csv|txt)$/i.test(file.name)) {
+          this.showToast("Gunakan file CSV UTF-8. File Excel XLSX simpan sebagai CSV terlebih dahulu.", "error");
+          event.target.value = "";
+          return;
+        }
+        if (file.size > 3 * 1024 * 1024) {
+          this.showToast("File terlalu besar. Pecah menjadi beberapa file CSV.", "error");
+          event.target.value = "";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = String(reader.result || "");
+          const comma = result.indexOf(",");
+          const contentBase64 = comma === -1 ? result : result.slice(comma + 1);
+          this.productSaving = true;
+          callGoogleScript("importSetupCsv", { kind, fileName: file.name, contentBase64 }, this.user).onSuccess((err, data) => {
+            this.productSaving = false;
+            event.target.value = "";
+            if (err) {
+              this.showToast(err.message || "File gagal dimuat.", "error");
+              return;
+            }
+            this.showToast((data && data.message) || "File berhasil dimuat. Lanjutkan Preview.", "success");
+          });
+        };
+        reader.onerror = () => this.showToast("File tidak dapat dibaca dari perangkat.", "error");
+        reader.readAsDataURL(file);
+      },
+
+      previewSetupImportsAction() {
+        this.productSaving = true;
+        callGoogleScript("previewSetupWizardImports", this.user).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.setupWizardPreview = data || null;
+            this.showToast(err.message || "Preview import gagal.", "error");
+            return;
+          }
+          this.setupWizardPreview = data || null;
+          this.showToast("Preview import selesai.", "success");
+        });
+      },
+
+      applySetupImportsAction() {
+        if (!confirm("Proses data dari sheet template import ke aplikasi?")) return;
+        this.productSaving = true;
+        callGoogleScript("applySetupWizardImports", this.user).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.setupWizardPreview = data || this.setupWizardPreview;
+            this.showToast(err.message || "Import gagal.", "error");
+            return;
+          }
+          this.showToast("Import setup selesai.", "success");
+          this.setupWizardPreview = null;
+          this.loadProductReadiness();
+          this.refreshData();
+        });
+      },
+
+      completeSetupWizardAction() {
+        this.setupWizardCompleting = true;
+        callGoogleScript("completeSetupWizard", this.user).onSuccess((err, data) => {
+          this.setupWizardCompleting = false;
+          if (err) {
+            if (data?.status) {
+              this.productReadiness.wizardStatus = data.status;
+            }
+            this.showToast(err.message || "Setup belum siap.", "error");
+            return;
+          }
+          this.showToast("Setup pondok sudah siap dipakai.", "success");
+          this.loadProductReadiness();
+        });
+      },
+
+      saveTenantProfileAction() {
+        this.productSaving = true;
+        callGoogleScript("saveTenantProfile", this.tenantProfileForm, this.user).onSuccess((err) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Profil pondok gagal disimpan.", "error");
+            return;
+          }
+          this.showToast("Profil pondok tersimpan.", "success");
+          this.loadProductReadiness();
+        });
+      },
+
+      configureTenantInstallationAction() {
+        const spreadsheetId = String(this.installationForm.spreadsheetId || "").trim();
+        if (!spreadsheetId) {
+          this.showToast("Masukkan ID atau URL Spreadsheet milik pondok.", "error");
+          return;
+        }
+        if (!confirm("Hubungkan aplikasi ke Spreadsheet ini? Setelah disimpan, semua data aplikasi akan memakai Spreadsheet tujuan.")) return;
+        this.productSaving = true;
+        callGoogleScript("configureTenantInstallation", this.installationForm, this.user).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Aplikasi belum berhasil dihubungkan.", "error");
+            return;
+          }
+          if (data?.data) {
+            this.productReadiness.installation = data.data;
+            this.installationForm = {
+              ...this.installationForm,
+              spreadsheetId: "",
+              tenantId: data.data.tenantId || this.installationForm.tenantId,
+            };
+          }
+          this.showToast("Aplikasi sudah terhubung. Halaman akan dimuat ulang; login kembali memakai akun dari Spreadsheet pondok.", "success");
+          localStorage.removeItem("user");
+          sessionStorage.removeItem("user");
+          setTimeout(() => window.location.reload(), 900);
+        });
+      },
+
+      saveProductSettingsAction() {
+        this.productSaving = true;
+        callGoogleScript("saveProductSettings", this.productSettingsForm, this.user).onSuccess((err) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Pengaturan produk gagal disimpan.", "error");
+            return;
+          }
+          this.showToast("Pengaturan produk tersimpan.", "success");
+          this.loadProductReadiness();
+        });
+      },
+
+      saveModuleLicensesAction() {
+        this.productSaving = true;
+        callGoogleScript("saveModuleLicenses", this.productReadiness.modules || [], this.user).onSuccess((err) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Paket modul gagal disimpan.", "error");
+            return;
+          }
+          this.showToast("Paket modul tersimpan.", "success");
+          this.loadProductReadiness();
+        });
+      },
+
+      editSetupChecklistItem(item) {
+        this.setupChecklistForm = { ...this.setupChecklistForm, ...(item || {}) };
+        this.productSection = "checklist";
+      },
+
+      saveSetupChecklistAction(item = null) {
+        const payload = item || this.setupChecklistForm;
+        this.productSaving = true;
+        callGoogleScript("saveSetupChecklistItem", payload, this.user).onSuccess((err) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Checklist gagal disimpan.", "error");
+            return;
+          }
+          this.showToast("Checklist tersimpan.", "success");
+          this.resetSetupChecklistForm();
+          this.loadProductReadiness();
+        });
+      },
+
+      editDemoAccount(item) {
+        this.demoAccountForm = { ...this.demoAccountForm, ...(item || {}) };
+        this.productSection = "demo";
+      },
+
+      saveDemoAccountAction() {
+        this.productSaving = true;
+        callGoogleScript("saveDemoAccount", this.demoAccountForm, this.user).onSuccess((err) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Akun demo gagal disimpan.", "error");
+            return;
+          }
+          this.showToast("Akun demo tersimpan.", "success");
+          this.resetDemoAccountForm();
+          this.loadProductReadiness();
+        });
+      },
+
+      syncDemoAccountsToUsersAction() {
+        if (!confirm("Aktifkan login untuk semua akun demo aktif menggunakan petunjuk password yang tersimpan?")) return;
+        this.productSaving = true;
+        callGoogleScript("syncDemoAccountsToUsers", this.user).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Sinkronisasi akun demo gagal.", "error");
+            return;
+          }
+          this.showToast((data && data.message) || "Login demo sudah aktif.", "success");
+          this.loadProductReadiness();
+        });
+      },
+
+      createDemoPackageAction() {
+        const password = String(this.demoPackageForm.Password || "");
+        if (password.length < 6) {
+          this.showToast("Password demo minimal 6 karakter.", "error");
+          return;
+        }
+        if (!confirm("Buat atau perbarui paket demo dengan data contoh? Data demo lama akan dipakai ulang.")) return;
+        this.productSaving = true;
+        callGoogleScript("createDemoPackage", this.demoPackageForm, this.user).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Paket demo gagal dibuat.", "error");
+            return;
+          }
+          this.demoPackageForm.Password = "";
+          this.showToast("Paket demo siap dipakai.", "success");
+          this.loadProductReadiness();
+        });
+      },
+
+      resetDemoPackageAction() {
+        if (!confirm("Reset semua data demo? Data pondok asli tidak akan dihapus.")) return;
+        this.productSaving = true;
+        callGoogleScript("resetDemoPackage", this.user).onSuccess((err) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Reset demo gagal.", "error");
+            return;
+          }
+          this.showToast("Data demo berhasil direset.", "success");
+          this.loadProductReadiness();
+        });
       },
 
       loadPublicLandingInfo() {
@@ -1724,7 +2319,7 @@
           Category: "Pengumuman",
           Summary: "",
           Content: "",
-          DisplayDate: new Date().toISOString().split("T")[0],
+          DisplayDate: localDateString(),
           EventDate: "",
           EndDate: "",
           Location: "",
@@ -2309,6 +2904,172 @@
           );
       },
 
+      resetCurriculumExamItemForm() {
+        this.curriculumExamItemForm = {
+          ...FORM_DEFAULTS.curriculumExamItemForm,
+          PeriodID: this.curriculumExamFilter.PeriodID || this.academicMatrixFilter.PeriodID || "",
+        };
+      },
+
+      editCurriculumExamItem(item) {
+        this.curriculumExamItemForm = {
+          ItemID: item.ItemID || "",
+          PeriodID: item.PeriodID || "",
+          SourceScheduleID: item.SourceScheduleID || "",
+          Category: item.Category || "Kegiatan",
+          Name: item.Name || "",
+          ClassOrGroupName: item.ClassOrGroupName || "",
+          TeacherID: item.TeacherID || "",
+          TeacherSourceID: item.TeacherSourceID || "",
+          AssessmentType: item.AssessmentType || "Angka",
+          MaxScore: item.MaxScore || 100,
+          KKM: item.KKM || 75,
+          Weight: item.Weight || 1,
+          Rubric: item.Rubric || "",
+          IncludeInReport: item.IncludeInReport !== false,
+          IsActive: item.IsActive !== false,
+        };
+        this.curriculumExamFilter.PeriodID = item.PeriodID || this.curriculumExamFilter.PeriodID;
+      },
+
+      selectCurriculumExamItem(item) {
+        if (!item?.ItemID) return;
+        this.curriculumExamFilter.ItemID = item.ItemID;
+        this.curriculumExamFilter.PeriodID = item.PeriodID || this.curriculumExamFilter.PeriodID;
+        this.curriculumExamFilter.Class = item.ClassOrGroupName || this.curriculumExamFilter.Class || "";
+        this.editCurriculumExamItem(item);
+        this.loadCurriculumScoreMatrix();
+      },
+
+      loadCurriculumExamSetup() {
+        const periodId = this.curriculumExamFilter.PeriodID || this.academicMatrixFilter.PeriodID || "";
+        this.loadingAcademic = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingAcademic = false;
+            if (res?.ok) {
+              this.curriculumExamSetup = res.data || { items: [], periods: [], classes: [] };
+              if (!this.curriculumExamFilter.PeriodID && periodId) {
+                this.curriculumExamFilter.PeriodID = periodId;
+              }
+              if (!this.curriculumExamFilter.PeriodID && this.curriculumExamPeriods.length === 1) {
+                this.curriculumExamFilter.PeriodID = this.curriculumExamPeriods[0].PeriodID;
+              }
+              if (!this.curriculumExamFilter.Class && this.curriculumExamClasses.length === 1) {
+                this.curriculumExamFilter.Class = this.curriculumExamClasses[0];
+              }
+            } else {
+              this.showToast(res?.message || "Gagal memuat kurikulum ujian.", "error");
+            }
+          })
+          .withFailureHandler((err) => {
+            this.loadingAcademic = false;
+            this.showToast(err.message || "Gagal memuat kurikulum ujian.", "error");
+          })
+          .getCurriculumExamSetup(periodId, this.user);
+      },
+
+      syncCurriculumExamItems() {
+        const periodId = this.curriculumExamFilter.PeriodID || this.academicMatrixFilter.PeriodID;
+        if (!periodId) return this.showToast("Pilih periode terlebih dahulu.", "error");
+        this.loadingAcademic = true;
+        google.script.run
+          .withSuccessHandler((preview) => {
+            this.loadingAcademic = false;
+            if (!preview?.ok) return this.showToast(preview?.message || "Pratinjau gagal.", "error");
+            const pending = preview.data?.pending || 0;
+            if (!confirm(`Tambahkan ${pending} item ujian dari jadwal aktif?`)) return;
+            this.loadingAcademic = true;
+            google.script.run
+              .withSuccessHandler((res) => {
+                this.loadingAcademic = false;
+                if (res?.ok) {
+                  this.showToast(res.message || "Item ujian ditambahkan.", "success");
+                  this.curriculumExamFilter.PeriodID = periodId;
+                  this.loadCurriculumExamSetup();
+                } else this.showToast(res?.message || "Sinkronisasi gagal.", "error");
+              })
+              .withFailureHandler((err) => {
+                this.loadingAcademic = false;
+                this.showToast(err.message || "Sinkronisasi gagal.", "error");
+              })
+              .syncCurriculumExamItemsFromSchedules(periodId, true, this.user);
+          })
+          .withFailureHandler((err) => {
+            this.loadingAcademic = false;
+            this.showToast(err.message || "Pratinjau gagal.", "error");
+          })
+          .syncCurriculumExamItemsFromSchedules(periodId, false, this.user);
+      },
+
+      saveCurriculumExamItem() {
+        const form = this.curriculumExamItemForm;
+        if (!form.PeriodID || !form.Name || !form.ClassOrGroupName) {
+          this.showToast("Periode, nama ujian, dan kelas wajib diisi.", "error");
+          return;
+        }
+        this.loadingAcademic = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingAcademic = false;
+            if (res?.ok) {
+              this.showToast(res.message || "Item ujian tersimpan.", "success");
+              this.curriculumExamFilter.PeriodID = form.PeriodID;
+              this.resetCurriculumExamItemForm();
+              this.loadCurriculumExamSetup();
+            } else this.showToast(res?.message || "Gagal menyimpan item ujian.", "error");
+          })
+          .withFailureHandler((err) => {
+            this.loadingAcademic = false;
+            this.showToast(err.message || "Gagal menyimpan item ujian.", "error");
+          })
+          .saveCurriculumExamItem(form, this.user);
+      },
+
+      loadCurriculumScoreMatrix() {
+        if (!this.curriculumExamFilter.ItemID) {
+          this.showToast("Pilih item ujian terlebih dahulu.", "error");
+          return;
+        }
+        this.loadingAcademic = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingAcademic = false;
+            if (res?.ok) this.curriculumScoreMatrix = res.data || { item: null, rows: [] };
+            else this.showToast(res?.message || "Gagal memuat matrix kurikulum.", "error");
+          })
+          .withFailureHandler((err) => {
+            this.loadingAcademic = false;
+            this.showToast(err.message || "Gagal memuat matrix kurikulum.", "error");
+          })
+          .getCurriculumScoreMatrix({ ItemID: this.curriculumExamFilter.ItemID }, this.user);
+      },
+
+      saveCurriculumScoreMatrix() {
+        const itemId = this.curriculumScoreMatrix.item?.ItemID || this.curriculumExamFilter.ItemID;
+        if (!itemId) return;
+        const scores = (this.curriculumScoreMatrix.rows || []).map((row) => ({
+          StudentID: row.student.StudentID,
+          Score: row.score.Score,
+          Status: row.score.Status || "",
+          Notes: row.score.Notes || "",
+        }));
+        this.loadingAcademic = true;
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.loadingAcademic = false;
+            if (res?.ok) {
+              this.showToast(res.message || "Nilai kurikulum tersimpan.", "success");
+              this.loadCurriculumScoreMatrix();
+            } else this.showToast(res?.message || "Gagal menyimpan nilai kurikulum.", "error");
+          })
+          .withFailureHandler((err) => {
+            this.loadingAcademic = false;
+            this.showToast(err.message || "Gagal menyimpan nilai kurikulum.", "error");
+          })
+          .saveCurriculumExamScores({ ItemID: itemId, scores }, this.user);
+      },
+
       destroyDashboardCharts() {
         if (this.memoChartInstance) {
           this.memoChartInstance.destroy();
@@ -2565,6 +3326,23 @@
           .issueStudentQr(this.selectedStudent.StudentID, this.user);
       },
 
+      openStudentAction(student, tab) {
+        if (!student || !student.StudentID) return;
+        this.openStudentDetail(student);
+        this.studentDetailTab = tab || "identitas";
+      },
+
+      editStudentFromList(student) {
+        if (!this.canEditStudentProfile()) return;
+        this.openStudentAction(student, "identitas");
+        this.startStudentProfileEdit(student);
+      },
+
+      issueStudentQrFromList(student) {
+        this.openStudentAction(student, "identitas");
+        this.issueSelectedStudentQr();
+      },
+
       // ===== HELPER FUNCTIONS =====
       formatDate(isoString) {
         if (!isoString) return "-";
@@ -2601,8 +3379,8 @@
             start.setMonth(now.getMonth() - 1);
             break;
         }
-        this.filters.startDate = start.toISOString().split("T")[0];
-        this.filters.endDate = now.toISOString().split("T")[0];
+        this.filters.startDate = localDateString(start);
+        this.filters.endDate = localDateString(now);
         this.fetchSummary();
       },
 
@@ -2633,8 +3411,84 @@
           .addStudent(this.newStudent, this.user);
       },
 
+      canEditStudentProfile() {
+        return ["Mudir", "Admin", "Ustadz"].includes(String(this.user?.Role || ""));
+      },
+
+      startStudentProfileEdit(student) {
+        const target = student || this.selectedStudent;
+        if (!target || !target.StudentID || !this.canEditStudentProfile()) return;
+        this.studentEditForm = {
+          StudentID: target.StudentID || "",
+          NIS: target.NIS || "",
+          Name: target.Name || "",
+          ClassLevel: target["Class/Level"] || "",
+          Gender: target.Gender || "",
+          ParentContact: target.ParentContact || "",
+          Status: target.Status || "Active",
+        };
+        this.editingStudentProfile = true;
+      },
+
+      cancelStudentProfileEdit() {
+        this.editingStudentProfile = false;
+        this.savingStudentProfile = false;
+        this.studentEditForm = { ...FORM_DEFAULTS.studentEditForm };
+      },
+
+      saveStudentProfile() {
+        if (!this.selectedStudent?.StudentID || this.savingStudentProfile) return;
+        if (!String(this.studentEditForm.Name || "").trim()) {
+          this.showToast("Nama santri wajib diisi.", "error");
+          return;
+        }
+        if (!String(this.studentEditForm.ClassLevel || "").trim()) {
+          this.showToast("Kelas/level wajib diisi.", "error");
+          return;
+        }
+
+        this.savingStudentProfile = true;
+        callGoogleScript(
+          "updateStudentProfile",
+          this.selectedStudent.StudentID,
+          { ...this.studentEditForm },
+          this.user,
+        ).onSuccess((err, updatedStudent) => {
+          this.savingStudentProfile = false;
+          if (err) {
+            this.showToast(err.message || "Gagal menyimpan biodata santri", "error");
+            return;
+          }
+
+          const normalized = {
+            ...this.selectedStudent,
+            ...(updatedStudent || {}),
+            Name: updatedStudent?.Name || this.studentEditForm.Name,
+            NIS: updatedStudent?.NIS || this.studentEditForm.NIS,
+            "Class/Level":
+              updatedStudent?.["Class/Level"] || this.studentEditForm.ClassLevel,
+            Gender: updatedStudent?.Gender || this.studentEditForm.Gender,
+            ParentContact:
+              updatedStudent?.ParentContact || this.studentEditForm.ParentContact,
+            Status: updatedStudent?.Status || this.studentEditForm.Status,
+          };
+
+          this.selectedStudent = normalized;
+          this.students = this.students.map((student) =>
+            student.StudentID === normalized.StudentID
+              ? { ...student, ...normalized }
+              : student,
+          );
+          this.editingStudentProfile = false;
+          this.studentEditForm = { ...FORM_DEFAULTS.studentEditForm };
+          this.showToast("Biodata santri berhasil disimpan.", "success");
+          this.fetchStudents();
+        });
+      },
+
       openStudentDetail(student) {
         if (!student || !student.StudentID) return;
+        this.cancelStudentProfileEdit();
 
         if (this.user?.Role === "Wali") {
           this.selectedStudent = { ...student };
@@ -2700,6 +3554,7 @@
           this.memoFilter = "all";
           this.memoVisibleCount = 5;
           this.fullStudentReport = false;
+          this.raportLoadError = "";
           this.raportData = null;
           this.selectedRaportPeriodId = "";
           this.refreshStudentDetail();
@@ -2714,12 +3569,14 @@
         this.studentDetailTab = "raport";
         this.showDetailModal = true;
         this.selectedRaportPeriodId = "";
+        this.raportLoadError = "";
         this.loadFullStudentReport(student.StudentID);
       },
 
       loadFullStudentReport(studentId, periodId) {
         this.raportData = null; // Ensure raportData is reset
         this.fullStudentReport = false; // Set to false to show loading message initially
+        this.raportLoadError = "";
 
         google.script.run
           .withSuccessHandler((res) => {
@@ -2732,15 +3589,19 @@
                 "";
               this.fullStudentReport = true; // Set to true on success to show the report
             } else {
+              const message = res?.message || "Gagal memuat raport santri";
+              this.raportLoadError = message;
               this.showToast(
-                res.message || "Gagal memuat raport santri",
+                message,
                 "error",
               );
               this.fullStudentReport = false; // Keep false on error
             }
           })
           .withFailureHandler((err) => {
-            this.showToast("Gagal memuat raport: " + err.message, "error");
+            const message = "Gagal memuat raport: " + (err?.message || "Terjadi kesalahan.");
+            this.raportLoadError = message;
+            this.showToast(message, "error");
             this.fullStudentReport = false; // Keep false on failure
           })
           .getStudentReportData(studentId, periodId || this.selectedRaportPeriodId, this.user); // Call the correct server-side function
@@ -2865,13 +3726,15 @@
       loadRaportData() {
         if (!this.selectedStudent) return;
         this.raportData = null;
+        this.raportLoadError = "";
 
         google.script.run
           .withSuccessHandler((res) => {
             if (res.ok) {
               this.raportData = res.data;
             } else {
-              this.showToast("Gagal memuat raport", "error");
+              this.raportLoadError = res?.message || "Gagal memuat raport";
+              this.showToast(this.raportLoadError, "error");
             }
           })
           .getStudentReportData(
@@ -3132,6 +3995,60 @@
             this.selectedRaportPeriodId,
             this.user,
           );
+      },
+
+      shareReportToWali() {
+        if (!this.selectedStudent?.StudentID || !this.selectedRaportPeriodId) {
+          this.showToast("Pilih periode raport terlebih dahulu.", "error");
+          return;
+        }
+        this.loadingReport = true;
+        google.script.run
+          .withSuccessHandler((previewRes) => {
+            if (!previewRes?.ok || !previewRes.data) {
+              this.loadingReport = false;
+              this.showToast(previewRes?.message || "Gagal menyiapkan laporan wali.", "error");
+              return;
+            }
+            const preview = previewRes.data;
+            if (!preview.isValidPhone || !preview.link) {
+              this.loadingReport = false;
+              this.showToast(preview.note || "Nomor wali belum siap.", "error");
+              return;
+            }
+            google.script.run
+              .withSuccessHandler((pdfRes) => {
+                this.loadingReport = false;
+                if (!pdfRes?.ok || !pdfRes.data?.base64) {
+                  this.showToast(pdfRes?.message || "PDF belum berhasil dibuat.", "error");
+                  return;
+                }
+                const binary = atob(pdfRes.data.base64);
+                const bytes = new Uint8Array(binary.length);
+                for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+                const blob = new Blob([bytes], { type: pdfRes.data.mimeType || "application/pdf" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = pdfRes.data.filename || preview.pdfFilename || "raport-santri.pdf";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                window.open(preview.link, "_blank", "noopener,noreferrer");
+                this.showToast("PDF diunduh dan WhatsApp wali siap dibuka.", "success");
+              })
+              .withFailureHandler((err) => {
+                this.loadingReport = false;
+                this.showToast("Gagal membuat PDF: " + (err?.message || "Terjadi kesalahan."), "error");
+              })
+              .downloadStudentReportPdf(this.selectedStudent.StudentID, this.selectedRaportPeriodId, this.user);
+          })
+          .withFailureHandler((err) => {
+            this.loadingReport = false;
+            this.showToast("Gagal menyiapkan share: " + (err?.message || "Terjadi kesalahan."), "error");
+          })
+          .getGuardianReportSharePreview(this.selectedStudent.StudentID, this.selectedRaportPeriodId, this.user);
       },
 
       updateExamEligibilityOverride(decision) {
@@ -3779,11 +4696,23 @@
       // ===== SCHEDULE & ATTENDANCE METHODS =====
       schedules: [],
       filteredSchedules: [],
+      selectedScheduleIds: [],
+      scheduleEditorData: { installationMode: "unknown", embeddedMasterImportAllowed: false, scheduleSource: "", classes: [], subjects: [], activities: [], timeSlots: [], teachers: [], masters: [] },
+      scheduleMasterForm: { MasterID: "", MasterType: "Class", Name: "", StartTime: "", EndTime: "", SortOrder: 999, IsActive: true },
+      showScheduleMasterModal: false,
+      scheduleBulkForm: { operation: "move_day", DayOfWeek: "", StartTime: "", EndTime: "", TeacherID: "", ClassOrGroupName: "", IsActive: true },
+      showScheduleBulkModal: false,
+      scheduleBulkPreview: null,
+      scheduleValidation: null,
+      importingMasterSchedules: false,
+      importMasterResult: null,
       scheduleFilterDay: "",
+      scheduleFilterType: "",
+      scheduleShowInactive: false,
       scheduleSearchQuery: "",
       showAddScheduleModal: false,
       attendanceView: "today",
-      attendanceDate: new Date().toISOString().split("T")[0],
+      attendanceDate: localDateString(),
       attendanceShowAllSchedules: false,
       attendanceHome: { classes: [], types: ["Pondok", "KBM", "Kegiatan"], statuses: ["Hadir", "Izin", "Sakit", "Alpa", "Telat"] },
       attendanceLoading: false,
@@ -3804,7 +4733,7 @@
       attendanceGenderScope: "Sesuai",
       attendanceRecap: null,
       attendanceRecapFilters: {
-        month: new Date().toISOString().slice(0, 7),
+        month: localMonthString(),
         type: "",
         className: "",
         teacherId: "",
@@ -3833,16 +4762,34 @@
             this.loading = false;
             if (err) return this.showToast(err.message, "error");
             this.schedules = data.schedules || [];
+            this.selectedScheduleIds = [];
             this.filterSchedules();
+            this.loadScheduleEditorData();
           });
       },
 
+      loadScheduleEditorData() {
+        callGoogleScript("getScheduleEditorData", this.user).onSuccess((err, data) => {
+          if (!err && data) this.scheduleEditorData = data;
+        });
+      },
+
       runSeedSchedules() {
+        if (this.scheduleEditorData?.installationMode === "tenant") {
+          this.showToast("Mode pondok tidak memakai master jadwal bawaan. Buat jadwal dari aplikasi atau impor template pondok.", "info");
+          return;
+        }
+        if (this.importingMasterSchedules) return;
+        if (!confirm("Gunakan master jadwal demo/kompatibilitas untuk mengisi Schedules? Jadwal master dengan ID MASTER- akan diperbarui; jadwal manual lain tetap dipertahankan.")) return;
+        this.importingMasterSchedules = true;
+        this.importMasterResult = null;
         this.loading = true;
         callGoogleScript("importMasterScheduleForAttendance", this.user)
           .onSuccess((err, data) => {
             this.loading = false;
+            this.importingMasterSchedules = false;
             if (err) return this.showToast(err.message, "error");
+            this.importMasterResult = data || null;
             this.clearAttendanceCaches();
             this.showToast(data.message || "Berhasil", "success");
             this.loadSchedules();
@@ -3855,19 +4802,155 @@
         if (this.scheduleFilterDay) {
           filtered = filtered.filter(s => s.DayOfWeek === this.scheduleFilterDay);
         }
+        if (this.scheduleFilterType) {
+          filtered = filtered.filter(s => s.Type === this.scheduleFilterType);
+        }
+        if (!this.scheduleShowInactive) {
+          filtered = filtered.filter(s => s.IsActive !== false && String(s.IsActive).toLowerCase() !== "false");
+        }
         if (this.scheduleSearchQuery) {
           const q = this.scheduleSearchQuery.toLowerCase();
           filtered = filtered.filter(s =>
             (s.SubjectOrActivityName && s.SubjectOrActivityName.toLowerCase().includes(q)) ||
             (s.ClassOrGroupName && s.ClassOrGroupName.toLowerCase().includes(q)) ||
-            (s.TeacherID && s.TeacherID.toLowerCase().includes(q))
+            (s.TeacherID && s.TeacherID.toLowerCase().includes(q)) ||
+            (this.getUserNameById(s.TeacherID) && this.getUserNameById(s.TeacherID).toLowerCase().includes(q))
           );
         }
         this.filteredSchedules = filtered;
       },
 
+      isScheduleSelected(id) {
+        return this.selectedScheduleIds.includes(String(id));
+      },
+
+      toggleScheduleSelection(id) {
+        const key = String(id || "");
+        if (!key) return;
+        this.selectedScheduleIds = this.isScheduleSelected(key)
+          ? this.selectedScheduleIds.filter(item => item !== key)
+          : [...this.selectedScheduleIds, key];
+      },
+
+      toggleVisibleScheduleSelection() {
+        const visible = this.filteredSchedules.map(item => String(item.ScheduleID || "")).filter(Boolean);
+        const allSelected = visible.length > 0 && visible.every(id => this.isScheduleSelected(id));
+        this.selectedScheduleIds = allSelected
+          ? this.selectedScheduleIds.filter(id => !visible.includes(id))
+          : Array.from(new Set([...this.selectedScheduleIds, ...visible]));
+      },
+
+      openScheduleBulkModal() {
+        if (!this.selectedScheduleIds.length) return this.showToast("Pilih jadwal terlebih dahulu.", "error");
+        this.scheduleBulkForm = { operation: "move_day", DayOfWeek: "", StartTime: "", EndTime: "", TeacherID: "", ClassOrGroupName: "", IsActive: true };
+        this.scheduleBulkPreview = null;
+        this.showScheduleBulkModal = true;
+      },
+
+      previewScheduleBulk() {
+        const form = this.scheduleBulkForm;
+        if (form.operation === "move_day" && !form.DayOfWeek) return this.showToast("Pilih hari tujuan.", "error");
+        if (form.operation === "move_time" && (!form.StartTime || !form.EndTime)) return this.showToast("Isi jam mulai dan selesai.", "error");
+        if (form.operation === "replace_teacher" && !form.TeacherID) return this.showToast("Pilih pengajar pengganti.", "error");
+        if (form.operation === "replace_class" && !form.ClassOrGroupName) return this.showToast("Pilih kelas pengganti.", "error");
+        callGoogleScript("bulkUpdateSchedules", { ...form, scheduleIds: this.selectedScheduleIds, preview: true }, this.user)
+          .onSuccess((err, data) => {
+            if (err) return this.showToast(err.message, "error");
+            this.scheduleBulkPreview = data;
+          });
+      },
+
+      applyScheduleBulk() {
+        if (!this.scheduleBulkPreview) return this.previewScheduleBulk();
+        if (!confirm("Terapkan perubahan pada " + this.scheduleBulkPreview.count + " jadwal?")) return;
+        this.loading = true;
+        callGoogleScript("bulkUpdateSchedules", { ...this.scheduleBulkForm, scheduleIds: this.selectedScheduleIds, preview: false }, this.user)
+          .onSuccess((err, data) => {
+            this.loading = false;
+            if (err) return this.showToast(err.message, "error");
+            this.showScheduleBulkModal = false;
+            this.scheduleBulkPreview = null;
+            this.clearAttendanceCaches();
+            this.showToast(data.message || "Perubahan massal berhasil diterapkan.", "success");
+            this.loadSchedules();
+          });
+      },
+
+      runScheduleValidation() {
+        callGoogleScript("validateSchedules", { schedules: this.schedules }, this.user)
+          .onSuccess((err, data) => {
+            if (err) return this.showToast(err.message, "error");
+            this.scheduleValidation = data;
+            this.showToast(data.valid ? "Tidak ada konflik kritis." : "Ada masalah jadwal yang perlu diperbaiki.", data.valid ? "success" : "error");
+          });
+      },
+
+      openScheduleMasterModal(master = null) {
+        this.scheduleMasterForm = master
+          ? { ...this.scheduleMasterForm, ...master, IsActive: master.IsActive !== false && String(master.IsActive).toLowerCase() !== "false" }
+          : { MasterID: "", MasterType: "Class", Name: "", StartTime: "", EndTime: "", SortOrder: 999, IsActive: true };
+        this.showScheduleMasterModal = true;
+      },
+
+      saveScheduleMasterForm() {
+        this.loading = true;
+        callGoogleScript("saveScheduleMaster", this.scheduleMasterForm, this.user).onSuccess((err, data) => {
+          this.loading = false;
+          if (err) return this.showToast(err.message, "error");
+          this.showScheduleMasterModal = false;
+          this.showToast(data.message || "Master jadwal disimpan.", "success");
+          this.loadScheduleEditorData();
+        });
+      },
+
+      deleteScheduleMasterItem(master) {
+        if (!master || !confirm("Nonaktifkan master " + master.Name + "?")) return;
+        callGoogleScript("deleteScheduleMaster", master.MasterID, this.user).onSuccess((err, data) => {
+          if (err) return this.showToast(err.message, "error");
+          this.showToast(data.message || "Master dinonaktifkan.", "success");
+          this.loadScheduleEditorData();
+        });
+      },
+
+      scheduleTimePreset(start, end) {
+        this.scheduleForm.StartTime = start;
+        this.scheduleForm.EndTime = end;
+      },
+
+      get scheduleSummary() {
+        const active = this.schedules.filter(item => item.IsActive !== false && String(item.IsActive).toLowerCase() !== "false");
+        return {
+          active: active.length,
+          kbm: active.filter(item => item.Type === "KBM").length,
+          kegiatan: active.filter(item => item.Type === "Kegiatan").length,
+          pondok: active.filter(item => item.Type === "Pondok").length,
+        };
+      },
+
       openAddScheduleModal() {
         this.scheduleForm = { ...FORM_DEFAULTS.scheduleForm };
+        this.showAddScheduleModal = true;
+      },
+
+      openEditScheduleModal(schedule) {
+        if (!schedule) return;
+        this.scheduleForm = {
+          ...FORM_DEFAULTS.scheduleForm,
+          ...schedule,
+          ScheduleID: String(schedule.ScheduleID || ""),
+          IsActive: schedule.IsActive !== false && String(schedule.IsActive).toLowerCase() !== "false",
+        };
+        this.showAddScheduleModal = true;
+      },
+
+      duplicateSchedule(schedule) {
+        if (!schedule) return;
+        this.scheduleForm = {
+          ...FORM_DEFAULTS.scheduleForm,
+          ...schedule,
+          ScheduleID: "",
+          IsActive: true,
+        };
         this.showAddScheduleModal = true;
       },
 
@@ -3885,7 +4968,7 @@
       },
 
       deleteSchedule(id) {
-        if(!confirm("Yakin ingin menghapus jadwal ini?")) return;
+        if(!confirm("Nonaktifkan jadwal ini? Riwayat absensi tetap dipertahankan.")) return;
         this.loading = true;
         callGoogleScript("deleteSchedule", id, this.user)
           .onSuccess((err, data) => {
@@ -4078,11 +5161,11 @@
 
       getCurrentDayName() {
         const days = ["Ahad", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-        return days[new Date((this.attendanceDate || new Date().toISOString().split("T")[0]) + "T00:00:00").getDay()];
+        return days[new Date((this.attendanceDate || localDateString()) + "T00:00:00").getDay()];
       },
 
       formatAttendanceDateLabel() {
-        const rawDate = this.attendanceDate || new Date().toISOString().split("T")[0];
+        const rawDate = this.attendanceDate || localDateString();
         const date = new Date(rawDate + "T00:00:00");
         if (Number.isNaN(date.getTime())) return rawDate;
         return new Intl.DateTimeFormat("id-ID", {
@@ -4193,7 +5276,7 @@
           DayOfWeek: String(schedule.DayOfWeek || this.getCurrentDayName()),
           StartTime: String(schedule.StartTime || ""),
           EndTime: String(schedule.EndTime || ""),
-          AttendanceDate: String(schedule.AttendanceDate || this.attendanceDate || ""),
+          AttendanceDate: String(this.attendanceDate || schedule.AttendanceDate || ""),
         };
       },
 
@@ -4206,7 +5289,11 @@
       },
 
       applyAttendanceSession(data, schedule) {
-        this.attendanceSessionData = data.session || this.attendanceSessionData;
+        this.attendanceSessionData = {
+          ...(this.attendanceSessionData || {}),
+          ...(data.session || {}),
+          AttendanceDate: this.attendanceDate,
+        };
         this.attendanceStudents = (data.records || []).map(record => ({
           StudentID: record.StudentID,
           NIS: record.NIS,
@@ -4488,7 +5575,9 @@
       },
 
       getUniqueClasses() {
-        const source = this.attendanceHome?.classes?.length ? this.attendanceHome.classes : this.students.map(s => s["Class/Level"]).filter(Boolean);
+        const source = this.scheduleEditorData?.classes?.length
+          ? this.scheduleEditorData.classes
+          : (this.attendanceHome?.classes?.length ? this.attendanceHome.classes : this.students.map(s => s["Class/Level"]).filter(Boolean));
         const classes = source.filter(Boolean);
         return [...new Set(classes)].sort();
       },
@@ -4500,6 +5589,8 @@
 
       initScheduleWatchers() {
         this.$watch('scheduleFilterDay', () => this.filterSchedules());
+        this.$watch('scheduleFilterType', () => this.filterSchedules());
+        this.$watch('scheduleShowInactive', () => this.filterSchedules());
         this.$watch('scheduleSearchQuery', () => this.filterSchedules());
       },
 

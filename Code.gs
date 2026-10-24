@@ -78,6 +78,15 @@ function doPost(e) {
       : request.payload !== undefined
         ? [request.payload]
         : [];
+    if (
+      typeof isProductModuleEnabledForAction_ === "function" &&
+      !isProductModuleEnabledForAction_(action, args)
+    ) {
+      return jsonResponse_({
+        ok: false,
+        message: "Modul ini belum aktif pada paket pondok.",
+      });
+    }
     const result = handler.apply(null, args);
     return jsonResponse_({
       ok: true,
@@ -91,6 +100,90 @@ function doPost(e) {
   }
 }
 
+/**
+ * Shared-core bridge used by the centralized client call helper.
+ * CORE_LIBRARY_ENABLED stays off until the library version passes staging.
+ */
+function runAppAction(request) {
+  const input = request || {};
+  const action = String(input.action || "").trim();
+  if (!action || !isExternalActionAllowed_(action)) {
+    return { ok: false, message: "Action tidak diizinkan." };
+  }
+  const args = Array.isArray(input.args) ? input.args : [];
+  if (typeof PRODUCT_isDemoReadOnlyAction_ === "function" && PRODUCT_isDemoReadOnlyAction_(action, args)) {
+    return { ok: false, message: "Akun demo hanya dapat melihat data dan mencoba laporan." };
+  }
+  if (
+    typeof isProductModuleEnabledForAction_ === "function" &&
+    !isProductModuleEnabledForAction_(action, args)
+  ) {
+    return { ok: false, message: "Modul ini belum aktif pada paket pondok." };
+  }
+
+  const sharedCore = PRODUCT_getSharedCore_();
+  if (sharedCore) {
+    if (typeof sharedCore.runAction !== "function") {
+      return {
+        ok: false,
+        message: "Library inti tidak memiliki fungsi runAction yang sesuai.",
+      };
+    }
+    const result = sharedCore.runAction(action, args, PRODUCT_buildCoreContext_());
+    return result && typeof result.ok === "boolean"
+      ? result
+      : { ok: true, data: result === undefined ? null : result };
+  }
+
+  const handler = globalThis[action];
+  if (typeof handler !== "function") {
+    return { ok: false, message: "Action tidak ditemukan: " + action };
+  }
+  try {
+    const result = handler.apply(null, args);
+    return result && typeof result.ok === "boolean"
+      ? result
+      : { ok: true, data: result === undefined ? null : result };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error && error.message ? error.message : String(error),
+    };
+  }
+}
+
+function PRODUCT_buildCoreContext_() {
+  const properties = PropertiesService.getScriptProperties().getProperties();
+  return {
+    spreadsheetId: getConfiguredSpreadsheetId_(),
+    reportTemplateId: String(properties.REPORT_TEMPLATE_ID || "").trim(),
+    properties: {
+      INSTALLATION_MODE: String(properties.INSTALLATION_MODE || "legacy"),
+      TENANT_ID: String(properties.TENANT_ID || ""),
+      REPORT_V2_ROLLOUT: String(properties.REPORT_V2_ROLLOUT || "off"),
+      REPORT_V2_CANARY_USERS: String(properties.REPORT_V2_CANARY_USERS || ""),
+    },
+  };
+}
+
+function PRODUCT_getSharedCore_() {
+  const properties = PropertiesService.getScriptProperties();
+  const enabled = String(properties.getProperty("CORE_LIBRARY_ENABLED") || "off")
+    .trim()
+    .toLowerCase();
+  if (enabled !== "on") return null;
+  const identifier = String(
+    properties.getProperty("CORE_LIBRARY_IDENTIFIER") || "SantriCore",
+  ).trim();
+  const library = globalThis[identifier];
+  if (!library) {
+    throw new Error(
+      "Library inti belum terpasang. Matikan CORE_LIBRARY_ENABLED atau pasang library yang sesuai.",
+    );
+  }
+  return library;
+}
+
 function isExternalActionAllowed_(action) {
   const allowed = [
     "login",
@@ -101,6 +194,7 @@ function isExternalActionAllowed_(action) {
     "getDashboardSummary",
     "getStudents",
     "addStudent",
+    "updateStudentProfile",
     "updateStudentNote",
     "getStudentDetailData",
     "getStudentAnalytics",
@@ -121,8 +215,13 @@ function isExternalActionAllowed_(action) {
     "updateHafalanLink",
     "deleteHafalanLink",
     "getSchedules",
+    "getScheduleEditorData",
     "saveSchedule",
     "deleteSchedule",
+    "validateSchedules",
+    "bulkUpdateSchedules",
+    "saveScheduleMaster",
+    "deleteScheduleMaster",
     "importMasterScheduleForAttendance",
     "getAttendanceHome",
     "getAttendanceSession",
@@ -148,10 +247,16 @@ function isExternalActionAllowed_(action) {
     "saveAcademicTeacherAssignment",
     "setAcademicTeacherAssignmentStatus",
     "syncAcademicTeacherAssignmentsFromSchedules",
+    "getCurriculumExamSetup",
+    "syncCurriculumExamItemsFromSchedules",
+    "saveCurriculumExamItem",
+    "getCurriculumScoreMatrix",
+    "saveCurriculumExamScores",
     "getExamEligibility",
     "saveExamEligibilityOverride",
     "downloadStudentReportPdf",
     "generateStudentReportPdf",
+    "getGuardianReportSharePreview",
     "getFullStudentReport",
     "getStudentFullReport",
     "sendReportToEmail",
@@ -168,6 +273,25 @@ function isExternalActionAllowed_(action) {
     "runHealthCheck",
     "runCompleteSetup",
     "runParentContactConversion",
+    "getAppEntitlements",
+    "getProductReadiness",
+    "createSetupImportTemplates",
+    "seedSetupDummyData",
+    "importSetupCsv",
+    "previewSetupWizardImports",
+    "applySetupWizardImports",
+    "completeSetupWizard",
+    "getInstallationManifest",
+    "configureTenantInstallation",
+    "getAppReleaseStatus",
+    "saveTenantProfile",
+    "saveProductSettings",
+    "saveModuleLicenses",
+    "saveSetupChecklistItem",
+    "saveDemoAccount",
+    "syncDemoAccountsToUsers",
+    "createDemoPackage",
+    "resetDemoPackage",
   ];
   return allowed.includes(String(action || ""));
 }
@@ -580,6 +704,7 @@ function getPulangBulananLogs(currentUser, filters) {
     if (!PB_canViewPulang_(currentUser)) {
       throw new Error("Akses ditolak.");
     }
+    requireProductModuleEnabled_("pulang_bulanan", currentUser);
     const sheet = PB_getOrCreateSheet_(
       SHEET_PULANG_BULANAN,
       PULANG_BULANAN_HEADERS,
@@ -676,6 +801,7 @@ function savePulangBulanan(payload, currentUser) {
         "Akses ditolak. Hanya Mudir/Ustadz yang dapat mencatat pulang bulanan.",
       );
     }
+    requireProductModuleEnabled_("pulang_bulanan", currentUser);
     payload = payload || {};
     if (!payload.StudentID) {
       throw new Error("Santri wajib dipilih.");
@@ -763,6 +889,7 @@ function updatePulangBulanan(pulangId, payload, currentUser) {
         "Akses ditolak. Hanya Mudir/Ustadz yang dapat mengubah data.",
       );
     }
+    requireProductModuleEnabled_("pulang_bulanan", currentUser);
     payload = payload || {};
     const sheet = PB_getOrCreateSheet_(
       SHEET_PULANG_BULANAN,
@@ -839,6 +966,7 @@ function deletePulangBulanan(pulangId, currentUser) {
         "Akses ditolak. Hanya Mudir/Ustadz yang dapat menghapus data.",
       );
     }
+    requireProductModuleEnabled_("pulang_bulanan", currentUser);
     const sheet = PB_getOrCreateSheet_(
       SHEET_PULANG_BULANAN,
       PULANG_BULANAN_HEADERS,

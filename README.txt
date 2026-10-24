@@ -5,7 +5,8 @@ santri, absensi, hafalan, perilaku, akademik, informasi pesantren, dan laporan
 wali. Aplikasi memakai Google Sheets sebagai penyimpanan utama dan dirancang
 agar dapat digunakan dari desktop maupun HP.
 
-Dokumentasi ini menggambarkan baseline deployment versi 201.
+Dokumentasi ini menggambarkan baseline deployment versi 201 dan status
+kesiapan produk terbaru pada branch `codex/product-readiness`.
 
 ## Fitur Utama
 
@@ -54,7 +55,7 @@ File penting:
 | `Attendance.gs` | Sesi absensi, penyimpanan detail, rekap, dan laporan wali |
 | `AttendanceIntegrity.gs` | Audit serta perbaikan integritas akun/jadwal/absensi |
 | `Schedule.gs` | Pengambilan dan pengelolaan jadwal |
-| `SeedSchedulesMaster.gs` | Seed jadwal resmi tahun 2026 |
+| `SeedSchedulesMaster.gs` | Importer demo/migrasi jadwal 2026; bukan data operasional tenant |
 | `Students.gs` | Pengelolaan dan pembacaan data santri |
 | `Auth.gs` | Login, logout, validasi token, dan pemulihan sesi |
 | `Layout_NavDesktop.html` | Sidebar desktop dari konfigurasi navigasi bersama |
@@ -134,15 +135,17 @@ menyatakan gagal. Aplikasi membuka ulang sesi dan membandingkan `StudentID`,
 `Status`, dan `Notes`. Notifikasi berhasil ditampilkan bila data di server
 sudah sama dengan input pengguna.
 
-## Jadwal Master 2026
+## Dataset Migrasi Jadwal 2026
 
-Seed resmi berisi 420 jadwal:
+Dataset migrasi internal berisi 420 jadwal:
 
 - 342 jadwal KBM; dan
 - 78 jadwal kegiatan.
 
-Jam KBM mengikuti kolom `Jadwal_KBM.waktu` pada workbook master. Setelah
-workbook resmi berubah, regenerasi konstanta dengan:
+Jam KBM pada dataset ini mengikuti kolom `Jadwal_KBM.waktu` pada workbook
+rujukan. Dataset ini hanya untuk mode legacy/demo. Jadwal operasional pondok
+tetap berasal dari sheet `Schedules`. Jika dataset migrasi perlu diperbarui,
+regenerasi konstanta dengan:
 
 ```powershell
 python tools/generate_schedule_seed.py
@@ -152,15 +155,73 @@ Periksa hasil audit sebelum menerapkan perubahan ke spreadsheet produksi.
 
 ## Setup
 
-1. Isi `SPREADSHEET_ID` dan konfigurasi lain di `Config.gs`.
+1. Untuk instalasi lama, pertahankan konfigurasi kompatibilitas. Untuk pondok
+   baru, isi Script Properties mode `tenant` dan `SPREADSHEET_ID` milik pondok.
 2. Pastikan seluruh sheet dan header wajib tersedia melalui fungsi setup.
-3. Jalankan seed jadwal hanya dari akun Mudir/Admin yang berwenang.
+3. Untuk mode legacy/demo, seed jadwal hanya dijalankan dari akun Mudir/Admin
+   setelah hasilnya diperiksa. Mode tenant tidak menjalankan seed bawaan.
 4. Isi `TeacherSourceID` pada akun pengajar dan jadwal.
 5. Deploy sebagai Google Apps Script Web App.
 6. Uji login minimal sebagai Mudir, Ustadz, Ustadzah, Admin, dan Wali.
 
 Migrasi dan setup dibuat idempoten: menjalankannya kembali tidak boleh membuat
 header, jadwal, atau sesi yang sama menjadi berlipat.
+
+### Setup Pondok Baru - Level 1
+
+Untuk menyiapkan pondok baru, masuk sebagai Admin atau Mudir lalu buka menu
+`Setup Pondok`. Wizard berjalan berurutan:
+
+1. Isi profil pondok dan tahun ajaran.
+2. Pilih mode paket dan modul yang digunakan.
+3. Buat template import, lalu isi sheet `SetupImportStudents`,
+   `SetupImportUsers`, dan `SetupImportSchedules`.
+4. Jalankan `Preview` dan perbaiki baris yang ditolak.
+5. Jalankan `Proses Import`; data lama tidak dihapus dan data kembar dilewati.
+6. Lengkapi periode akademik, kurikulum, jadwal ujian, dan akun demo melalui
+   menu masing-masing.
+7. Buka kembali wizard, periksa semua tanda kesiapan, lalu pilih
+   `Selesaikan Setup`.
+
+Sebelum aplikasi diserahkan kepada pondok, pemilik project harus mengisi
+Script Properties berikut pada project pondok:
+
+```text
+INSTALLATION_MODE=tenant
+TENANT_ID=kode-unik-pondok
+SPREADSHEET_ID=ID-Spreadsheet-milik-pondok
+REPORT_TEMPLATE_ID=ID-template-raport-milik-pondok
+INSTALLATION_OWNER_EMAIL=email-admin-pondok
+SUPPORT_EMAIL=email-dukungan-penjual
+```
+
+Menu `Setup Pondok` akan menampilkan apakah instalasi sudah siap
+diserahterimakan. Mode `tenant` sengaja menolak penggunaan ID database lama
+apabila `SPREADSHEET_ID` belum diisi.
+
+### Persiapan update bersama
+
+Setiap instalasi menyimpan versi `wrapper` dan versi `inti aplikasi`. Pada
+tahap awal, inti masih lokal agar aplikasi lama tetap aman. Setelah library
+inti bersama siap, project pondok mencatat:
+
+```text
+CORE_LIBRARY_ID=ID-project-library-inti
+CORE_LIBRARY_VERSION=versi-inti
+CORE_UPDATE_CHANNEL=stable
+CORE_LIBRARY_IDENTIFIER=SantriCore
+CORE_LIBRARY_ENABLED=off
+```
+
+Update memakai persetujuan Admin/Mudir pondok. Data Spreadsheet tidak berpindah
+ke project penjual dan update tidak boleh mengubah konfigurasi pondok.
+Set `CORE_LIBRARY_ENABLED=on` hanya setelah library dan seluruh smoke test
+staging lulus.
+
+Wizard hanya berlaku pada project dan spreadsheet tempat aplikasi sedang
+berjalan. Pada Level 1, pembuatan project/deployment baru untuk setiap pondok
+masih dilakukan oleh pengelola aplikasi. Mode `off` tetap menjadi kondisi
+aman awal agar aplikasi yang sedang dipakai tidak berubah perilakunya.
 
 ## Pengujian Lokal
 
@@ -212,6 +273,26 @@ Jalankan regresi raport sebelum deployment:
 node tools/test_report_v2.js
 ```
 
+Jalankan pemeriksaan konfigurasi instalasi:
+
+```powershell
+node tools/test_installation_config.js
+```
+
+Jalankan pemeriksaan jalur kode lokal/library:
+
+```powershell
+node tools/test_shared_core_bridge.js
+```
+
+### Catatan deployment staging
+
+Pengembangan kesiapan produk dilakukan pada branch `codex/product-readiness`
+dan project Apps Script staging terpisah. Deployment staging Level 1 saat
+catatan ini dibuat adalah versi `10`. Deployment produksi tidak digunakan
+untuk percobaan. Bila terjadi masalah, matikan feature flag terlebih dahulu;
+deployment lama dan data lama tetap menjadi titik pemulihan.
+
 ## Audit dan Pemulihan
 
 - Jalankan `auditAttendanceIntegrity()` untuk pemeriksaan tanpa perubahan.
@@ -224,10 +305,18 @@ node tools/test_report_v2.js
 
 ## Dokumentasi Lanjutan
 
-- `TECHNICAL_NOTES.md`: kontrak teknis, integrasi, dan keputusan arsitektur.
+- `TECHNICAL_NOTES.md`: kontrak teknis dan integrasi.
+- `PRODUCT_ARCHITECTURE.md`: keputusan tunggal arah produk, sumber data, dan
+  aturan pengembangan multi-pondok.
 - `PANDUAN_DATA_MASTER.md`: koreksi kelas/status santri serta roadmap
   pengaturan tanpa kode.
 - `CHANGELOG.md`: riwayat versi penting modul absensi.
+- `ProductReadiness.gs` dan `Tab_SetupPondok.html`: logika serta tampilan
+  wizard setup pondok baru.
+- `SHARED_CORE_ROLLOUT.md`: tahapan pemindahan kode inti ke library bersama
+  dengan data tetap terpisah per pondok.
+- `core-library`: source package library inti yang tidak ikut dikirim oleh
+  deployment aplikasi utama.
 
 ## Catatan Keamanan
 
@@ -235,3 +324,14 @@ node tools/test_report_v2.js
 - Jangan membagikan token sesi melalui URL atau log publik.
 - Hak akses harus selalu diperiksa di backend, bukan hanya menyembunyikan menu.
 - Buat cadangan spreadsheet sebelum migrasi atau perbaikan massal.
+PAKET DEMO UNTUK PEMASARAN
+--------------------------
+Admin/Mudir dapat membuka Setup Pondok > Demo, memasukkan satu password demo,
+lalu menekan "Buat Paket Demo Otomatis". Sistem membuat akun demo Mudir, Admin,
+Ustadz, dan Wali serta data contoh santri, jadwal, absensi, hafalan, perilaku,
+dan nilai raport.
+
+Password tidak disimpan di sheet DemoAccounts. Bagikan password hanya melalui
+saluran yang aman. Akun demo ditandai hanya-baca sehingga calon pembeli dapat
+mencoba fitur tanpa mengubah data. Tombol "Reset Data Demo" hanya menghapus
+data dan akun yang dibuat oleh paket demo.

@@ -6,8 +6,9 @@
       <div>
         <h2 class="text-2xl font-bold text-gray-800">Manajemen Jadwal</h2>
         <p class="text-gray-600 mt-1">
-          Kelola jadwal mengajar KBM dan Kegiatan untuk Ustadz
+          Tambah, edit, duplikasi, atau nonaktifkan jadwal tanpa mengubah kode aplikasi.
         </p>
+        <p x-show="scheduleEditorData?.scheduleSource" class="mt-2 text-xs font-semibold text-emerald-700" x-text="'Sumber data: ' + scheduleEditorData.scheduleSource"></p>
       </div>
       <div class="flex gap-3">
         <button
@@ -25,13 +26,45 @@
           Tambah Jadwal
         </button>
         <button
+          x-show="scheduleEditorData?.embeddedMasterImportAllowed"
           @click="runSeedSchedules()"
-          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center gap-2"
-          title="Import jadwal KBM dan kegiatan luar KBM dari database master 2026"
+          :disabled="importingMasterSchedules"
+          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+          title="Hanya untuk mode demo/kompatibilitas; bukan sumber data pondok produksi"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Import Jadwal Master 2026
+          <span x-text="importingMasterSchedules ? 'Menyinkronkan...' : 'Gunakan Master Demo'"></span>
         </button>
+      </div>
+    </div>
+
+    <div x-show="scheduleEditorData?.embeddedMasterImportAllowed" class="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-900">
+      Master demo hanya alat migrasi/kompatibilitas. Untuk pondok produksi, buat jadwal sendiri melalui tombol <strong>Tambah Jadwal</strong> atau template spreadsheet.
+      <span x-show="importMasterResult" class="block mt-1 font-bold" x-text="importMasterResult?.message"></span>
+    </div>
+
+    <div x-show="scheduleEditorData?.installationMode === 'tenant'" class="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-900">
+      Sumber jadwal aktif: <strong>data pondok ini</strong>. Tidak ada jadwal dari aplikasi yang dimasukkan otomatis. Gunakan <strong>Tambah Jadwal</strong> untuk membuat jadwal pertama, atau isi template spreadsheet pondok lalu lakukan preview impor.
+    </div>
+
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div>
+          <h3 class="font-bold text-blue-900">Editor cepat jadwal</h3>
+          <p class="text-sm text-blue-800 mt-1">Pilih satu jadwal untuk Edit, atau centang beberapa jadwal untuk perubahan pekanan.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" @click="runScheduleValidation()" class="px-3 py-2 rounded-lg border border-blue-300 bg-white text-blue-800 text-sm font-bold">Periksa Bentrok</button>
+          <button type="button" @click="openScheduleBulkModal()" class="px-3 py-2 rounded-lg bg-blue-700 text-white text-sm font-bold">Ubah Jadwal Terpilih</button>
+          <button type="button" @click="openScheduleMasterModal()" class="px-3 py-2 rounded-lg border border-blue-300 bg-white text-blue-800 text-sm font-bold">Kelola Master</button>
+        </div>
+      </div>
+      <div x-show="selectedScheduleIds.length" class="mt-3 text-sm font-bold text-blue-900" x-text="selectedScheduleIds.length + ' jadwal dipilih'"></div>
+      <div x-show="scheduleValidation" class="mt-3 bg-white border border-blue-200 rounded-lg p-3 text-sm">
+        <p class="font-bold" x-text="scheduleValidation?.valid ? 'Pemeriksaan selesai: tidak ada konflik kritis.' : 'Pemeriksaan menemukan masalah.'"></p>
+        <template x-for="issue in (scheduleValidation?.issues || []).slice(0, 8)" :key="issue.code + ':' + (issue.scheduleIds || []).join('-')">
+          <p class="mt-1" :class="issue.severity === 'critical' ? 'text-red-700' : 'text-amber-700'" x-text="issue.message + ' (' + (issue.scheduleIds || []).join(', ') + ')' "></p>
+        </template>
       </div>
     </div>
 
@@ -82,10 +115,16 @@
       </div>
     </section>
 
-    <!-- Filters -->
-    <div class="bg-white rounded-xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="bg-white border border-gray-200 rounded-xl p-4"><p class="text-xs font-bold uppercase text-gray-500">Jadwal aktif</p><p class="text-2xl font-black text-gray-900" x-text="scheduleSummary.active"></p></div>
+      <div class="bg-blue-50 border border-blue-100 rounded-xl p-4"><p class="text-xs font-bold uppercase text-blue-700">KBM</p><p class="text-2xl font-black text-blue-900" x-text="scheduleSummary.kbm"></p></div>
+      <div class="bg-purple-50 border border-purple-100 rounded-xl p-4"><p class="text-xs font-bold uppercase text-purple-700">Kegiatan</p><p class="text-2xl font-black text-purple-900" x-text="scheduleSummary.kegiatan"></p></div>
+      <div class="bg-amber-50 border border-amber-100 rounded-xl p-4"><p class="text-xs font-bold uppercase text-amber-700">Pondok</p><p class="text-2xl font-black text-amber-900" x-text="scheduleSummary.pondok"></p></div>
+    </div>
+
+    <div class="bg-white rounded-xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Filter Hari</label>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Hari jadwal</label>
         <select x-model="scheduleFilterDay" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
           <option value="">Semua Hari</option>
           <option value="Senin">Senin</option>
@@ -96,62 +135,78 @@
           <option value="Sabtu">Sabtu</option>
           <option value="Ahad">Ahad</option>
         </select>
+        <p class="mt-1 text-xs text-gray-500">Saat halaman dibuka, otomatis menampilkan jadwal hari ini.</p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Jadwal</label>
+        <select x-model="scheduleFilterType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+          <option value="">Semua Jenis</option>
+          <option value="KBM">KBM</option>
+          <option value="Kegiatan">Kegiatan</option>
+          <option value="Pondok">Pondok</option>
+        </select>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
         <input type="text" x-model="scheduleSearchQuery" placeholder="Cari Ustadz, Mapel, Kelas..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
       </div>
+      <label class="flex items-center gap-3 self-end min-h-10 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700">
+        <input type="checkbox" x-model="scheduleShowInactive" class="h-4 w-4 text-blue-600 rounded">
+        Tampilkan jadwal nonaktif
+      </label>
     </div>
 
-    <!-- Table -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hari</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipe</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mapel/Kegiatan</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kelas/Asrama</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pengajar</th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <template x-for="item in filteredSchedules" :key="item.ScheduleID">
-              <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900" x-text="item.DayOfWeek"></td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                    :class="item.Type === 'KBM' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'"
-                    x-text="item.Type"></span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium" x-text="(item.StartTime || '-') + ' - ' + (item.EndTime || '-')"></td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="item.SubjectOrActivityName"></td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="item.ClassOrGroupName"></td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="getUserNameById(item.TeacherID)"></td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button @click="deleteSchedule(item.ScheduleID)" class="text-red-600 hover:text-red-900">Hapus</button>
-                </td>
-              </tr>
-            </template>
-            <tr x-show="filteredSchedules.length === 0">
-              <td colspan="7" class="px-6 py-8 text-center text-gray-500">
-                Tidak ada jadwal yang ditemukan
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h3 class="text-lg font-bold text-gray-900">Daftar Jadwal</h3>
+        <p class="text-sm text-gray-500" x-text="filteredSchedules.length + ' jadwal tampil. Pilih Edit untuk mengubah jadwal.'"></p>
+      </div>
+      <button type="button" @click="toggleVisibleScheduleSelection()" class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-bold text-gray-700 hover:bg-gray-50" x-text="filteredSchedules.length && filteredSchedules.every(item => isScheduleSelected(item.ScheduleID)) ? 'Batalkan Pilihan' : 'Pilih Semua Tampilan'"></button>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+      <template x-for="item in filteredSchedules" :key="item.ScheduleID">
+        <article class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
+                <label class="flex items-center gap-1 text-gray-600 mr-1"><input type="checkbox" :checked="isScheduleSelected(item.ScheduleID)" @change="toggleScheduleSelection(item.ScheduleID)" class="h-4 w-4 rounded text-blue-600"> Pilih</label>
+                <span class="px-2 py-1 rounded-full" :class="item.Type === 'KBM' ? 'bg-blue-100 text-blue-800' : (item.Type === 'Pondok' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800')" x-text="item.Type"></span>
+                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-700" title="Hari jadwal, bukan tombol">Hari: <strong x-text="item.DayOfWeek || 'Belum diatur'"></strong></span>
+                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-700" title="Jam jadwal">Jam: <strong x-text="(item.StartTime || 'Belum diatur') + (item.EndTime ? ' - ' + item.EndTime : '')"></strong></span>
+                <span x-show="item.IsActive === false || String(item.IsActive).toLowerCase() === 'false'" class="px-2 py-1 rounded-full bg-red-100 text-red-700">Nonaktif</span>
+              </div>
+              <h4 class="mt-3 text-lg font-bold text-gray-900 truncate" x-text="item.SubjectOrActivityName || 'Nama belum diisi'"></h4>
+              <p class="text-sm text-gray-600 mt-1">Kelas: <strong x-text="item.ClassOrGroupName || 'Belum diatur'"></strong></p>
+              <p class="text-sm text-gray-600">Pengajar: <strong x-text="getUserNameById(item.TeacherID) || 'Belum diatur'"></strong></p>
+            </div>
+            <span class="text-xs text-gray-400 shrink-0" x-text="item.ScheduleID"></span>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-3">
+            <button @click="openEditScheduleModal(item)" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700">Edit Jadwal</button>
+            <button @click="duplicateSchedule(item)" class="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-bold hover:bg-gray-50">Duplikasi</button>
+            <button @click="deleteSchedule(item.ScheduleID)" x-show="item.IsActive !== false && String(item.IsActive).toLowerCase() !== 'false'" class="px-3 py-2 rounded-lg border border-red-200 text-red-700 text-sm font-bold hover:bg-red-50">Nonaktifkan</button>
+            <button @click="openEditScheduleModal(item)" x-show="item.IsActive === false || String(item.IsActive).toLowerCase() === 'false'" class="px-3 py-2 rounded-lg border border-green-200 text-green-700 text-sm font-bold hover:bg-green-50">Aktifkan</button>
+          </div>
+        </article>
+      </template>
+      <div x-show="filteredSchedules.length === 0" class="xl:col-span-2 bg-white border border-dashed border-gray-300 rounded-xl p-8 text-center text-gray-500">
+        Tidak ada jadwal yang cocok dengan filter. Coba ubah hari, jenis, pencarian, atau aktifkan tampilan jadwal nonaktif.
       </div>
     </div>
 
-    <!-- Add Schedule Modal -->
+    <!-- Add/Edit Schedule Modal -->
     <div x-show="showAddScheduleModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
       <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
         <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" @click="showAddScheduleModal = false"></div>
         <div class="relative inline-block w-full max-w-lg p-6 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
-          <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Tambah Jadwal Baru</h3>
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-lg font-medium leading-6 text-gray-900" x-text="scheduleForm.ScheduleID ? 'Edit Jadwal' : 'Tambah Jadwal Baru'"></h3>
+              <p class="text-sm text-gray-500 mt-1">Isi data jadwal, lalu simpan. Jadwal yang dinonaktifkan tidak muncul untuk absensi baru.</p>
+            </div>
+            <button type="button" class="text-gray-400 hover:text-gray-700 text-2xl leading-none" @click="showAddScheduleModal = false" aria-label="Tutup">&times;</button>
+          </div>
 
           <form @submit.prevent="submitScheduleForm">
             <div class="space-y-4">
@@ -187,6 +242,16 @@
                   <input type="time" x-model="scheduleForm.EndTime" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
               </div>
+              <div>
+                <p class="text-xs font-bold text-gray-500 mb-2">Pilihan jam cepat</p>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" @click="scheduleTimePreset('07:20', '08:00')" class="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-50">07:20-08:00</button>
+                  <button type="button" @click="scheduleTimePreset('08:00', '08:40')" class="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-50">08:00-08:40</button>
+                  <button type="button" @click="scheduleTimePreset('08:40', '09:20')" class="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-50">08:40-09:20</button>
+                  <button type="button" @click="scheduleTimePreset('10:10', '10:50')" class="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-50">10:10-10:50</button>
+                  <button type="button" @click="scheduleTimePreset('10:50', '11:30')" class="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-50">10:50-11:30</button>
+                </div>
+              </div>
 
               <div>
                 <label class="block text-sm font-medium text-gray-700">Kelas / Asrama</label>
@@ -202,7 +267,7 @@
                 <label class="block text-sm font-medium text-gray-700">Mata Pelajaran</label>
                 <select x-model="scheduleForm.SubjectOrActivityName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" :required="scheduleForm.Type === 'KBM'">
                   <option value="">-- Pilih Mapel --</option>
-                  <template x-for="sub in academicSetup?.subjects || []" :key="sub.Name">
+                  <template x-for="sub in (scheduleEditorData?.subjects?.length ? scheduleEditorData.subjects.map(name => ({Name: name})) : (academicSetup?.subjects || []))" :key="sub.Name">
                     <option :value="sub.Name" x-text="sub.Name"></option>
                   </template>
                 </select>
@@ -210,18 +275,27 @@
 
               <div x-show="scheduleForm.Type !== 'KBM'">
                 <label class="block text-sm font-medium text-gray-700">Nama Kegiatan</label>
-                <input type="text" x-model="scheduleForm.SubjectOrActivityName" placeholder="Contoh: Kehadiran Pondok, Kajian Bakti, Halaqoh Subuh" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" :required="scheduleForm.Type !== 'KBM'">
+                <input list="schedule-activities" type="text" x-model="scheduleForm.SubjectOrActivityName" placeholder="Pilih atau ketik nama kegiatan" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" :required="scheduleForm.Type !== 'KBM'">
+                <datalist id="schedule-activities"><template x-for="activity in scheduleEditorData?.activities || []" :key="activity"><option :value="activity"></option></template></datalist>
               </div>
 
               <div>
                 <label class="block text-sm font-medium text-gray-700">Pengajar / Musyrif</label>
                 <select x-model="scheduleForm.TeacherID" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                   <option value="">-- Pilih Pengajar --</option>
-                  <template x-for="usr in users.filter(u => u.Role === 'Ustadz' || u.Role === 'Mudir')" :key="usr.UserID">
+                  <template x-for="usr in (scheduleEditorData?.teachers?.length ? scheduleEditorData.teachers : users.filter(u => u.Role === 'Ustadz' || u.Role === 'Mudir'))" :key="usr.UserID || usr.Username">
                     <option :value="usr.Username" x-text="usr.Name + ' (@' + usr.Username + ')'"></option>
                   </template>
                 </select>
               </div>
+
+              <label class="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
+                <input type="checkbox" x-model="scheduleForm.IsActive" class="h-4 w-4 text-blue-600 rounded">
+                <span>
+                  <span class="block text-sm font-medium text-gray-800">Jadwal aktif</span>
+                  <span class="block text-xs text-gray-500">Matikan sementara jika jadwal tidak dipakai.</span>
+                </span>
+              </label>
             </div>
 
             <div class="mt-6 flex justify-end gap-3">
@@ -229,10 +303,53 @@
                 Batal
               </button>
               <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700" :disabled="loading">
-                Simpan Jadwal
+                <span x-text="scheduleForm.ScheduleID ? 'Simpan Perubahan' : 'Simpan Jadwal'"></span>
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="showScheduleBulkModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+      <div class="flex items-center justify-center min-h-screen px-4 py-8">
+        <div class="fixed inset-0 bg-gray-900/50" @click="showScheduleBulkModal = false"></div>
+        <div class="relative w-full max-w-xl bg-white rounded-2xl shadow-xl p-6">
+          <div class="flex items-start justify-between gap-3">
+            <div><h3 class="text-lg font-bold text-gray-900">Ubah Jadwal Terpilih</h3><p class="text-sm text-gray-500 mt-1" x-text="selectedScheduleIds.length + ' jadwal akan diproses'"></p></div>
+            <button type="button" @click="showScheduleBulkModal = false" class="text-2xl text-gray-400">&times;</button>
+          </div>
+          <div class="mt-5 space-y-4">
+            <div><label class="block text-sm font-bold text-gray-700">Jenis perubahan</label>
+              <select x-model="scheduleBulkForm.operation" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg">
+                <option value="move_day">Pindahkan ke hari lain</option>
+                <option value="move_time">Ganti jam</option>
+                <option value="replace_teacher">Ganti pengajar</option>
+                <option value="replace_class">Ganti kelas</option>
+                <option value="set_active">Aktifkan/nonaktifkan</option>
+              </select>
+            </div>
+            <div x-show="scheduleBulkForm.operation === 'move_day'"><label class="block text-sm font-bold text-gray-700">Hari tujuan</label><select x-model="scheduleBulkForm.DayOfWeek" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="">Pilih hari</option><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option><option>Ahad</option></select></div>
+            <div x-show="scheduleBulkForm.operation === 'move_time'" class="grid grid-cols-2 gap-3"><div><label class="block text-sm font-bold text-gray-700">Mulai</label><input type="time" x-model="scheduleBulkForm.StartTime" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"></div><div><label class="block text-sm font-bold text-gray-700">Selesai</label><input type="time" x-model="scheduleBulkForm.EndTime" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"></div></div>
+            <div x-show="scheduleBulkForm.operation === 'replace_teacher'"><label class="block text-sm font-bold text-gray-700">Pengajar baru</label><select x-model="scheduleBulkForm.TeacherID" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="">Pilih pengajar</option><template x-for="usr in scheduleEditorData?.teachers || []" :key="usr.UserID || usr.Username"><option :value="usr.Username" x-text="usr.Name + ' (@' + usr.Username + ')' "></option></template></select></div>
+            <div x-show="scheduleBulkForm.operation === 'replace_class'"><label class="block text-sm font-bold text-gray-700">Kelas baru</label><select x-model="scheduleBulkForm.ClassOrGroupName" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="">Pilih kelas</option><template x-for="cls in getUniqueClasses()" :key="cls"><option :value="cls" x-text="cls"></option></template></select></div>
+            <div x-show="scheduleBulkForm.operation === 'set_active'"><label class="flex items-center gap-2 text-sm font-bold text-gray-700"><input type="checkbox" x-model="scheduleBulkForm.IsActive" class="h-4 w-4 rounded text-blue-600"> Jadikan aktif</label></div>
+          </div>
+          <div x-show="scheduleBulkPreview" class="mt-5 max-h-48 overflow-auto rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"><p class="font-bold" x-text="'Pratinjau: ' + (scheduleBulkPreview?.count || 0) + ' jadwal akan berubah.'"></p><template x-for="change in (scheduleBulkPreview?.changes || []).slice(0, 5)" :key="change.before.ScheduleID"><p class="mt-1" x-text="change.before.ScheduleID + ': ' + (change.before.DayOfWeek || '-') + ' / ' + (change.before.StartTime || '-') + ' -> ' + (change.after.DayOfWeek || '-') + ' / ' + (change.after.StartTime || '-')"></p></template></div>
+          <div class="mt-6 flex justify-end gap-2"><button type="button" @click="showScheduleBulkModal = false" class="px-4 py-2 rounded-lg border border-gray-300 font-bold text-gray-700">Batal</button><button type="button" @click="previewScheduleBulk()" class="px-4 py-2 rounded-lg border border-blue-300 text-blue-700 font-bold">Pratinjau</button><button type="button" @click="applyScheduleBulk()" :disabled="!scheduleBulkPreview || loading" class="px-4 py-2 rounded-lg bg-blue-700 text-white font-bold disabled:opacity-50">Terapkan</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="showScheduleMasterModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+      <div class="flex items-center justify-center min-h-screen px-4 py-8">
+        <div class="fixed inset-0 bg-gray-900/50" @click="showScheduleMasterModal = false"></div>
+        <div class="relative w-full max-w-3xl bg-white rounded-2xl shadow-xl p-6">
+          <div class="flex items-start justify-between gap-3"><div><h3 class="text-lg font-bold text-gray-900">Master Jadwal</h3><p class="text-sm text-gray-500 mt-1">Kelola pilihan kelas, mapel, kegiatan, dan slot waktu dari aplikasi. Pengajar dikelola melalui Manajemen User.</p></div><button type="button" @click="showScheduleMasterModal = false" class="text-2xl text-gray-400">&times;</button></div>
+          <div class="mt-3"><button type="button" @click="showScheduleMasterModal = false; setCurrentTab('users')" class="text-sm font-bold text-blue-700">Kelola Pengajar di Manajemen User &rarr;</button></div>
+          <div class="mt-5 grid grid-cols-1 md:grid-cols-4 gap-2"><select x-model="scheduleMasterForm.MasterType" class="px-3 py-2 border border-gray-300 rounded-lg"><option value="Class">Kelas</option><option value="Subject">Mapel</option><option value="Activity">Kegiatan</option><option value="TimeSlot">Slot Jam</option></select><input x-model="scheduleMasterForm.Name" placeholder="Nama master" class="px-3 py-2 border border-gray-300 rounded-lg md:col-span-2"><button type="button" @click="saveScheduleMasterForm()" class="px-3 py-2 rounded-lg bg-blue-700 text-white font-bold">Tambah/Simpan</button></div>
+          <div x-show="scheduleMasterForm.MasterType === 'TimeSlot'" class="mt-2 grid grid-cols-2 gap-2"><input type="time" x-model="scheduleMasterForm.StartTime" class="px-3 py-2 border border-gray-300 rounded-lg"><input type="time" x-model="scheduleMasterForm.EndTime" class="px-3 py-2 border border-gray-300 rounded-lg"></div>
+          <div class="mt-5 max-h-72 overflow-auto border border-gray-200 rounded-lg"><template x-for="master in scheduleEditorData?.masters || []" :key="master.MasterID"><div class="flex items-center justify-between gap-3 px-3 py-2 border-b border-gray-100 last:border-b-0"><div><span class="text-xs font-bold text-gray-500" x-text="master.MasterType"></span><p class="font-semibold text-gray-900" x-text="master.Name + (master.StartTime ? ' (' + master.StartTime + '-' + master.EndTime + ')' : '')"></p></div><div class="flex gap-2"><button type="button" @click="openScheduleMasterModal(master)" class="text-sm font-bold text-blue-700">Edit</button><button type="button" @click="deleteScheduleMasterItem(master)" class="text-sm font-bold text-red-700">Nonaktifkan</button></div></div></template><div x-show="!(scheduleEditorData?.masters || []).length" class="p-4 text-sm text-gray-500">Belum ada master tambahan. Kelas dan mapel yang sudah ada tetap tersedia otomatis dari data utama.</div></div>
         </div>
       </div>
     </div>

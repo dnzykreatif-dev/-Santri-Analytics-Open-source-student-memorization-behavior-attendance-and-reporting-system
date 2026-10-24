@@ -2,6 +2,7 @@ function downloadStudentReportPdf(studentId, periodId, currentUser) {
   let temporaryFile = null;
   try {
     const sessionUser = requireSessionUser_(currentUser, { allowAnonymous: false });
+    requireProductModuleEnabled_("academic", sessionUser);
     if (!isReportV2EnabledFor_(sessionUser)) {
       return { ok: false, message: "Raport versi baru belum diaktifkan." };
     }
@@ -146,7 +147,22 @@ function REPORT_PDF_appendReport_(body, report, generatedLabel) {
     );
   }
 
-  body.appendParagraph("C. Hafalan dan Perilaku").setHeading(
+  body.appendParagraph("C. Ujian Seluruh Kurikulum").setHeading(
+    DocumentApp.ParagraphHeading.HEADING2,
+  );
+  const curriculumRows = [["Kategori", "Materi", "Nilai", "Status", "Catatan"]];
+  ((report.curriculum && report.curriculum.items) || []).forEach((item) => {
+    curriculumRows.push([
+      String(item.Category || "-"),
+      String(item.Name || "-"),
+      item.Score === null || item.Score === undefined ? "-" : String(item.Score),
+      String(item.predikat || item.Status || "-"),
+      String(item.Notes || "-"),
+    ]);
+  });
+  body.appendTable(curriculumRows);
+
+  body.appendParagraph("D. Hafalan dan Perilaku").setHeading(
     DocumentApp.ParagraphHeading.HEADING2,
   );
   body.appendTable([

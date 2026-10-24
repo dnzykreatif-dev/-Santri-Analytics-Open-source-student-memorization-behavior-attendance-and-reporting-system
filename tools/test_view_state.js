@@ -56,6 +56,24 @@ assert.equal(restored.currentTab, "absensi");
 assert.equal(restored.attendanceView, "KBM");
 assert.equal(restored.attendanceRestoreSchedule.ScheduleID, "MASTER-KBM-RIDO-1");
 
+restored.attendanceDate = "2026-09-22";
+const payload = restored.attendanceSchedulePayload({
+  ScheduleID: "MASTER-KBM-RIDO-1",
+  Type: "KBM",
+  AttendanceDate: "2026-09-21",
+  TeacherID: "rido",
+  TeacherSourceID: "T005",
+  SubjectOrActivityName: "Fiqh",
+  ClassOrGroupName: "12 Ikhwan",
+});
+assert.equal(payload.AttendanceDate, "2026-09-22");
+
+restored.applyAttendanceSession({
+  session: { ScheduleID: "MASTER-KBM-RIDO-1", AttendanceDate: "2026-09-21" },
+  records: [],
+});
+assert.equal(restored.attendanceSessionData.AttendanceDate, "2026-09-22");
+
 restored.restoreViewState({ currentTab: "users" }, { UserID: "USR-RIDO", Role: "Ustadz" });
 assert.equal(restored.currentTab, "dashboard");
 

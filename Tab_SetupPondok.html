@@ -1,0 +1,459 @@
+<template x-if="currentTab === 'setup_pondok' && (user.Role === 'Mudir' || user.Role === 'Admin')">
+  <div class="space-y-6">
+    <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Produk & Setup</p>
+        <h2 class="mt-1 text-2xl font-bold text-gray-900">Setup Pondok</h2>
+        <p class="mt-1 text-sm text-gray-600">Pusat persiapan aplikasi untuk pondok ini, demo calon pembeli, dan paket fitur.</p>
+      </div>
+      <button type="button" class="app-btn app-btn-primary" @click="loadProductReadiness()" :disabled="productLoading">
+        Refresh
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div class="rounded-lg border border-emerald-100 bg-white p-4 shadow-sm">
+        <p class="text-xs font-bold uppercase text-gray-500">Kesiapan</p>
+        <p class="mt-2 text-3xl font-bold text-emerald-700" x-text="productSetupPercent + '%'"></p>
+        <p class="mt-1 text-xs text-gray-500" x-text="(productReadiness.summary.checklistDone || 0) + ' dari ' + (productReadiness.summary.checklistTotal || 0) + ' selesai'"></p>
+      </div>
+      <div class="rounded-lg border border-blue-100 bg-white p-4 shadow-sm">
+        <p class="text-xs font-bold uppercase text-gray-500">Paket</p>
+        <p class="mt-2 text-xl font-bold text-gray-900" x-text="productEntitlements.packageName || productSettingsForm.PRODUCT_PACKAGE_NAME || 'Internal'"></p>
+        <p class="mt-1 text-xs text-gray-500" x-text="'Mode modul: ' + (productEntitlements.gatingMode || 'off')"></p>
+      </div>
+      <div class="rounded-lg border border-amber-100 bg-white p-4 shadow-sm">
+        <p class="text-xs font-bold uppercase text-gray-500">Modul Aktif</p>
+        <p class="mt-2 text-3xl font-bold text-amber-700" x-text="productReadiness.summary.activeModules || 0"></p>
+        <p class="mt-1 text-xs text-gray-500">Fitur yang masuk paket pondok</p>
+      </div>
+      <div class="rounded-lg border border-purple-100 bg-white p-4 shadow-sm">
+        <p class="text-xs font-bold uppercase text-gray-500">Akun Demo</p>
+        <p class="mt-2 text-3xl font-bold text-purple-700" x-text="(productReadiness.demoAccounts || []).length"></p>
+        <p class="mt-1 text-xs text-gray-500" x-text="'Mode demo: ' + (productSettingsForm.DEMO_MODE || 'off')"></p>
+      </div>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 shadow-sm">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Kepemilikan Instalasi</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900" x-text="productReadiness.installation?.mode === 'tenant' ? 'Mode pondok aktif' : 'Mode lama / kompatibilitas'"></p>
+          <p class="mt-1 text-xs text-slate-600" x-text="productReadiness.installation?.note || 'Periksa konfigurasi instalasi.'"></p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="rounded-full px-3 py-1 text-xs font-bold" :class="productReadiness.installation?.ready ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'" x-text="productReadiness.installation?.ready ? 'Siap diserahterimakan' : 'Perlu dilengkapi'"></span>
+          <span class="text-xs text-slate-500" x-text="productReadiness.installation?.tenantId ? 'TenantID: ' + productReadiness.installation.tenantId : 'TenantID belum diisi'"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-lg border border-indigo-100 bg-indigo-50 p-4 shadow-sm">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide text-indigo-700">Versi Aplikasi</p>
+          <p class="mt-1 text-sm font-semibold text-indigo-950" x-text="'Wrapper ' + (productReadiness.release?.wrapperVersion || '-') + ' | Inti lokal ' + (productReadiness.release?.localCoreVersion || '-')"></p>
+          <p class="mt-1 text-xs text-indigo-800" x-text="productReadiness.release?.note || 'Status versi belum diperiksa.'"></p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="rounded-full bg-white px-3 py-1 text-xs font-bold text-indigo-800" x-text="productReadiness.release?.sharedCore?.channel || 'stable'"></span>
+          <span class="rounded-full px-3 py-1 text-xs font-bold" :class="productReadiness.release?.updateReady ? 'bg-emerald-100 text-emerald-800' : 'bg-white text-indigo-800'" x-text="productReadiness.release?.updateReady ? 'Inti bersama tercatat' : 'Belum terhubung'"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="app-btn" :class="productSection === 'wizard' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'wizard'">Wizard Setup</button>
+      <button type="button" class="app-btn" :class="productSection === 'ringkasan' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'ringkasan'">Ringkasan</button>
+      <button type="button" class="app-btn" :class="productSection === 'profil' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'profil'">Profil</button>
+      <button type="button" class="app-btn" :class="productSection === 'modul' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'modul'">Paket Modul</button>
+      <button type="button" class="app-btn" :class="productSection === 'checklist' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'checklist'">Checklist</button>
+      <button type="button" class="app-btn" :class="productSection === 'demo' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'demo'">Demo</button>
+    </div>
+
+    <section x-show="productSection === 'wizard'" class="space-y-5">
+      <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">Wizard Setup Pondok</h3>
+            <p class="mt-1 text-sm text-gray-600">Ikuti langkah ini dari kiri ke kanan sampai status siap dipakai.</p>
+          </div>
+          <button type="button" class="app-btn app-btn-soft" @click="loadProductReadiness()" :disabled="productLoading">Cek Ulang</button>
+        </div>
+        <div class="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
+          <template x-for="(step, index) in setupWizardSteps" :key="step.id">
+            <button type="button" class="rounded-lg border px-3 py-3 text-left transition hover:bg-gray-50"
+              :class="setupWizardStep === step.id ? 'border-emerald-600 bg-emerald-50 text-emerald-900' : 'border-gray-200 bg-white text-gray-700'"
+              @click="setSetupWizardStep(step.id)">
+              <span class="block text-xs font-bold uppercase" x-text="'Langkah ' + (index + 1)"></span>
+              <span class="mt-1 block text-sm font-bold" x-text="step.label"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <div x-show="setupWizardStep === 'profil'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">1. Identitas Pondok</h3>
+            <p class="text-sm text-gray-600">Isi data dasar agar aplikasi punya identitas lembaga.</p>
+          </div>
+          <button type="button" class="app-btn app-btn-primary" @click="saveTenantProfileAction()" :disabled="productSaving">Simpan Profil</button>
+        </div>
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <label class="block"><span class="app-label">Nama Pondok</span><input class="app-input" x-model="tenantProfileForm.PondokName"></label>
+          <label class="block"><span class="app-label">Nama Aplikasi</span><input class="app-input" x-model="tenantProfileForm.ShortName"></label>
+          <label class="block md:col-span-2"><span class="app-label">URL Logo</span><input class="app-input" x-model="tenantProfileForm.LogoUrl" placeholder="https://..."></label>
+          <label class="block md:col-span-2"><span class="app-label">Alamat</span><textarea class="app-input min-h-[88px]" x-model="tenantProfileForm.Address"></textarea></label>
+          <label class="block"><span class="app-label">Kontak WhatsApp</span><input class="app-input" x-model="tenantProfileForm.ContactPhone"></label>
+          <label class="block"><span class="app-label">Email</span><input class="app-input" x-model="tenantProfileForm.ContactEmail"></label>
+          <label class="block"><span class="app-label">Tahun Ajaran</span><input class="app-input" x-model="tenantProfileForm.AcademicYear" placeholder="2026/2027"></label>
+          <label class="block"><span class="app-label">Semester</span><input class="app-input" x-model="tenantProfileForm.Semester" placeholder="Ganjil"></label>
+        </div>
+        <div class="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p class="font-bold text-amber-900">Hubungkan Database Pondok</p>
+              <p class="mt-1 text-sm text-amber-800">Setelah Spreadsheet template disalin ke Drive pondok, masukkan link atau ID salinannya di sini. Ini cukup dilakukan sekali.</p>
+            </div>
+            <span class="rounded-full bg-white px-3 py-1 text-xs font-bold text-amber-800" x-text="productReadiness.installation?.mode === 'tenant' ? 'Sudah terhubung' : 'Belum terhubung'"></span>
+          </div>
+          <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label class="block md:col-span-2"><span class="app-label">Link atau ID Spreadsheet pondok</span><input class="app-input" x-model="installationForm.spreadsheetId" placeholder="https://docs.google.com/spreadsheets/d/..."></label>
+            <label class="block md:col-span-2"><span class="app-label">Link atau ID Template Raport pondok</span><input class="app-input" x-model="installationForm.reportTemplateId" placeholder="https://docs.google.com/document/d/..."></label>
+            <label class="block"><span class="app-label">Email pemilik pondok</span><input class="app-input" type="email" x-model="installationForm.ownerEmail" placeholder="admin@pondok.sch.id"></label>
+            <label class="block"><span class="app-label">Email bantuan teknis (opsional)</span><input class="app-input" type="email" x-model="installationForm.supportEmail" placeholder="support@... (opsional)"></label>
+          </div>
+          <button type="button" class="app-btn app-btn-primary mt-4" @click="configureTenantInstallationAction()" :disabled="productSaving">Hubungkan Spreadsheet Pondok</button>
+          <p class="mt-2 text-xs text-amber-800">Jangan masukkan Spreadsheet template utama atau database pondok lain.</p>
+        </div>
+      </div>
+
+      <div x-show="setupWizardStep === 'paket'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">2. Pilih Paket Modul</h3>
+            <p class="text-sm text-gray-600">Untuk uji awal biarkan mode penguncian off. Saat paket siap, ubah ke canary lalu on.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="app-btn app-btn-soft" @click="saveProductSettingsAction()" :disabled="productSaving">Simpan Pengaturan</button>
+            <button type="button" class="app-btn app-btn-primary" @click="saveModuleLicensesAction()" :disabled="productSaving">Simpan Modul</button>
+          </div>
+        </div>
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <label class="block"><span class="app-label">Mode Penguncian</span><select class="app-input" x-model="productSettingsForm.PRODUCT_MODULE_GATING"><option value="off">Off - semua fitur terbuka</option><option value="canary">Canary - uji Admin/Mudir</option><option value="on">On - sesuai paket</option></select></label>
+          <label class="block"><span class="app-label">Nama Paket</span><input class="app-input" x-model="productSettingsForm.PRODUCT_PACKAGE_NAME"></label>
+          <label class="block"><span class="app-label">Batas Santri</span><input class="app-input" x-model="productSettingsForm.PRODUCT_MAX_STUDENTS"></label>
+        </div>
+        <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <template x-for="module in productReadiness.modules" :key="module.ModuleCode">
+            <label class="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+              <input type="checkbox" x-model="module.IsActive">
+              <span class="text-sm font-bold text-gray-800" x-text="module.ModuleName"></span>
+            </label>
+          </template>
+        </div>
+      </div>
+
+      <div x-show="setupWizardStep === 'data'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">3. Import Santri, Guru, dan Wali</h3>
+            <p class="text-sm text-gray-600">Klik buat template, isi sheet import di Spreadsheet, lalu preview sebelum diproses.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="app-btn app-btn-soft" @click="createSetupImportTemplatesAction()" :disabled="productSaving">Buat Template</button>
+            <button type="button" class="app-btn app-btn-soft" @click="seedSetupDummyDataAction()" :disabled="productSaving">Isi Data Contoh</button>
+            <button type="button" class="app-btn app-btn-soft" @click="previewSetupImportsAction()" :disabled="productSaving">Preview</button>
+            <button type="button" class="app-btn app-btn-primary" @click="applySetupImportsAction()" :disabled="productSaving">Proses Import</button>
+          </div>
+        </div>
+        <div class="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-700">
+          Isi sheet <strong>SetupImportStudents</strong> untuk santri dan <strong>SetupImportUsers</strong> untuk Mudir/Admin/Ustadz/Wali. Baris yang sudah ada akan dilewati agar tidak dobel.
+        </div>
+        <div class="mt-4 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+          <p class="text-sm font-bold text-emerald-900">Import dari Excel</p>
+          <p class="mt-1 text-xs text-emerald-800">Simpan masing-masing sheet Excel sebagai CSV UTF-8, lalu unggah di sini. Upload mengganti isi tempat import, bukan data aplikasi utama. Klik Preview sebelum Proses Import.</p>
+          <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <label class="app-btn app-btn-soft cursor-pointer text-center">Upload Santri<input type="file" class="hidden" accept=".csv,.txt" @change="importSetupCsvAction('students', $event)"></label>
+            <label class="app-btn app-btn-soft cursor-pointer text-center">Upload User<input type="file" class="hidden" accept=".csv,.txt" @change="importSetupCsvAction('users', $event)"></label>
+            <label class="app-btn app-btn-soft cursor-pointer text-center">Upload Jadwal<input type="file" class="hidden" accept=".csv,.txt" @change="importSetupCsvAction('schedules', $event)"></label>
+          </div>
+        </div>
+        <div x-show="setupWizardPreview" class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+          <div class="rounded-lg border bg-white p-3"><p class="text-xs font-bold text-gray-500">Santri baru</p><p class="text-2xl font-bold" x-text="setupWizardPreview?.totals?.students || 0"></p></div>
+          <div class="rounded-lg border bg-white p-3"><p class="text-xs font-bold text-gray-500">User baru</p><p class="text-2xl font-bold" x-text="setupWizardPreview?.totals?.users || 0"></p></div>
+          <div class="rounded-lg border bg-white p-3"><p class="text-xs font-bold text-gray-500">Jadwal baru</p><p class="text-2xl font-bold" x-text="setupWizardPreview?.totals?.schedules || 0"></p></div>
+          <div class="rounded-lg border bg-white p-3"><p class="text-xs font-bold text-gray-500">Dilewati</p><p class="text-2xl font-bold" x-text="setupWizardPreview?.totals?.skipped || 0"></p></div>
+        </div>
+        <template x-if="setupWizardPreview && setupWizardPreview.errors && setupWizardPreview.errors.length">
+          <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+            <p class="font-bold text-red-800">Data perlu diperbaiki</p>
+            <template x-for="error in setupWizardPreview.errors.slice(0, 8)" :key="error">
+              <p class="mt-1 text-sm text-red-700" x-text="error"></p>
+            </template>
+          </div>
+        </template>
+      </div>
+
+      <div x-show="setupWizardStep === 'jadwal'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900">4. Jadwal</h3>
+        <p class="mt-1 text-sm text-gray-600">Jadwal bisa diimport lewat template <strong>SetupImportSchedules</strong>, atau diatur dari menu Manajemen Jadwal.</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button type="button" class="app-btn app-btn-soft" @click="createSetupImportTemplatesAction()" :disabled="productSaving">Siapkan Sheet Jadwal</button>
+          <button type="button" class="app-btn app-btn-primary" @click="setCurrentTab('jadwal_admin')">Buka Manajemen Jadwal</button>
+        </div>
+      </div>
+
+      <div x-show="setupWizardStep === 'akademik'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900">5. Akademik dan Item Ujian</h3>
+        <p class="mt-1 text-sm text-gray-600">Buat periode akademik, lalu siapkan item ujian dari jadwal agar raport seluruh kurikulum bisa berjalan.</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button type="button" class="app-btn app-btn-primary" @click="setCurrentTab('akademik'); academicSection = 'setup'; loadAcademicSetup()">Buka Setup Akademik</button>
+          <button type="button" class="app-btn app-btn-soft" @click="setCurrentTab('akademik'); academicSection = 'kurikulum'; loadAcademicSetup(); loadCurriculumExamSetup()">Buka Kurikulum Ujian</button>
+        </div>
+      </div>
+
+      <div x-show="setupWizardStep === 'demo'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">6. Akun Demo</h3>
+            <p class="text-sm text-gray-600">Catat akun demo yang akan diberikan kepada calon pembeli.</p>
+          </div>
+          <button type="button" class="app-btn app-btn-primary" @click="saveDemoAccountAction()" :disabled="productSaving">Simpan Akun Demo</button>
+        </div>
+        <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <select class="app-input" x-model="demoAccountForm.Role"><option>Mudir</option><option>Admin</option><option>Ustadz</option><option>Wali</option></select>
+          <input class="app-input" x-model="demoAccountForm.Username" placeholder="Username">
+          <input class="app-input" x-model="demoAccountForm.PasswordHint" placeholder="Petunjuk password">
+          <input class="app-input" x-model="demoAccountForm.StudentID" placeholder="StudentID khusus wali">
+        </div>
+      </div>
+
+      <div x-show="setupWizardStep === 'cek'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">7. Cek Kesiapan</h3>
+            <p class="text-sm text-gray-600">Aplikasi akan memberi status siap atau daftar yang masih kurang.</p>
+          </div>
+          <button type="button" class="app-btn app-btn-primary" @click="completeSetupWizardAction()" :disabled="setupWizardCompleting">
+            Selesaikan Setup
+          </button>
+        </div>
+        <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <template x-for="check in productWizardStatus.checks" :key="check.id">
+            <div class="rounded-lg border p-4" :class="check.ok ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'">
+              <p class="font-bold" :class="check.ok ? 'text-emerald-800' : 'text-amber-800'" x-text="(check.ok ? 'Siap - ' : 'Kurang - ') + check.label"></p>
+              <p class="mt-1 text-sm text-gray-700" x-text="check.detail"></p>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <button type="button" class="app-btn app-btn-soft" @click="previousSetupWizardStep()" :disabled="currentSetupWizardIndex <= 0">Sebelumnya</button>
+        <button type="button" class="app-btn app-btn-primary" @click="nextSetupWizardStep()" :disabled="currentSetupWizardIndex >= setupWizardSteps.length - 1">Berikutnya</button>
+      </div>
+    </section>
+
+    <section x-show="productSection === 'ringkasan'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <h3 class="text-lg font-bold text-gray-900">Urutan aman sebelum dijual</h3>
+      <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <template x-for="item in productReadiness.checklist" :key="item.ChecklistID">
+          <button type="button" class="flex items-start justify-between gap-3 rounded-lg border p-4 text-left hover:bg-gray-50" @click="editSetupChecklistItem(item)">
+            <span>
+              <span class="block text-sm font-bold text-gray-900" x-text="item.TaskName"></span>
+              <span class="mt-1 block text-xs text-gray-500" x-text="item.Category + (item.Notes ? ' - ' + item.Notes : '')"></span>
+            </span>
+            <span class="rounded-full px-2 py-1 text-xs font-bold" :class="item.Status === 'Selesai' ? 'bg-emerald-100 text-emerald-700' : item.Status === 'Proses' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'" x-text="item.Status"></span>
+          </button>
+        </template>
+      </div>
+    </section>
+
+    <section x-show="productSection === 'profil'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-lg font-bold text-gray-900">Profil Pondok</h3>
+        <button type="button" class="app-btn app-btn-primary" @click="saveTenantProfileAction()" :disabled="productSaving">Simpan Profil</button>
+      </div>
+      <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <label class="block">
+          <span class="app-label">Nama Pondok</span>
+          <input class="app-input" x-model="tenantProfileForm.PondokName" placeholder="Nama pondok">
+        </label>
+        <label class="block">
+          <span class="app-label">Nama Pendek Aplikasi</span>
+          <input class="app-input" x-model="tenantProfileForm.ShortName" placeholder="Monitor Santri">
+        </label>
+        <label class="block md:col-span-2">
+          <span class="app-label">URL Logo</span>
+          <input class="app-input" x-model="tenantProfileForm.LogoUrl" placeholder="https://...">
+        </label>
+        <label class="block md:col-span-2">
+          <span class="app-label">Alamat</span>
+          <textarea class="app-input min-h-[88px]" x-model="tenantProfileForm.Address"></textarea>
+        </label>
+        <label class="block">
+          <span class="app-label">Kontak WhatsApp</span>
+          <input class="app-input" x-model="tenantProfileForm.ContactPhone">
+        </label>
+        <label class="block">
+          <span class="app-label">Email</span>
+          <input class="app-input" x-model="tenantProfileForm.ContactEmail">
+        </label>
+        <label class="block">
+          <span class="app-label">Tahun Ajaran</span>
+          <input class="app-input" x-model="tenantProfileForm.AcademicYear" placeholder="2026/2027">
+        </label>
+        <label class="block">
+          <span class="app-label">Semester</span>
+          <input class="app-input" x-model="tenantProfileForm.Semester" placeholder="Ganjil">
+        </label>
+      </div>
+    </section>
+
+    <section x-show="productSection === 'modul'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <h3 class="text-lg font-bold text-gray-900">Paket dan Modul</h3>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="app-btn app-btn-soft" @click="saveProductSettingsAction()" :disabled="productSaving">Simpan Pengaturan</button>
+          <button type="button" class="app-btn app-btn-primary" @click="saveModuleLicensesAction()" :disabled="productSaving">Simpan Modul</button>
+        </div>
+      </div>
+      <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <label class="block">
+          <span class="app-label">Mode Penguncian</span>
+          <select class="app-input" x-model="productSettingsForm.PRODUCT_MODULE_GATING">
+            <option value="off">Off - semua fitur lama tetap aktif</option>
+            <option value="canary">Canary - uji Admin/Mudir</option>
+            <option value="on">On - sesuai paket</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="app-label">Nama Paket</span>
+          <input class="app-input" x-model="productSettingsForm.PRODUCT_PACKAGE_NAME">
+        </label>
+        <label class="block">
+          <span class="app-label">Batas Santri</span>
+          <input class="app-input" x-model="productSettingsForm.PRODUCT_MAX_STUDENTS" placeholder="kosong = tanpa batas">
+        </label>
+        <label class="block">
+          <span class="app-label">Mode Demo</span>
+          <select class="app-input" x-model="productSettingsForm.DEMO_MODE">
+            <option value="off">Off</option>
+            <option value="on">On</option>
+          </select>
+        </label>
+      </div>
+      <div class="mt-5 overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left font-bold text-gray-600">Aktif</th>
+              <th class="px-4 py-3 text-left font-bold text-gray-600">Modul</th>
+              <th class="px-4 py-3 text-left font-bold text-gray-600">Paket</th>
+              <th class="px-4 py-3 text-left font-bold text-gray-600">Masa Aktif</th>
+              <th class="px-4 py-3 text-left font-bold text-gray-600">Catatan</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <template x-for="module in productReadiness.modules" :key="module.ModuleCode">
+              <tr>
+                <td class="px-4 py-3"><input type="checkbox" x-model="module.IsActive"></td>
+                <td class="px-4 py-3 font-semibold text-gray-900" x-text="module.ModuleName"></td>
+                <td class="px-4 py-3"><input class="app-input" x-model="module.PackageName"></td>
+                <td class="px-4 py-3">
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="date" class="app-input" x-model="module.StartDate">
+                    <input type="date" class="app-input" x-model="module.EndDate">
+                  </div>
+                </td>
+                <td class="px-4 py-3"><input class="app-input" x-model="module.Notes"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section x-show="productSection === 'checklist'" class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm lg:col-span-1">
+        <h3 class="text-lg font-bold text-gray-900">Tambah Checklist</h3>
+        <div class="mt-4 space-y-3">
+          <input class="app-input" x-model="setupChecklistForm.TaskName" placeholder="Nama tugas">
+          <input class="app-input" x-model="setupChecklistForm.Category" placeholder="Kategori">
+          <select class="app-input" x-model="setupChecklistForm.Status">
+            <option>Belum</option>
+            <option>Proses</option>
+            <option>Selesai</option>
+          </select>
+          <textarea class="app-input min-h-[90px]" x-model="setupChecklistForm.Notes" placeholder="Catatan"></textarea>
+          <button type="button" class="app-btn app-btn-primary w-full" @click="saveSetupChecklistAction()" :disabled="productSaving">Simpan Checklist</button>
+        </div>
+      </div>
+      <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
+        <h3 class="text-lg font-bold text-gray-900">Daftar Checklist</h3>
+        <div class="mt-4 space-y-3">
+          <template x-for="item in productReadiness.checklist" :key="item.ChecklistID">
+            <div class="flex flex-col gap-3 rounded-lg border border-gray-100 p-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p class="font-bold text-gray-900" x-text="item.TaskName"></p>
+                <p class="text-sm text-gray-500" x-text="item.Category + (item.Notes ? ' - ' + item.Notes : '')"></p>
+              </div>
+              <div class="flex items-center gap-2">
+                <select class="app-input min-w-[130px]" x-model="item.Status" @change="saveSetupChecklistAction(item)">
+                  <option>Belum</option>
+                  <option>Proses</option>
+                  <option>Selesai</option>
+                </select>
+                <button type="button" class="app-btn app-btn-soft" @click="editSetupChecklistItem(item)">Edit</button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </section>
+
+    <section x-show="productSection === 'demo'" class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900">Akun Demo</h3>
+        <p class="mt-1 text-sm text-gray-600">Buat satu paket akun Mudir, Admin, Ustadz, dan Wali beserta data contoh.</p>
+        <div class="mt-4 space-y-3">
+          <input class="app-input" type="password" x-model="demoPackageForm.Password" placeholder="Password semua akun demo (min. 6 karakter)">
+          <button type="button" class="app-btn app-btn-primary w-full" @click="createDemoPackageAction()" :disabled="productSaving">Buat Paket Demo Otomatis</button>
+          <button type="button" class="app-btn app-btn-soft w-full" @click="syncDemoAccountsToUsersAction()" :disabled="productSaving">Aktifkan Login Akun Demo</button>
+          <button type="button" class="app-btn app-btn-soft w-full" @click="resetDemoPackageAction()" :disabled="productSaving">Reset Data Demo</button>
+          <div class="border-t border-gray-100 pt-3 text-xs text-gray-500">Akun demo bersifat hanya-baca untuk presentasi. Password tidak disimpan di daftar demo.</div>
+          <div class="border-t border-gray-100 pt-3"></div>
+          <select class="app-input" x-model="demoAccountForm.Role">
+            <option>Mudir</option>
+            <option>Admin</option>
+            <option>Ustadz</option>
+            <option>Wali</option>
+          </select>
+          <input class="app-input" x-model="demoAccountForm.Username" placeholder="Username">
+          <input class="app-input" x-model="demoAccountForm.PasswordHint" placeholder="Petunjuk password">
+          <input class="app-input" x-model="demoAccountForm.StudentID" placeholder="StudentID khusus wali">
+          <label class="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" x-model="demoAccountForm.IsActive"> Aktif</label>
+          <label class="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" x-model="demoAccountForm.IsReadOnly"> Read-only</label>
+          <textarea class="app-input min-h-[90px]" x-model="demoAccountForm.Notes" placeholder="Catatan demo"></textarea>
+          <button type="button" class="app-btn app-btn-primary w-full" @click="saveDemoAccountAction()" :disabled="productSaving">Simpan Akun Demo</button>
+        </div>
+      </div>
+      <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
+        <h3 class="text-lg font-bold text-gray-900">Daftar Akun Demo</h3>
+        <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <template x-for="account in productReadiness.demoAccounts" :key="account.DemoID">
+            <button type="button" class="rounded-lg border border-gray-100 p-4 text-left hover:bg-gray-50" @click="editDemoAccount(account)">
+              <div class="flex items-center justify-between gap-2">
+                <p class="font-bold text-gray-900" x-text="account.Role + ' - ' + account.Username"></p>
+                <span class="rounded-full px-2 py-1 text-xs font-bold" :class="account.IsActive ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'" x-text="account.IsActive ? 'Aktif' : 'Nonaktif'"></span>
+              </div>
+              <p class="mt-2 text-sm text-gray-500" x-text="account.Notes || account.PasswordHint || '-'"></p>
+            </button>
+          </template>
+        </div>
+      </div>
+    </section>
+  </div>
+</template>

@@ -1,2 +1,6 @@
 tools/**
 **/tools/**
+core-library/**
+*.md
+README.txt
+BAHAN PROMOSI/**

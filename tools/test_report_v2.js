@@ -33,6 +33,8 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root, "Config.gs"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "Academic.gs"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "ReportV2.gs"), "utf8"), context);
+vm.runInContext(fs.readFileSync(path.join(root, "ProductReadiness.gs"), "utf8"), context);
+vm.runInContext(fs.readFileSync(path.join(root, "ReleaseManagement.gs"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(root, "Code.gs"), "utf8"), context);
 
 const attendance = context.REPORT_calculateAttendanceSummary_([
@@ -147,9 +149,133 @@ assert.strictEqual(
   false,
 );
 
+context.REPORT_getRows_ = (sheetName) => {
+  if (sheetName === "AcademicTeacherAssignments") return [];
+  if (sheetName === "Schedules") {
+    return [
+      {
+        ClassOrGroupName: "7A",
+        TeacherID: "Ustadz Zidan",
+        IsActive: true,
+      },
+    ];
+  }
+  return [];
+};
+assert.strictEqual(
+  context.REPORT_canViewStudent_(
+    { Role: "Ustadz", Username: "zidan", Name: "Ustadz Zidan" },
+    ownStudent,
+    "PER-1",
+  ),
+  true,
+);
+assert.strictEqual(
+  context.REPORT_canViewStudent_(
+    { Role: "Ustadz", Username: "kelas-7a", Class: "7A" },
+    ownStudent,
+    "PER-1",
+  ),
+  true,
+);
+
+context.REPORT_getRows_ = (sheetName) => {
+  if (sheetName === "CurriculumExamItems") {
+    return [
+      {
+        ItemID: "CUR-1",
+        PeriodID: "PER-1",
+        Category: "KBM",
+        Name: "Fiqih",
+        ClassOrGroupName: "7A",
+        AssessmentType: "Angka",
+        KKM: 75,
+        MaxScore: 100,
+        IncludeInReport: true,
+        IsActive: true,
+      },
+      {
+        ItemID: "CUR-2",
+        PeriodID: "PER-1",
+        Category: "Hafalan",
+        Name: "Hafalan Qur'an",
+        ClassOrGroupName: "7A",
+        AssessmentType: "Hafalan",
+        KKM: 75,
+        MaxScore: 100,
+        IncludeInReport: true,
+        IsActive: true,
+      },
+    ];
+  }
+  if (sheetName === "CurriculumExamScores") {
+    return [
+      {
+        PeriodID: "PER-1",
+        ItemID: "CUR-1",
+        StudentID: "STU-1",
+        Score: 88,
+        Status: "",
+        Notes: "Baik",
+      },
+      {
+        PeriodID: "PER-1",
+        ItemID: "CUR-2",
+        StudentID: "STU-1",
+        Score: "",
+        Status: "Lancar",
+        Notes: "Perlu murojaah rutin",
+      },
+    ];
+  }
+  return [];
+};
+const curriculum = context.REPORT_buildCurriculumReport_(
+  "STU-1",
+  { PeriodID: "PER-1" },
+  ownStudent,
+);
+assert.strictEqual(curriculum.summary.totalItems, 2);
+assert.strictEqual(curriculum.summary.complete, true);
+assert.strictEqual(curriculum.summary.average, 88);
+assert.strictEqual(curriculum.groups.length, 2);
+
 assert.strictEqual(context.isExternalActionAllowed_("downloadStudentReportPdf"), true);
+assert.strictEqual(context.isExternalActionAllowed_("syncCurriculumExamItemsFromSchedules"), true);
+assert.strictEqual(context.isExternalActionAllowed_("saveCurriculumExamScores"), true);
+assert.strictEqual(context.isExternalActionAllowed_("getProductReadiness"), true);
+assert.strictEqual(context.isExternalActionAllowed_("saveModuleLicenses"), true);
+assert.strictEqual(context.isExternalActionAllowed_("createSetupImportTemplates"), true);
+assert.strictEqual(context.isExternalActionAllowed_("previewSetupWizardImports"), true);
+assert.strictEqual(context.isExternalActionAllowed_("applySetupWizardImports"), true);
+assert.strictEqual(context.isExternalActionAllowed_("completeSetupWizard"), true);
+assert.strictEqual(context.isExternalActionAllowed_("getAppReleaseStatus"), true);
 assert.strictEqual(context.isExternalActionAllowed_("REPORT_getRows_"), false);
 assert.strictEqual(context.isExternalActionAllowed_("setupCompleteApp"), false);
+assert.ok(context.getProductReadinessSchemas_().SetupImportStudents.includes("Name"));
+assert.ok(context.getProductReadinessSchemas_().SetupImportUsers.includes("Username"));
+assert.ok(context.getProductReadinessSchemas_().SetupImportSchedules.includes("SubjectOrActivityName"));
+
+context.PRODUCT_hasReadinessSheets_ = () => false;
+assert.strictEqual(context.isProductModuleEnabled_("academic", { Role: "Wali" }), true);
+assert.strictEqual(context.PRODUCT_defaultEntitlements_().modules.academic, true);
+
+context.PRODUCT_hasReadinessSheets_ = () => true;
+context.PRODUCT_readSettings_ = () => ({ PRODUCT_MODULE_GATING: "on" });
+context.PRODUCT_readModules_ = () => [
+  { ModuleCode: "academic", IsActive: false },
+  { ModuleCode: "behavior", IsActive: true },
+];
+assert.strictEqual(context.isProductModuleEnabled_("academic", { Role: "Wali" }), false);
+assert.strictEqual(context.isProductModuleEnabled_("behavior", { Role: "Wali" }), true);
+assert.throws(
+  () => context.requireProductModuleEnabled_("academic", { Role: "Wali" }),
+  /Modul ini belum aktif/,
+);
+
+context.PRODUCT_readSettings_ = () => ({ PRODUCT_MODULE_GATING: "canary" });
+assert.strictEqual(context.isProductModuleEnabled_("academic", { Role: "Wali" }), true);
+assert.strictEqual(context.isProductModuleEnabled_("academic", { Role: "Admin" }), false);
 
 assert.strictEqual(context.isReportV2EnabledFor_({ Role: "Admin" }), false);
 scriptProperties.REPORT_V2_ROLLOUT = "canary";

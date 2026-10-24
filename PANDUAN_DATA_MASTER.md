@@ -83,6 +83,40 @@ satu kolom karena dapat memisahkan identitas santri dari data pada kolom lain.
 seharusnya diedit operator setiap hari. Setelah data tersedia di `Schedules`,
 pengelolaan operasional harus dilakukan melalui aplikasi atau spreadsheet.
 
+Pada instalasi pondok (`INSTALLATION_MODE=tenant`), file tersebut tidak
+dijalankan otomatis dan tidak menjadi sumber data pelanggan. Jadwal awal
+dibuat melalui **Tambah Jadwal** atau melalui template import milik pondok.
+Master jadwal bawaan hanya boleh digunakan pada mode demo/legacy setelah
+operator memeriksa hasilnya.
+
+### Konfigurasi instalasi baru
+
+Sebelum aplikasi pondok baru dipakai, isi Script Properties satu kali:
+
+| Property | Isi |
+| --- | --- |
+| `INSTALLATION_MODE` | `tenant` |
+| `SPREADSHEET_ID` | ID spreadsheet khusus pondok tersebut |
+| `TENANT_ID` | ID unik pondok, misalnya `pondok-001` |
+| `REPORT_TEMPLATE_ID` | ID template raport milik pondok |
+
+Jangan mengosongkan `SPREADSHEET_ID` pada mode tenant karena aplikasi akan
+menolak fallback ke database contoh. Setelah konfigurasi, jalankan `initializeApp`
+atau buka **Setup Pondok** untuk membuat struktur sheet dan memulai pengisian
+data.
+
+### Mengubah jadwal tanpa coding
+
+Admin atau Mudir dapat membuka menu **Manajemen Jadwal** lalu:
+
+1. Gunakan filter hari, jenis, atau pencarian untuk menemukan jadwal.
+2. Klik **Edit Jadwal** untuk mengubah pengajar, kelas, mapel/kegiatan, hari, dan jam.
+3. Gunakan **Duplikasi** bila jadwal yang sama perlu dibuat untuk kelas atau pengajar lain.
+4. Gunakan **Nonaktifkan** untuk jadwal yang sudah tidak dipakai. Data absensi lama tetap tersimpan.
+5. Untuk mengaktifkan kembali, centang **Tampilkan jadwal nonaktif**, klik **Aktifkan**, lalu simpan.
+
+Tombol jam cepat mengikuti slot KBM terbaru. Jika jam pada kartu tertulis **Jam belum diatur**, edit jadwal tersebut sebelum dipakai untuk absensi.
+
 ## 4. Arah Produk Tanpa Koding
 
 Untuk penggunaan di pondok lain atau penjualan sebagai produk, sediakan menu

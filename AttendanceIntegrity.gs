@@ -21,8 +21,9 @@ function repairAttendanceIntegrity(options, currentUser) {
     const before = ATT_auditIntegrity_(sessionUser);
     const actions = {
       usersMapped: before.summary.usersMissingTeacherSourceId,
-      schedulesRegenerated:
-        typeof MASTER_ATTENDANCE_SCHEDULES !== "undefined"
+      schedulesRegenerated: isTenantInstallation_()
+        ? 0
+        : typeof MASTER_ATTENDANCE_SCHEDULES !== "undefined"
           ? MASTER_ATTENDANCE_SCHEDULES.length
           : 0,
       draftSessionsBackedUp: before.cleanupCandidates.length,
@@ -38,8 +39,12 @@ function repairAttendanceIntegrity(options, currentUser) {
     }
 
     setupCoreSheets();
-    const teachers = seedMissingTeachersFromMasterSchedule_(sessionUser);
-    const schedules = seedMasterAttendanceSchedules_();
+    const teachers = isTenantInstallation_()
+      ? { created: 0, updated: 0, skipped: 0, total: 0, source: "tenant" }
+      : seedMissingTeachersFromMasterSchedule_(sessionUser);
+    const schedules = isTenantInstallation_()
+      ? { created: 0, updated: 0, removedDuplicates: 0, total: 0, source: "tenant" }
+      : seedMasterAttendanceSchedules_();
     const cleanup = ATT_backupAndRemoveDraftSessions_(
       before.cleanupCandidates,
       sessionUser,

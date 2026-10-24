@@ -2878,6 +2878,26 @@
     padding-bottom: calc(5rem + var(--app-safe-bottom));
   }
 
+  .attendance-mobile-student-list {
+    padding-bottom: calc(9rem + var(--app-safe-bottom));
+  }
+
+  .attendance-save-bar {
+    border-bottom-left-radius: 0.75rem;
+    border-bottom-right-radius: 0.75rem;
+  }
+
+  @media (min-width: 768px) {
+    .attendance-mobile-student-list {
+      padding-bottom: 0;
+    }
+
+    .attendance-save-bar {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+  }
+
   .login-upgrade-shell {
     position: relative;
   }

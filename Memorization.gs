@@ -2,6 +2,7 @@ function logMemorization(data, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("memorization", sessionUser);
   const sheet = getSheet_("MemorizationLogs");
 
   if (!data || !data.StudentID || !data.Surah) {
@@ -46,6 +47,7 @@ function updateMemorization(logId, data, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("memorization", sessionUser);
   const sheet = getSheet_("MemorizationLogs");
   const row = findRowIndexById_("MemorizationLogs", logId);
 
@@ -83,6 +85,7 @@ function deleteMemorization(logId, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("memorization", sessionUser);
   const sheet = getSheet_("MemorizationLogs");
   const row = findRowIndexById_("MemorizationLogs", logId);
 

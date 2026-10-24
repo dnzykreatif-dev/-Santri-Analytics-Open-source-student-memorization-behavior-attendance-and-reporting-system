@@ -26,6 +26,14 @@
           <button
             type="button"
             class="app-btn"
+            :class="academicSection === 'kurikulum' ? 'app-btn-primary' : 'app-btn-soft'"
+            @click="academicSection = 'kurikulum'; loadAcademicSetup(); loadCurriculumExamSetup()"
+          >
+            Kurikulum Ujian
+          </button>
+          <button
+            type="button"
+            class="app-btn"
             x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
             :class="academicSection === 'setup' ? 'app-btn-primary' : 'app-btn-soft'"
             @click="academicSection = 'setup'"
@@ -128,7 +136,7 @@
             <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Periode</label>
             <select x-model="academicMatrixFilter.PeriodID" class="app-input">
               <option value="">Pilih periode</option>
-              <template x-for="period in academicSetup.periods" :key="period.PeriodID">
+              <template x-for="period in curriculumExamPeriods" :key="period.PeriodID">
                 <option :value="period.PeriodID" x-text="period.Title + ' (' + period.Status + ')'"></option>
               </template>
             </select>
@@ -245,6 +253,190 @@
           </table>
         </div>
       </div>
+    </div>
+
+    <div x-show="academicSection === 'kurikulum'" class="space-y-6">
+      <div class="app-card p-6 bg-white">
+        <div class="flex flex-col lg:flex-row lg:items-end gap-4">
+          <div class="flex-1">
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Periode</label>
+            <select x-model="curriculumExamFilter.PeriodID" class="app-input" @change="loadCurriculumExamSetup()">
+              <option value="">Pilih periode</option>
+              <template x-for="period in academicSetup.periods" :key="period.PeriodID">
+                <option :value="period.PeriodID" x-text="period.Title + ' (' + period.Status + ')'"></option>
+              </template>
+            </select>
+          </div>
+          <div class="flex-1">
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Kelas</label>
+            <select x-model="curriculumExamFilter.Class" class="app-input">
+              <option value="">Semua kelas</option>
+              <template x-for="className in curriculumExamClasses" :key="className">
+                <option :value="className" x-text="className"></option>
+              </template>
+            </select>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="app-btn app-btn-soft" @click="loadCurriculumExamSetup()">Refresh</button>
+            <button
+              type="button"
+              class="app-btn app-btn-primary"
+              x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
+              @click="syncCurriculumExamItems()"
+            >
+              Siapkan dari Jadwal
+            </button>
+          </div>
+        </div>
+        <p class="text-sm text-gray-500 mt-3">
+          Pilih periode dan kelas, lalu klik kartu ujian untuk langsung input nilai.
+          Tombol Siapkan dari Jadwal mengambil materi KBM, Pondok, Kegiatan, hafalan, do'a, dan praktik dari jadwal aktif.
+        </p>
+      </div>
+
+      <div class="app-card p-6 bg-white">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+          <div>
+            <h3 class="font-black text-gray-900">Jadwal Ujian</h3>
+            <p class="text-sm text-gray-500">Klik satu kartu untuk membuka daftar santri dan mengisi nilai.</p>
+          </div>
+          <span class="app-badge app-badge-info" x-text="filteredCurriculumExamItems.length + ' ujian'"></span>
+        </div>
+        <div x-show="!filteredCurriculumExamItems.length" class="app-empty-state py-10">
+          <p class="font-bold text-gray-700">Belum ada jadwal ujian.</p>
+          <p class="text-sm text-gray-500 mt-1">Pilih periode lalu klik Siapkan dari Jadwal.</p>
+        </div>
+        <div x-show="filteredCurriculumExamItems.length" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <template x-for="item in filteredCurriculumExamItems" :key="item.ItemID">
+            <button
+              type="button"
+              class="text-left rounded-xl border p-4 hover:bg-emerald-50 hover:border-[#0f5f4a] transition"
+              :class="curriculumExamFilter.ItemID === item.ItemID ? 'border-[#0f5f4a] bg-emerald-50' : 'border-gray-200 bg-white'"
+              @click="selectCurriculumExamItem(item)"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-[11px] font-black text-gray-400 uppercase" x-text="item.Category || 'Kegiatan'"></p>
+                  <h4 class="font-black text-gray-900 truncate mt-1" x-text="item.Name"></h4>
+                </div>
+                <span class="app-badge" :class="item.IncludeInReport ? 'app-badge-success' : 'app-badge-warning'" x-text="item.IncludeInReport ? 'Raport' : 'Draft'"></span>
+              </div>
+              <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500">
+                <p><span class="font-bold text-gray-700">Kelas:</span> <span x-text="item.ClassOrGroupName || '-'"></span></p>
+                <p><span class="font-bold text-gray-700">Jenis:</span> <span x-text="item.AssessmentType || 'Angka'"></span></p>
+                <p class="col-span-2"><span class="font-bold text-gray-700">Guru:</span> <span x-text="item.TeacherID || item.TeacherSourceID || '-'"></span></p>
+              </div>
+              <p class="text-xs text-gray-400 mt-2 line-clamp-2" x-text="item.Rubric || 'Nilai ujian semester'"></p>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <div class="app-card p-6 bg-white">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+          <div>
+            <h3 class="font-black text-gray-900">Input Nilai</h3>
+            <p class="text-sm text-gray-500" x-text="curriculumScoreMatrix.item ? curriculumScoreMatrix.item.Name + ' - ' + curriculumScoreMatrix.item.ClassOrGroupName : 'Pilih kartu ujian di atas.'"></p>
+          </div>
+          <button
+            type="button"
+            class="app-btn app-btn-primary"
+            :disabled="!(curriculumScoreMatrix.rows || []).length || loadingAcademic"
+            @click="saveCurriculumScoreMatrix()"
+          >
+            Simpan Nilai
+          </button>
+        </div>
+        <div x-show="!(curriculumScoreMatrix.rows || []).length" class="app-empty-state py-10">
+          <p class="font-bold text-gray-700">Pilih jadwal ujian dahulu.</p>
+          <p class="text-sm text-gray-500 mt-1">Setelah kartu dipilih, daftar santri akan muncul di sini.</p>
+        </div>
+        <div x-show="(curriculumScoreMatrix.rows || []).length" class="overflow-x-auto">
+          <table class="w-full min-w-[680px] text-sm">
+            <thead>
+              <tr class="text-left text-gray-400 border-b">
+                <th class="py-3 pr-3">Santri</th>
+                <th class="py-3 px-3">Nilai</th>
+                <th class="py-3 px-3">Status Hafalan/Praktik</th>
+                <th class="py-3 px-3">Catatan</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y">
+              <template x-for="row in curriculumScoreMatrix.rows || []" :key="row.student.StudentID">
+                <tr>
+                  <td class="py-3 pr-3">
+                    <p class="font-bold text-gray-900" x-text="row.student.Name"></p>
+                    <p class="text-xs text-gray-400" x-text="row.student['Class/Level']"></p>
+                  </td>
+                  <td class="py-3 px-3">
+                    <input type="number" min="0" :max="curriculumScoreMatrix.item?.MaxScore || 100" x-model="row.score.Score" class="app-input w-24" />
+                  </td>
+                  <td class="py-3 px-3">
+                    <input type="text" x-model="row.score.Status" class="app-input" placeholder="Lancar / Belum / Lulus" />
+                  </td>
+                  <td class="py-3 px-3">
+                    <input type="text" x-model="row.score.Notes" class="app-input" placeholder="Catatan singkat" />
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <details
+        x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
+        class="app-card p-6 bg-white space-y-4"
+      >
+        <summary class="cursor-pointer font-black text-gray-900">Pengaturan Lanjutan Item Ujian</summary>
+        <div class="pt-4 space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h3 class="font-black text-gray-900">Master Item Ujian</h3>
+            <p class="text-sm text-gray-500">Bisa dibuat manual atau hasil sinkron dari jadwal.</p>
+          </div>
+          <button type="button" class="app-btn app-btn-soft" @click="resetCurriculumExamItemForm()">Baru</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          <select x-model="curriculumExamItemForm.PeriodID" class="app-input">
+            <option value="">Periode</option>
+            <template x-for="period in academicSetup.periods" :key="period.PeriodID">
+              <option :value="period.PeriodID" x-text="period.Title"></option>
+            </template>
+          </select>
+          <select x-model="curriculumExamItemForm.Category" class="app-input">
+            <option value="KBM">KBM</option>
+            <option value="Pondok">Pondok</option>
+            <option value="Kegiatan">Kegiatan</option>
+            <option value="Hafalan">Hafalan</option>
+            <option value="Doa">Do'a</option>
+          </select>
+          <input type="text" x-model="curriculumExamItemForm.Name" class="app-input xl:col-span-2" placeholder="Nama materi ujian" />
+          <input type="text" x-model="curriculumExamItemForm.ClassOrGroupName" class="app-input" placeholder="Kelas / kelompok" />
+          <input type="text" x-model="curriculumExamItemForm.TeacherID" class="app-input" placeholder="Guru / pengampu" />
+          <input type="text" x-model="curriculumExamItemForm.TeacherSourceID" class="app-input" placeholder="TeacherSourceID" />
+          <select x-model="curriculumExamItemForm.AssessmentType" class="app-input">
+            <option value="Angka">Angka</option>
+            <option value="Hafalan">Hafalan</option>
+            <option value="Doa">Do'a</option>
+            <option value="Praktik">Praktik</option>
+          </select>
+          <input type="number" x-model.number="curriculumExamItemForm.MaxScore" class="app-input" placeholder="Maks" />
+          <input type="number" x-model.number="curriculumExamItemForm.KKM" class="app-input" placeholder="KKM" />
+          <input type="number" x-model.number="curriculumExamItemForm.Weight" class="app-input" placeholder="Bobot" />
+          <input type="text" x-model="curriculumExamItemForm.Rubric" class="app-input xl:col-span-2" placeholder="Rubrik singkat" />
+          <label class="inline-flex items-center gap-2 text-sm font-bold text-gray-600">
+            <input type="checkbox" x-model="curriculumExamItemForm.IncludeInReport" />
+            Masuk raport
+          </label>
+          <label class="inline-flex items-center gap-2 text-sm font-bold text-gray-600">
+            <input type="checkbox" x-model="curriculumExamItemForm.IsActive" />
+            Aktif
+          </label>
+        </div>
+        <button type="button" class="app-btn app-btn-primary" @click="saveCurriculumExamItem()">Simpan Item Ujian</button>
+        </div>
+      </details>
     </div>
 
     <div x-show="academicSection === 'setup' && (user.Role === 'Mudir' || user.Role === 'Admin')" class="grid grid-cols-1 xl:grid-cols-2 gap-6">

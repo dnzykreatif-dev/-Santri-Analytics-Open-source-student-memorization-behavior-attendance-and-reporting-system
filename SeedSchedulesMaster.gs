@@ -1,5 +1,12 @@
 // Generated from Database_Jadwal_Pesantren_2026_MASTER_APP_REVISI.xlsx.
 // Foto/jadwal lampiran dipakai sebagai referensi validasi; data operasional ada di konstanta ini.
+/**
+ * Legacy/demo migration dataset generated from the 2026 workbook.
+ *
+ * This file must never be treated as a customer's operational database.
+ * Tenant installations are blocked from importing it; they use their own
+ * spreadsheet and the schedule editor/import workflow instead.
+ */
 const MASTER_SCHEDULE_TEACHERS = [
   {
     "TeacherSourceID": "T001",
@@ -5162,6 +5169,11 @@ const MASTER_ATTENDANCE_SCHEDULES = [
 
 function importMasterScheduleForAttendance(currentUser) {
   const sessionUser = requireSessionUser_(currentUser, { roles: ["Mudir", "Admin"] });
+  if (isTenantInstallation_()) {
+    throw new Error(
+      "Sinkronisasi master bawaan dinonaktifkan pada mode pondok. Gunakan Tambah Jadwal atau impor template data pondok.",
+    );
+  }
   setupCoreSheets();
   const teacherResult = seedMissingTeachersFromMasterSchedule_(sessionUser);
   const cleanupResult = deactivateLegacyDemoSchedules_();
@@ -5182,7 +5194,7 @@ function importMasterScheduleForAttendance(currentUser) {
     "ATT_MASTER_DATA_VERSION",
     typeof ATTENDANCE_MASTER_DATA_VERSION !== "undefined"
       ? ATTENDANCE_MASTER_DATA_VERSION
-      : "2026-09-16.2",
+      : "2026-09-24.2",
   );
   CacheService.getScriptCache().remove(ATTENDANCE_SCHEDULE_STATUS_CACHE_KEY);
   return {
@@ -5193,6 +5205,8 @@ function importMasterScheduleForAttendance(currentUser) {
       teachers: teacherResult,
       cleanup: cleanupResult,
       schedules: scheduleResult,
+      source: "MASTER_ATTENDANCE_SCHEDULES",
+      expected: MASTER_ATTENDANCE_SCHEDULES.length,
     },
   };
 }
@@ -5314,6 +5328,9 @@ function deactivateLegacyDemoSchedules_() {
 
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const scheduleIdIndex = headers.indexOf("ScheduleID");
+  const typeIndex = headers.indexOf("Type");
+  const classIndex = headers.indexOf("ClassOrGroupName");
+  const sourceIdIndex = headers.indexOf("TeacherSourceID");
   const startIndex = headers.indexOf("StartTime");
   const endIndex = headers.indexOf("EndTime");
   const activeIndex = headers.indexOf("IsActive");
@@ -5323,10 +5340,18 @@ function deactivateLegacyDemoSchedules_() {
   let deactivated = 0;
   data.forEach((row, index) => {
     const scheduleId = String(row[scheduleIdIndex] || "").trim();
+    const type = typeIndex === -1 ? "" : String(row[typeIndex] || "").trim();
+    const className = classIndex === -1 ? "" : String(row[classIndex] || "").trim();
+    const teacherSourceId = sourceIdIndex === -1 ? "" : String(row[sourceIdIndex] || "").trim();
     const startTime = startIndex === -1 ? "" : String(row[startIndex] || "").trim();
     const endTime = endIndex === -1 ? "" : String(row[endIndex] || "").trim();
+    const isLegacyKbmSeed =
+      /^SCH\d+$/.test(scheduleId) &&
+      normalizeScheduleType_(type) === "KBM" &&
+      /^\d{1,2}\s+(Ikhwan|Akhwat)$/i.test(className) &&
+      (!teacherSourceId || !startTime || !endTime);
     const isLegacyDemo = /^SCH\d+$/.test(scheduleId) && !startTime && !endTime;
-    if (isLegacyDemo && String(row[activeIndex]).toLowerCase() !== "false") {
+    if ((isLegacyDemo || isLegacyKbmSeed) && String(row[activeIndex]).toLowerCase() !== "false") {
       sheet.getRange(index + 2, activeIndex + 1).setValue(false);
       deactivated++;
     }

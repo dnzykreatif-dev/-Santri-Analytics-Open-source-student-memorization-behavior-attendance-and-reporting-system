@@ -19,6 +19,7 @@ function addHafalanLink(data, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("memorization", sessionUser);
   const sheet = getSheet_("HafalanLinks");
 
   if (!data || !data.StudentID || !data.URL) {
@@ -46,6 +47,7 @@ function updateHafalanLink(linkId, data, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("memorization", sessionUser);
   const row = findRowIndexById_("HafalanLinks", linkId);
   if (row === -1) return { ok: false, message: "Link tidak ditemukan." };
 
@@ -63,6 +65,7 @@ function deleteHafalanLink(linkId, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("memorization", sessionUser);
   const row = findRowIndexById_("HafalanLinks", linkId);
   if (row === -1) return { ok: false, message: "Link tidak ditemukan." };
 

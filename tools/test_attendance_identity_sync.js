@@ -8,6 +8,7 @@ const seedSource = fs.readFileSync(path.join(root, "SeedSchedulesMaster.gs"), "u
 const attendanceSource = fs.readFileSync(path.join(root, "Attendance.gs"), "utf8");
 const authSource = fs.readFileSync(path.join(root, "UserManagement.gs"), "utf8");
 const frontendSource = fs.readFileSync(path.join(root, "JS_App.html"), "utf8");
+const attendanceTabSource = fs.readFileSync(path.join(root, "Tab_Absensi.html"), "utf8");
 
 function readJsonConstant(source, name) {
   const marker = `const ${name} = `;
@@ -101,7 +102,9 @@ assert.equal(mergeCount(dedeWednesday), 3);
 assert.equal(ridoWednesday.length, 9);
 assert.equal(mergeCount(ridoWednesday), 5);
 
-assert.match(attendanceSource, /ATTENDANCE_MASTER_DATA_VERSION = "2026-09-16\.2"/);
+assert.match(attendanceSource, /ATTENDANCE_MASTER_DATA_VERSION = "2026-09-24\.2"/);
+assert.match(attendanceSource, /TeacherName: ATT_teacherDisplayName_\(normalized\)/);
+assert.match(attendanceTabSource, /Pengajar: <strong x-text="sched\.TeacherName \|\| sched\.TeacherID \|\| '-'"><\/strong>/);
 assert.match(authSource, /UserID: row\[headers\.indexOf\("UserID"\)\]/);
 assert.match(authSource, /TeacherSourceID: row\[headers\.indexOf\("TeacherSourceID"\)\]/);
 assert.match(frontendSource, /if \(!activeUserId && responseUserId && this\.user\)/);

@@ -5,7 +5,7 @@ const ATTENDANCE_TYPES = ["Pondok", "KBM", "Kegiatan"];
 const ATTENDANCE_STATUSES = ["Hadir", "Izin", "Sakit", "Alpa", "Telat"];
 const ATTENDANCE_STORAGE_CACHE_KEY = "ATT_STORAGE_READY_V5";
 const ATTENDANCE_SCHEDULE_STATUS_CACHE_KEY = "ATT_SCHEDULE_STATUS_V3";
-const ATTENDANCE_MASTER_DATA_VERSION = "2026-09-16.2";
+const ATTENDANCE_MASTER_DATA_VERSION = "2026-09-24.2";
 
 function getMyScheduleToday(currentUser) {
   return getAttendanceHome(currentUser, {});
@@ -15,6 +15,7 @@ function getAttendanceHome(currentUser, options) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("attendance", sessionUser);
 
   try {
     ATT_prepareStorage_();
@@ -36,6 +37,7 @@ function getAttendanceHome(currentUser, options) {
       const meaningfulSession = existing && ATT_isMeaningfulSession_(existing) ? existing : null;
       return Object.assign({}, normalized, {
         AttendanceDate: attendanceDate,
+        TeacherName: ATT_teacherDisplayName_(normalized),
         IsCurrentTime: ATT_isScheduleCurrent_(normalized, attendanceDate),
         SessionID: meaningfulSession ? meaningfulSession.SessionID : "",
         SessionStatus: meaningfulSession ? meaningfulSession.Status || "Submitted" : "Belum Absen",
@@ -74,6 +76,7 @@ function getAttendanceSession(payload, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("attendance", sessionUser);
 
   try {
     ATT_prepareStorage_();
@@ -145,6 +148,7 @@ function saveAttendanceSession(payload, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("attendance", sessionUser);
   let saveLock = null;
   let saveLockAcquired = false;
 
@@ -310,6 +314,7 @@ function getAttendanceRecap(filters, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("attendance", sessionUser);
 
   try {
     setupAttendanceSheets_();
@@ -389,6 +394,7 @@ function getGuardianAttendanceSummary(studentId, month, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     allowAnonymous: false,
   });
+  requireProductModuleEnabled_("attendance", sessionUser);
 
   try {
     const student = ATT_getStudentById_(studentId);
@@ -531,6 +537,12 @@ function ATT_prepareStorage_() {
 }
 
 function ATT_ensureMasterDataVersion_(sessionUser) {
+  if (isTenantInstallation_()) {
+    // Do not import the developer's embedded schedule into a customer pondok.
+    // The sheets are still prepared by ATT_prepareStorage_() and remain empty
+    // until the Admin creates or imports the pondok's own schedules.
+    return;
+  }
   if (typeof MASTER_ATTENDANCE_SCHEDULES === "undefined") return;
   const properties = PropertiesService.getScriptProperties();
   const key = "ATT_MASTER_DATA_VERSION";
@@ -542,6 +554,9 @@ function ATT_ensureMasterDataVersion_(sessionUser) {
     if (properties.getProperty(key) === ATTENDANCE_MASTER_DATA_VERSION) return;
     if (typeof seedMissingTeachersFromMasterSchedule_ === "function") {
       seedMissingTeachersFromMasterSchedule_(sessionUser);
+    }
+    if (typeof deactivateLegacyDemoSchedules_ === "function") {
+      deactivateLegacyDemoSchedules_();
     }
     if (typeof seedMasterAttendanceSchedules_ === "function") {
       seedMasterAttendanceSchedules_(true);
@@ -570,6 +585,20 @@ function ATT_ensureMasterScheduleData_() {
   setupSheetWithHeaders_("Schedules", CORE_SHEET_SCHEMAS.Schedules);
   const sheet = getSheet_("Schedules");
   const schedules = sheet ? ATT_sheetToObjects_(sheet) : [];
+  if (isTenantInstallation_()) {
+    const activeScheduleCount = schedules.filter((item) =>
+      item.IsActive !== false && String(item.IsActive).toLowerCase() !== "false",
+    ).length;
+    return {
+      ready: activeScheduleCount > 0,
+      autoImported: false,
+      source: "tenant",
+      activeScheduleCount,
+      masterCount: 0,
+      expectedCount: 0,
+      needsSetup: activeScheduleCount === 0,
+    };
+  }
   const masterIds = {};
   let masterRowCount = 0;
   schedules.forEach((schedule) => {
@@ -1232,12 +1261,9 @@ function ATT_normalizeStatus_(value) {
 }
 
 function ATT_normalizeTime_(value) {
-  if (value instanceof Date && !isNaN(value.getTime())) {
-    return Utilities.formatDate(value, Session.getScriptTimeZone(), "HH:mm");
-  }
-  const text = String(value || "").trim();
-  const match = text.replace(".", ":").match(/^(\d{1,2}):(\d{2})$/);
-  return match ? ("0" + match[1]).slice(-2) + ":" + match[2] : text;
+  return typeof normalizeScheduleTime_ === "function"
+    ? normalizeScheduleTime_(value)
+    : String(value || "").trim();
 }
 
 function ATT_uniqueSchedules_(schedules) {
@@ -1401,6 +1427,24 @@ function ATT_sourceIdForUsername_(username) {
     },
   );
   return teacher ? String(teacher.TeacherSourceID || "").trim() : "";
+}
+
+function ATT_teacherDisplayName_(schedule) {
+  schedule = schedule || {};
+  const sourceId = String(schedule.TeacherSourceID || "").trim();
+  const username = ATT_normalizeTeacherToken_(schedule.TeacherID);
+  if (typeof MASTER_SCHEDULE_TEACHERS !== "undefined") {
+    const teacher = MASTER_SCHEDULE_TEACHERS.find((item) => {
+      const itemSourceId = String(item.TeacherSourceID || "").trim();
+      const aliases = [item.Username, item.Name, item.ShortName].concat(item.Aliases || []);
+      return (
+        (sourceId && itemSourceId === sourceId) ||
+        (username && aliases.some((alias) => ATT_normalizeTeacherToken_(alias) === username))
+      );
+    });
+    if (teacher) return String(teacher.Name || teacher.ShortName || teacher.Username || "");
+  }
+  return String(schedule.TeacherID || "").trim();
 }
 
 function ATT_findCanonicalTeacherForUser_(currentUser) {

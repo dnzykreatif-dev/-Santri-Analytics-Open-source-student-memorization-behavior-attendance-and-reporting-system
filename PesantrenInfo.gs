@@ -293,6 +293,7 @@ function getPesantrenInfo(currentUser, filters) {
     if (!PI_canView_(currentUser)) {
       return { ok: false, message: "Akses ditolak." };
     }
+    requireProductModuleEnabled_("pesantren_info", currentUser);
 
     const sheet = PI_getSheet_();
     const data = sheet.getDataRange().getValues();
@@ -442,6 +443,7 @@ function savePesantrenInfo(payload, currentUser) {
         message: "Akses ditolak. Hanya Mudir/Admin/Ustadz yang dapat mengelola informasi.",
       };
     }
+    requireProductModuleEnabled_("pesantren_info", currentUser);
 
     payload = payload || {};
     if (!PI_text_(payload.Title)) {
@@ -496,6 +498,7 @@ function setPesantrenInfoStatus(infoId, status, currentUser) {
         message: "Akses ditolak. Hanya Mudir/Admin/Ustadz yang dapat mengubah status.",
       };
     }
+    requireProductModuleEnabled_("pesantren_info", currentUser);
 
     if (PESANTREN_INFO_STATUSES.indexOf(status) === -1) {
       return { ok: false, message: "Status tidak valid." };
@@ -536,6 +539,7 @@ function deletePesantrenInfo(infoId, currentUser) {
         message: "Akses ditolak. Hanya Mudir/Admin/Ustadz yang dapat menghapus informasi.",
       };
     }
+    requireProductModuleEnabled_("pesantren_info", currentUser);
 
     const sheet = PI_getSheet_();
     const rowNumber = PI_findExistingRow_(sheet, infoId);

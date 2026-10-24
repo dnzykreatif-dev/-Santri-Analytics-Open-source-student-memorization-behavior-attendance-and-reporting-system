@@ -76,6 +76,19 @@ core operational sheets without deleting existing data:
 Setup is idempotent. Missing sheets are created, and missing headers are added
 to the end of the first row. Existing rows and existing columns are preserved.
 
+### Tenant data isolation
+
+`SeedSchedulesMaster.gs` is a demo/legacy migration aid, not the operational
+database for a customer pondok. With `INSTALLATION_MODE=tenant`, attendance
+creates the required sheets but never seeds `MASTER-*` schedules or teacher
+accounts from embedded constants. The tenant uses the spreadsheet configured
+by `SPREADSHEET_ID` and manages its own `Students`, `Users`, and `Schedules`.
+
+The embedded master button is hidden in tenant mode. Admins should use
+**Tambah Jadwal**, the setup import template, or direct maintenance of the
+tenant spreadsheet. Existing attendance history is preserved; old schedules
+should be deactivated rather than deleted.
+
 ## Main Flows
 
 - Mudir/Admin manage users, run setup, and can use `runHealthCheck()`.
@@ -94,13 +107,16 @@ and `Kegiatan`.
 Key sheets:
 
 - `Schedules` stores the source schedule used by the HP/PWA attendance flow.
+- Admin/Mudir can maintain `Schedules` directly from **Manajemen Jadwal** in the app. The same form handles new records and edits by `ScheduleID`; `Duplikasi` creates a new schedule with a fresh ID, and `Nonaktifkan` sets `IsActive=false` without deleting attendance history.
+- For routine operations, do not edit `.gs` files. Use the schedule form for one-off changes, or edit the `Schedules` sheet for bulk maintenance. After spreadsheet changes, refresh the app; after a master import, review the result before using it for attendance.
+- `ScheduleMasters` stores optional editable choices for classes, subjects, activities, and time slots. Teachers intentionally remain in `Users` so the schedule editor, login, and `TeacherSourceID` use one identity source.
+- `validateSchedules()` checks active schedules for teacher and class overlaps. `bulkUpdateSchedules()` supports preview-first changes for day, time, teacher, class, and active state.
 - `AttendanceSessions` stores one row per attendance session/date/schedule.
 - `Attendance` stores one row per student inside a session.
-- `SeedSchedulesMaster.gs` contains the generated importer from
-  `Database_Jadwal_Pesantren_2026_MASTER_APP_REVISI.xlsx`. It seeds missing
-  teacher accounts and upserts the 2026 KBM/non-KBM schedules with stable
-  `ScheduleID` values, so it can be run repeatedly without duplicating master
-  rows.
+- `SeedSchedulesMaster.gs` contains a generated legacy/demo importer from
+  `Database_Jadwal_Pesantren_2026_MASTER_APP_REVISI.xlsx`. It is not a tenant
+  data source. In tenant mode it is blocked, and operational rows must come
+  from the tenant spreadsheet or the application editor.
 
 Primary API flow:
 
@@ -134,6 +150,11 @@ Compatibility notes:
 - Only blank, `Active`, or `Aktif` student statuses enter new attendance
   sessions. `Lulus`, `Berhenti`, and `Inactive` remain available as historical
   records but are excluded from attendance.
+- Mudir/Admin/Ustadz can correct core student biodata directly from the app
+  through `Santri -> Detail -> Identitas -> Edit Biodata`. The editable fields
+  are `Name`, `NIS`, `Class/Level`, `Gender`, `ParentContact`, and `Status`.
+  This is the preferred no-code path for fixing wrong names, classes, or
+  students who have graduated/stopped before attendance is taken.
 - Operational guidance and the no-code product roadmap are documented in
   `PANDUAN_DATA_MASTER.md`.
 
@@ -244,6 +265,91 @@ Safe activation order:
 Official PDFs are generated on demand, returned as authenticated base64 data,
 and downloaded by the browser. The temporary Google Docs copy is trashed in a
 `finally` block and no public Drive PDF is retained.
+
+### Wali report sharing
+
+`GuardianReportShare.gs` adapts the notification pattern used by the reference
+finance application without importing financial data. `getGuardianReportSharePreview()`
+reuses the published Report V2 payload and prepares a Wali-facing message from
+academic average, attendance, memorization, behavior, and coaching notes.
+
+The action validates the linked `ParentContact`/`WaliUsername`, records the
+preparation in the audit log, downloads the authenticated PDF through the
+existing report endpoint, and opens a prefilled WhatsApp link. Wali access is
+still enforced by `REPORT_requireStudentAccess_()` before any report data is
+prepared.
+
+### Product readiness and setup wizard
+
+Product readiness is an additive layer for preparing this application to be
+used by other pondoks. Its current Level 1 flow is available from `Setup
+Pondok` and is restricted to Admin/Mudir:
+
+- `TenantProfile`, `AppSettings`, `ModuleLicenses`, `SetupChecklist`, and
+  `DemoAccounts` store the pondok profile, module mode, checklist, and demo
+  settings.
+- `SetupImportStudents`, `SetupImportUsers`, and `SetupImportSchedules` are
+  temporary staging sheets for the first data load.
+- `previewSetupWizardImports()` validates rows before changes are applied.
+- `applySetupWizardImports()` uses existing application write paths, skips
+  duplicate keys, and records the operation in the audit log.
+- `completeSetupWizard()` can finish only when the required profile, modules,
+  users, students, schedules, academic period, curriculum, and demo checks
+  pass.
+
+The wizard does not delete legacy sheets or replace the current production
+database. It is currently a guided setup inside one Apps Script project and
+spreadsheet. Automatic creation of a separate tenant project/deployment,
+automatic demo-data generation, and subscription billing remain later product
+readiness work.
+
+### Installation ownership guard
+
+`Config.gs` retains `legacy` mode only for backward compatibility with the
+existing installation. A buyer installation must set these Script Properties
+before use: `INSTALLATION_MODE=tenant`, `TENANT_ID`, `SPREADSHEET_ID`,
+`REPORT_TEMPLATE_ID`, `INSTALLATION_OWNER_EMAIL`, and `SUPPORT_EMAIL`.
+
+In `tenant` mode, missing `SPREADSHEET_ID` or `REPORT_TEMPLATE_ID` causes a
+clear configuration error instead of silently falling back to the old IDs.
+`getInstallationManifest()` and the Setup Pondok panel expose the handoff
+readiness without allowing an Admin to change the active database from inside
+the application.
+
+### Shared core update strategy
+
+The selected distribution model is one shared application core with one data
+installation per pondok. The first safe step is a release contract in
+`ReleaseManagement.gs`: each wrapper reports its version, the intended core
+version, update channel, and explicit approval policy. The current application
+still executes its local code, so this preparation does not change production
+behavior.
+
+When the core library is introduced, each tenant project will pin a tested
+library version through `CORE_LIBRARY_ID` and `CORE_LIBRARY_VERSION`. A new
+version will move through `test`, `canary`, and `stable`; the pondok must
+approve the update. Database IDs, logo, report template, and other tenant
+settings remain in the tenant project and its Script Properties.
+
+The full extraction of academic, attendance, report, and shared security logic
+into the library is intentionally a later migration step. It requires a
+staging tenant, compatibility tests, and a rollback version before any tenant
+project is switched.
+
+The browser helper now routes its supported calls through `runAppAction()`.
+With `CORE_LIBRARY_ENABLED=off`, this is a compatibility-preserving local
+dispatch. With the flag enabled, it calls `SantriCore.runAction(action, args)`
+from the pinned library. Direct legacy calls remain local until their module is
+verified and migrated.
+
+### Product readiness rollout record
+
+The Level 1 implementation was developed on branch
+`codex/product-readiness`, copied to a separate staging project, and deployed
+to staging as version `10` with the description `Setup wizard level 1 staging`.
+Production was not pushed or redeployed during this work. Local verification
+included report regression, attendance identity synchronization, view-state
+regression, `.gs`/JavaScript syntax checks, and `git diff --check`.
 
 ## Behavior Score Rules
 
@@ -451,8 +557,10 @@ clamping the score logic back to 0-100.
 - Attendance caches are scoped by user, teacher source, date, and schedule
   mode. Login and logout invalidate all user-scoped state, and stale async
   responses are rejected by an authentication generation number.
-- `SeedSchedulesMaster.gs` contains 420 official rows: 342 KBM and 78
-  activities. KBM times come from `Jadwal_KBM.waktu` in the official workbook.
+- `SeedSchedulesMaster.gs` contains the legacy/demo dataset of 420 rows: 342
+  KBM and 78 activities. KBM times come from `Jadwal_KBM.waktu` in the
+  reference workbook, but this dataset is not the operational source for a
+  tenant.
 - Regenerate the constants with `tools/generate_schedule_seed.py` whenever the
   official workbook changes. The generator validates row counts, teacher IDs,
   and every KBM time before writing the seed.

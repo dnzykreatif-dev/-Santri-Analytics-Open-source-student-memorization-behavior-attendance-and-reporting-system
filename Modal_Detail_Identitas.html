@@ -6,13 +6,116 @@
           <h4 class="font-bold text-lg">Biodata Inti</h4>
           <p class="text-sm text-gray-500">Ringkasan profil santri yang siap dipakai untuk kartu identitas.</p>
         </div>
-        <button
-          type="button"
-          class="px-4 py-2 rounded-xl bg-[#0f5f4a] text-white text-sm font-bold"
-          @click="issueSelectedStudentQr()"
-        >
-          Buat / Perbarui QR
-        </button>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <button
+            type="button"
+            x-show="canEditStudentProfile() && !editingStudentProfile"
+            class="px-4 py-2 rounded-xl bg-[#0f5f4a] text-white text-sm font-bold"
+            @click="startStudentProfileEdit()"
+          >
+            Edit Biodata
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-bold"
+            @click="issueSelectedStudentQr()"
+          >
+            Buat / Perbarui QR
+          </button>
+        </div>
+      </div>
+
+      <div
+        x-show="editingStudentProfile"
+        x-cloak
+        class="mb-5 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label class="block">
+            <span class="text-xs font-bold text-gray-500 uppercase">Nama Lengkap</span>
+            <input
+              type="text"
+              x-model="studentEditForm.Name"
+              class="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm focus:ring-2 focus:ring-[#0f5f4a]"
+              placeholder="Nama santri"
+            />
+          </label>
+          <label class="block">
+            <span class="text-xs font-bold text-gray-500 uppercase">NIS</span>
+            <input
+              type="text"
+              x-model="studentEditForm.NIS"
+              class="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm focus:ring-2 focus:ring-[#0f5f4a]"
+              placeholder="Nomor induk"
+            />
+          </label>
+          <label class="block">
+            <span class="text-xs font-bold text-gray-500 uppercase">Kelas / Level</span>
+            <input
+              type="text"
+              x-model="studentEditForm.ClassLevel"
+              list="student-class-options"
+              class="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm focus:ring-2 focus:ring-[#0f5f4a]"
+              placeholder="Contoh: 10 Ikhwan"
+            />
+          </label>
+          <label class="block">
+            <span class="text-xs font-bold text-gray-500 uppercase">Gender</span>
+            <select
+              x-model="studentEditForm.Gender"
+              class="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm focus:ring-2 focus:ring-[#0f5f4a]"
+            >
+              <option value="">Belum diisi</option>
+              <option value="Ikhwan">Ikhwan</option>
+              <option value="Akhwat">Akhwat</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-xs font-bold text-gray-500 uppercase">Nomor Wali</span>
+            <input
+              type="text"
+              x-model="studentEditForm.ParentContact"
+              class="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm focus:ring-2 focus:ring-[#0f5f4a]"
+              placeholder="Nomor HP wali"
+            />
+          </label>
+          <label class="block">
+            <span class="text-xs font-bold text-gray-500 uppercase">Status Santri</span>
+            <select
+              x-model="studentEditForm.Status"
+              class="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm focus:ring-2 focus:ring-[#0f5f4a]"
+            >
+              <option value="Active">Aktif</option>
+              <option value="Inactive">Non-aktif</option>
+              <option value="Graduated">Lulus</option>
+              <option value="Stopped">Berhenti</option>
+            </select>
+          </label>
+        </div>
+        <datalist id="student-class-options">
+          <template x-for="className in uniqueClasses" :key="className">
+            <option :value="className"></option>
+          </template>
+        </datalist>
+        <div class="mt-4 flex flex-col sm:flex-row gap-2 sm:justify-end">
+          <button
+            type="button"
+            class="w-full sm:w-auto px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-bold"
+            @click="cancelStudentProfileEdit()"
+            :disabled="savingStudentProfile"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            class="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#0f5f4a] text-white text-sm font-bold disabled:opacity-60"
+            @click="saveStudentProfile()"
+            :disabled="savingStudentProfile"
+          >
+            <span x-show="!savingStudentProfile">Simpan Biodata</span>
+            <span x-show="savingStudentProfile">Menyimpan...</span>
+          </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

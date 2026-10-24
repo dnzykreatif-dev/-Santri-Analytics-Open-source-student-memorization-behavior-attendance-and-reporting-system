@@ -106,6 +106,12 @@ function getAcademicSheetSchemas_() {
     schemas[SHEET_EXAM_ELIGIBILITY_OVERRIDES] =
       EXAM_ELIGIBILITY_OVERRIDE_HEADERS;
   }
+  if (typeof CURRICULUM_EXAM_ITEM_HEADERS !== "undefined") {
+    schemas[SHEET_CURRICULUM_EXAM_ITEMS] = CURRICULUM_EXAM_ITEM_HEADERS;
+  }
+  if (typeof CURRICULUM_EXAM_SCORE_HEADERS !== "undefined") {
+    schemas[SHEET_CURRICULUM_EXAM_SCORES] = CURRICULUM_EXAM_SCORE_HEADERS;
+  }
   return schemas;
 }
 
@@ -157,6 +163,7 @@ function getAcademicSetup(currentUser) {
 
   try {
     const sessionUser = requireSessionUser_(currentUser, { allowAnonymous: false });
+    requireProductModuleEnabled_("academic", sessionUser);
     AC_ensureSheets_();
     return AC_success_(
       {
@@ -193,6 +200,7 @@ function saveAcademicPeriod(period, currentUser) {
 
   try {
     const sessionUser = requireSessionUser_(currentUser, { allowAnonymous: false });
+    requireProductModuleEnabled_("academic", sessionUser);
     AC_ensureSheets_();
     const sheet = getSheet_(SHEET_ACADEMIC_PERIODS);
     const headers = AC_getHeaders_(sheet);
@@ -435,6 +443,7 @@ function getAcademicScoreMatrix(filters, currentUser) {
 
   try {
     const sessionUser = requireSessionUser_(currentUser, { allowAnonymous: false });
+    requireProductModuleEnabled_("academic", sessionUser);
     AC_ensureSheets_();
     const periodId = AC_text_(filters && filters.PeriodID);
     const subjectId = AC_text_(filters && filters.SubjectID);

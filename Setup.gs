@@ -105,6 +105,16 @@ const CORE_SHEET_SCHEMAS = {
     "EndTime",
     "IsActive",
   ],
+  ScheduleMasters: [
+    "MasterID",
+    "MasterType",
+    "Name",
+    "StartTime",
+    "EndTime",
+    "SortOrder",
+    "IsActive",
+    "UpdatedAt",
+  ],
   HafalanLinks: [
     "LinkID",
     "StudentID",
@@ -312,6 +322,20 @@ function setupCoreSheets() {
         ),
       });
     }
+  }
+  if (functionExists_("setupProductReadinessSheets")) {
+    results.push({
+      task: "Setup product readiness sheets",
+      result: setupProductReadinessSheets(),
+    });
+    results.push({
+      task: "Record product readiness migration",
+      result: recordSchemaMigration_(
+        "2026.09.24.1",
+        "Add tenant profile, module licenses, setup checklist, and demo account readiness sheets",
+        "system",
+      ),
+    });
   }
 
   return { ok: true, data: { results }, message: "Sheet inti siap." };
@@ -567,6 +591,9 @@ function runHealthCheck(currentUser) {
     if (functionExists_("getAcademicSheetSchemas_")) {
       Object.assign(schemas, getAcademicSheetSchemas_());
     }
+    if (functionExists_("getProductReadinessSchemas_")) {
+      Object.assign(schemas, getProductReadinessSchemas_());
+    }
 
     const sheets = Object.keys(schemas).map((sheetName) => {
       const sheet = spreadsheet.getSheetByName(sheetName);
@@ -647,6 +674,20 @@ function runHealthCheck(currentUser) {
       "updatePulangBulanan",
       "deletePulangBulanan",
       "setupStudentLookups",
+      "getAppEntitlements",
+      "getProductReadiness",
+      "createSetupImportTemplates",
+      "previewSetupWizardImports",
+      "applySetupWizardImports",
+      "completeSetupWizard",
+      "getInstallationManifest",
+      "configureTenantInstallation",
+      "getAppReleaseStatus",
+      "saveTenantProfile",
+      "saveProductSettings",
+      "saveModuleLicenses",
+      "saveSetupChecklistItem",
+      "saveDemoAccount",
     ];
     const functions = requiredFunctions.map((name) => ({
       name,

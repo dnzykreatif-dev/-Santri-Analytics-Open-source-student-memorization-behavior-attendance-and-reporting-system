@@ -84,8 +84,11 @@ function addUser(userData, currentUser) {
       return { ok: false, message: "Username, Nama, dan Role wajib diisi." };
     }
 
-    if (!userData.Password || String(userData.Password).length < 6) {
-      return { ok: false, message: "Password minimal 6 karakter." };
+    const importedHash = String(userData.PasswordHash || "").trim();
+    const importedSalt = String(userData.Salt || "").trim();
+    const hasImportedHash = !!(importedHash && importedSalt);
+    if (!hasImportedHash && (!userData.Password || String(userData.Password).length < 6)) {
+      return { ok: false, message: "Password minimal 6 karakter, atau sertakan Salt dan PasswordHash dari export aplikasi." };
     }
 
     // Check if username already exists
@@ -107,12 +110,16 @@ function addUser(userData, currentUser) {
     }
 
     // Generate UserID
-    const userId = "USR" + Date.now();
+    const requestedUserId = String(userData.UserID || "").trim();
+    const userId = requestedUserId || "USR" + Date.now();
 
     // Generate salt and hash password if provided
     let salt = "";
     let passwordHash = "";
-    if (userData.Password) {
+    if (hasImportedHash) {
+      salt = importedSalt;
+      passwordHash = importedHash;
+    } else if (userData.Password) {
       salt = Utilities.getUuid().substring(0, 8);
       passwordHash = hashPasswordWithSalt(userData.Password, salt);
     }
@@ -158,13 +165,13 @@ function addUser(userData, currentUser) {
           newRow.push(userData.Status || "Active");
           break;
         case "CreatedAt":
-          newRow.push(new Date().toISOString());
+          newRow.push(userData.CreatedAt || new Date().toISOString());
           break;
         case "UpdatedAt":
-          newRow.push(new Date().toISOString());
+          newRow.push(userData.UpdatedAt || new Date().toISOString());
           break;
         case "LastLogin":
-          newRow.push("");
+          newRow.push(userData.LastLogin || "");
           break;
         default:
           newRow.push("");

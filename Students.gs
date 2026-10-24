@@ -6,6 +6,7 @@ function addStudent(data, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("students", sessionUser);
 
   setupSheetWithHeaders_("Students", CORE_SHEET_SCHEMAS.Students);
   const sheet = getSheet_("Students");
@@ -78,6 +79,7 @@ function updateStudentNote(id, note, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("students", sessionUser);
   const sheet = getSheet_("Students");
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
@@ -107,6 +109,101 @@ function updateStudentNote(id, note, currentUser) {
       return { ok: true };
     }
   }
+  return { ok: false, message: "Santri tidak ditemukan." };
+}
+
+function updateStudentProfile(studentId, payload, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, {
+    roles: ["Mudir", "Admin", "Ustadz"],
+  });
+  requireProductModuleEnabled_("students", sessionUser);
+
+  payload = payload || {};
+  const id = String(studentId || payload.StudentID || "").trim();
+  if (!id) {
+    return { ok: false, message: "ID santri tidak ditemukan." };
+  }
+
+  setupSheetWithHeaders_("Students", CORE_SHEET_SCHEMAS.Students);
+  const sheet = getSheet_("Students");
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0].map((header) => String(header || "").trim());
+  const columnIndex = {};
+  headers.forEach((header, index) => {
+    columnIndex[header] = index;
+  });
+
+  const studentIdCol = columnIndex.StudentID;
+  if (studentIdCol === undefined) {
+    return { ok: false, message: "Kolom StudentID tidak ditemukan." };
+  }
+
+  const clean = {
+    NIS: String(payload.NIS || "").trim(),
+    Name: String(payload.Name || "").trim(),
+    "Class/Level": String(payload.ClassLevel || payload["Class/Level"] || "").trim(),
+    Gender: String(payload.Gender || "").trim(),
+    ParentContact: String(payload.ParentContact || "").trim(),
+    Status: String(payload.Status || "Active").trim() || "Active",
+  };
+
+  if (!clean.Name) {
+    return { ok: false, message: "Nama santri wajib diisi." };
+  }
+  if (!clean["Class/Level"]) {
+    return { ok: false, message: "Kelas/level wajib diisi." };
+  }
+
+  const now = new Date().toISOString();
+  const allowedStatuses = {
+    active: "Active",
+    aktif: "Active",
+    inactive: "Inactive",
+    "non-aktif": "Inactive",
+    nonaktif: "Inactive",
+    graduated: "Graduated",
+    lulus: "Graduated",
+    stopped: "Stopped",
+    berhenti: "Stopped",
+  };
+  const statusKey = clean.Status.toLowerCase();
+  clean.Status = allowedStatuses[statusKey] || clean.Status;
+
+  for (let rowIndex = 1; rowIndex < data.length; rowIndex++) {
+    if (String(data[rowIndex][studentIdCol] || "").trim() !== id) continue;
+
+    Object.keys(clean).forEach((header) => {
+      if (columnIndex[header] !== undefined) {
+        sheet.getRange(rowIndex + 1, columnIndex[header] + 1).setValue(clean[header]);
+      }
+    });
+    if (columnIndex.UpdatedAt !== undefined) {
+      sheet.getRange(rowIndex + 1, columnIndex.UpdatedAt + 1).setValue(now);
+    }
+    if (columnIndex.RecordVersion !== undefined) {
+      const currentVersion = Number(data[rowIndex][columnIndex.RecordVersion] || 0) + 1;
+      sheet.getRange(rowIndex + 1, columnIndex.RecordVersion + 1).setValue(currentVersion);
+    }
+
+    const updatedRow = data[rowIndex].slice();
+    Object.keys(clean).forEach((header) => {
+      if (columnIndex[header] !== undefined) updatedRow[columnIndex[header]] = clean[header];
+    });
+    if (columnIndex.UpdatedAt !== undefined) updatedRow[columnIndex.UpdatedAt] = now;
+    if (columnIndex.RecordVersion !== undefined) {
+      updatedRow[columnIndex.RecordVersion] = Number(data[rowIndex][columnIndex.RecordVersion] || 0) + 1;
+    }
+
+    bumpStudentDataRevision_();
+    AUTH_appendAuditLog_("UPDATE", "StudentProfile", id, sessionUser, clean);
+
+    return {
+      ok: true,
+      message: "Biodata santri berhasil diperbarui.",
+      data: serializeRow(updatedRow, headers),
+    };
+  }
+
   return { ok: false, message: "Santri tidak ditemukan." };
 }
 
@@ -187,6 +284,7 @@ function getStudentReportData(studentId, periodId, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     allowAnonymous: false,
   });
+  requireProductModuleEnabled_("academic", sessionUser);
   if (
     typeof isReportV2EnabledFor_ === "function" &&
     isReportV2EnabledFor_(sessionUser) &&

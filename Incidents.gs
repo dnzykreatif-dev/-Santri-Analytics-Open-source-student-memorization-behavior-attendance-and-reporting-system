@@ -19,6 +19,7 @@ function logIncident(data, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("behavior", sessionUser);
   const incidentSheet = getSheet_("Incidents");
   const studentSheet = getSheet_("Students");
 
@@ -80,6 +81,7 @@ function updateIncident(incidentId, data, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("behavior", sessionUser);
   const sheet = getSheet_("Incidents");
   const row = findRowIndexById_("Incidents", incidentId);
 
@@ -117,6 +119,7 @@ function deleteIncident(incidentId, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin", "Ustadz"],
   });
+  requireProductModuleEnabled_("behavior", sessionUser);
   const sheet = getSheet_("Incidents");
   const row = findRowIndexById_("Incidents", incidentId);
 
