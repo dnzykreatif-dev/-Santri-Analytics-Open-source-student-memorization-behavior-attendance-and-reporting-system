@@ -2009,11 +2009,118 @@
         });
       },
 
+      downloadSetupExcelTemplateAction() {
+        if (typeof XLSX === "undefined") {
+          this.showToast("Pembuat template Excel belum siap. Muat ulang halaman.", "error");
+          return;
+        }
+        const workbook = XLSX.utils.book_new();
+        const sheets = {
+          Santri: [["Name", "NIS", "ClassLevel", "Level", "Gender", "ParentContact", "WaliUsername", "BirthPlace", "BirthDate", "SchoolUnit", "CohortYear", "ResidencyStatus", "Room"]],
+          User: [["Name", "Username", "Password", "Role", "Email", "Phone", "StudentID", "Class", "TeacherSourceID", "Status"]],
+          Jadwal: [["Type", "TeacherID", "TeacherSourceID", "SubjectOrActivityName", "ClassOrGroupName", "DayOfWeek", "StartTime", "EndTime", "IsActive"]],
+        };
+        Object.entries(sheets).forEach(([name, rows]) => {
+          const sheet = XLSX.utils.aoa_to_sheet(rows);
+          XLSX.utils.book_append_sheet(workbook, sheet, name);
+        });
+        XLSX.writeFile(workbook, "Template_Import_Santri_Analytics.xlsx");
+        this.showToast("Template Excel berhasil dibuat.", "success");
+      },
+
+      importSetupExcelAction(event) {
+        const file = event && event.target && event.target.files ? event.target.files[0] : null;
+        if (!file) return;
+        if (typeof XLSX === "undefined") {
+          this.showToast("Pembaca Excel belum siap. Muat ulang halaman.", "error");
+          event.target.value = "";
+          return;
+        }
+        if (!/\.(xlsx|xls)$/i.test(file.name)) {
+          this.showToast("Pilih file Excel XLSX atau XLS.", "error");
+          event.target.value = "";
+          return;
+        }
+        if (file.size > 8 * 1024 * 1024) {
+          this.showToast("File Excel terlalu besar. Maksimal 8 MB.", "error");
+          event.target.value = "";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const workbook = XLSX.read(reader.result, { type: "array", cellDates: false });
+            const normalize = (value) => String(value || "").toLowerCase().replace(/[\s_-]+/g, "");
+            const findSheet = (names) => {
+              const wanted = names.map(normalize);
+              const actual = workbook.SheetNames.find((name) => wanted.includes(normalize(name)));
+              return actual ? workbook.Sheets[actual] : null;
+            };
+            const imports = [
+              { kind: "students", names: ["Santri", "Students", "SetupImportStudents"] },
+              { kind: "users", names: ["User", "Users", "SetupImportUsers"] },
+              { kind: "schedules", names: ["Jadwal", "Schedules", "Schedule", "SetupImportSchedules"] },
+            ];
+            const csvFiles = imports.map((item) => {
+              const sheet = findSheet(item.names);
+              return { ...item, csv: sheet ? XLSX.utils.sheet_to_csv(sheet) : "" };
+            });
+            const missing = csvFiles.filter((item) => !item.csv.trim()).map((item) => item.kind);
+            if (missing.length) {
+              this.showToast("Sheet Excel belum lengkap: " + missing.join(", "), "error");
+              event.target.value = "";
+              return;
+            }
+            this.productSaving = true;
+            const uploadNext = (index) => {
+              if (index >= csvFiles.length) {
+                this.productSaving = false;
+                event.target.value = "";
+                this.showToast("Excel berhasil dibaca. Klik Preview sebelum Proses Import.", "success");
+                return;
+              }
+              const item = csvFiles[index];
+              const csvBlob = new Blob([item.csv], { type: "text/csv;charset=utf-8" });
+              const csvReader = new FileReader();
+              csvReader.onload = () => {
+                const dataUrl = String(csvReader.result || "");
+                const comma = dataUrl.indexOf(",");
+                callGoogleScript("importSetupCsv", {
+                  kind: item.kind,
+                  fileName: file.name + " / " + item.kind,
+                  contentBase64: comma < 0 ? dataUrl : dataUrl.slice(comma + 1),
+                }, this.user).onSuccess((err) => {
+                  if (err) {
+                    this.productSaving = false;
+                    event.target.value = "";
+                    this.showToast(err.message || "Sheet Excel gagal dimuat.", "error");
+                    return;
+                  }
+                  uploadNext(index + 1);
+                });
+              };
+              csvReader.onerror = () => {
+                this.productSaving = false;
+                event.target.value = "";
+                this.showToast("Sheet Excel tidak dapat dibaca.", "error");
+              };
+              csvReader.readAsDataURL(csvBlob);
+            };
+            uploadNext(0);
+          } catch (error) {
+            this.showToast("File Excel tidak dapat dibaca. Gunakan template resmi.", "error");
+            event.target.value = "";
+          }
+        };
+        reader.onerror = () => this.showToast("File Excel tidak dapat dibaca dari perangkat.", "error");
+        reader.readAsArrayBuffer(file);
+      },
+
       importSetupCsvAction(kind, event) {
         const file = event && event.target && event.target.files ? event.target.files[0] : null;
         if (!file) return;
         if (!/\.(csv|txt)$/i.test(file.name)) {
-          this.showToast("Gunakan file CSV UTF-8. File Excel XLSX simpan sebagai CSV terlebih dahulu.", "error");
+          this.showToast("Gunakan file CSV UTF-8 atau upload satu file Excel dari tombol di atas.", "error");
           event.target.value = "";
           return;
         }
