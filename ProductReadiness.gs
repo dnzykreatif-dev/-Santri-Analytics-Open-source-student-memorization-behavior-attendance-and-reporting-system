@@ -1144,11 +1144,14 @@ function PRODUCT_previewUsers_() {
   });
   return PRODUCT_previewSheetRows_(SHEET_SETUP_IMPORT_USERS, (row, rowNumber) => {
     const username = PRODUCT_text_(row.Username);
+    // Beberapa salinan lama hanya menyimpan username wali tanpa nama.
+    // Username tetap dapat dipakai sebagai nama awal dan bisa diedit kemudian.
+    const displayName = PRODUCT_text_(row.Name) || username;
     const rawRole = PRODUCT_text_(row.Role);
     const roleAliases = { guru: "Ustadz", ustaz: "Ustadz", ustadz: "Ustadz", orangtua: "Wali", orangtuaasantri: "Wali", walisantri: "Wali", wali: "Wali", pimpinan: "Mudir", mudir: "Mudir", admin: "Admin" };
     const role = roleAliases[rawRole.toLowerCase().replace(/[\s_-]+/g, "")] || rawRole || "Wali";
     const errors = [];
-    if (!PRODUCT_text_(row.Name)) errors.push("Nama user wajib diisi.");
+    if (!displayName) errors.push("Nama user wajib diisi.");
     if (!username) errors.push("Username wajib diisi.");
     if (!["Mudir", "Admin", "Ustadz", "Wali"].includes(role)) errors.push("Role tidak valid.");
     const hasImportedHash = PRODUCT_text_(row.Salt) && PRODUCT_text_(row.PasswordHash);
@@ -1160,7 +1163,7 @@ function PRODUCT_previewUsers_() {
       errors,
       payload: {
         UserID: PRODUCT_text_(row.UserID),
-        Name: PRODUCT_text_(row.Name),
+        Name: displayName,
         Username: username,
         Password: PRODUCT_text_(row.Password),
         Salt: PRODUCT_text_(row.Salt),
@@ -1235,7 +1238,9 @@ function PRODUCT_previewSchedules_() {
 }
 
 function PRODUCT_previewSheetRows_(sheetName, mapper) {
-  const rows = PRODUCT_readRows_(sheetName);
+  const rows = PRODUCT_readRows_(sheetName).filter((row) =>
+    Object.keys(row || {}).some((key) => PRODUCT_text_(row[key]) !== ""),
+  );
   const items = rows.map((row, index) => mapper(row, index + 2));
   const errors = [];
   items.forEach((item) => {
