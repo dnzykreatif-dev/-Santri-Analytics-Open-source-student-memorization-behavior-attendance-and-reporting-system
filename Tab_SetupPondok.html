@@ -198,6 +198,7 @@
             <button type="button" class="app-btn app-btn-soft" @click="downloadSetupExcelTemplateAction()" :disabled="productSaving">Download Template Excel</button>
             <label class="app-btn app-btn-primary cursor-pointer">Upload Satu File Excel<input type="file" class="hidden" accept=".xlsx,.xls" @change="importSetupExcelAction($event)"></label>
           </div>
+          <p class="mt-2 text-xs text-emerald-800">Template Excel berisi sheet Petunjuk dan beberapa sheet Contoh. Isi hanya sheet Santri, User, dan Jadwal; sheet Contoh jangan diupload sebagai data.</p>
           <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
             <label class="app-btn app-btn-soft cursor-pointer text-center">Upload Santri CSV<input type="file" class="hidden" accept=".csv,.txt" @change="importSetupCsvAction('students', $event)"></label>
             <label class="app-btn app-btn-soft cursor-pointer text-center">Upload User<input type="file" class="hidden" accept=".csv,.txt" @change="importSetupCsvAction('users', $event)"></label>

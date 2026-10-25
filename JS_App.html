@@ -2020,9 +2020,28 @@
           User: [["Name", "Username", "Password", "Role", "Email", "Phone", "StudentID", "Class", "TeacherSourceID", "Status"]],
           Jadwal: [["Type", "TeacherID", "TeacherSourceID", "SubjectOrActivityName", "ClassOrGroupName", "DayOfWeek", "StartTime", "EndTime", "IsActive"]],
         };
+        const guide = [
+          ["PETUNJUK IMPORT SANTRI ANALYTICS"],
+          ["1. Isi hanya sheet Santri, User, dan Jadwal."],
+          ["2. Jangan mengubah nama sheet dan judul kolom."],
+          ["3. Sheet Contoh hanya untuk melihat contoh; jangan diupload sebagai data."],
+          ["4. Password User diisi biasa minimal 6 karakter. Sistem akan mengamankannya otomatis."],
+          ["5. Role User: Mudir, Admin, Ustadz, atau Wali."],
+          ["6. Type Jadwal: KBM, Pondok, Kegiatan, Hafalan, Doa, atau Praktik."],
+          ["7. Setelah upload, klik Preview. Data belum masuk sebelum klik Proses Import."],
+        ];
+        const examples = {
+          "Contoh Santri": [sheets.Santri[0], ["Ahmad Contoh", "CONTOH001", "KELAS DEMO", "Menengah", "L", "081234567890", "wali_contoh", "Pontianak", "2012-05-10", "Pondok Contoh", "2026", "Mukim", "A-01"]],
+          "Contoh User": [sheets.User[0], ["Admin Contoh", "admin_contoh", "Demo123", "Admin", "admin@contoh.sch.id", "081234567890", "", "", "", "Active"]],
+          "Contoh Jadwal": [sheets.Jadwal[0], ["KBM", "ustadz_contoh", "GURU-CONTOH-001", "Aqidah Akhlak", "KELAS DEMO", "Senin", "08:00", "09:00", "TRUE"]],
+        };
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(guide), "Petunjuk");
         Object.entries(sheets).forEach(([name, rows]) => {
           const sheet = XLSX.utils.aoa_to_sheet(rows);
           XLSX.utils.book_append_sheet(workbook, sheet, name);
+        });
+        Object.entries(examples).forEach(([name, rows]) => {
+          XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), name);
         });
         XLSX.writeFile(workbook, "Template_Import_Santri_Analytics.xlsx");
         this.showToast("Template Excel berhasil dibuat.", "success");
