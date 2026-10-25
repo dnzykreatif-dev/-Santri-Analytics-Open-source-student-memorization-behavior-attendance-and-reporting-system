@@ -409,6 +409,27 @@ function saveTenantProfile(profile, currentUser) {
   return { ok: true, message: "Profil pondok tersimpan." };
 }
 
+/** Simpan logo kecil sebagai data URL agar tidak perlu membuat file Drive publik. */
+function uploadTenantLogo(payload, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, { roles: ["Mudir", "Admin"] });
+  payload = payload || {};
+  const dataUrl = String(payload.dataUrl || "").trim();
+  if (!/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(dataUrl)) {
+    return { ok: false, message: "Logo tidak valid. Pilih file PNG, JPG, atau WEBP." };
+  }
+  if (dataUrl.length > 65000) {
+    return { ok: false, message: "Logo masih terlalu besar. Gunakan gambar di bawah 512 piksel." };
+  }
+  setupProductReadinessSheets();
+  PRODUCT_upsertKeyValueRows_(SHEET_TENANT_PROFILE, "ProfileKey", "ProfileValue", [
+    { ProfileKey: "LogoUrl", ProfileValue: dataUrl },
+  ], sessionUser.Username);
+  AUTH_appendAuditLog_("UPLOAD", "TenantProfileLogo", "current", sessionUser, {
+    storedAs: "private-data-url",
+  });
+  return { ok: true, message: "Logo berhasil diunggah.", data: { logoUrl: dataUrl } };
+}
+
 function saveProductSettings(settings, currentUser) {
   const sessionUser = requireSessionUser_(currentUser, {
     roles: ["Mudir", "Admin"],

@@ -2102,6 +2102,51 @@
         });
       },
 
+      uploadTenantLogoAction(event) {
+        const file = event && event.target && event.target.files ? event.target.files[0] : null;
+        if (!file) return;
+        const allowed = ["image/png", "image/jpeg", "image/webp"];
+        if (!allowed.includes(String(file.type || "").toLowerCase())) {
+          this.showToast("Logo harus berupa PNG, JPG, atau WEBP.", "error");
+          event.target.value = "";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          const image = new Image();
+          image.onload = () => {
+            const maxSide = 512;
+            const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(image.width * scale));
+            canvas.height = Math.max(1, Math.round(image.height * scale));
+            const context = canvas.getContext("2d");
+            context.fillStyle = "#ffffff";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.78);
+            if (dataUrl.length > 65000) {
+              this.showToast("Logo terlalu besar. Pilih gambar yang lebih sederhana.", "error");
+              return;
+            }
+            this.productSaving = true;
+            callGoogleScript("uploadTenantLogo", { dataUrl }, this.user).onSuccess((err, data) => {
+              this.productSaving = false;
+              if (err) {
+                this.showToast(err.message || "Logo gagal diunggah.", "error");
+                return;
+              }
+              if (data?.logoUrl) this.tenantProfileForm.LogoUrl = data.logoUrl;
+              this.showToast("Logo berhasil diunggah. Klik Simpan Profil.", "success");
+            });
+          };
+          image.onerror = () => this.showToast("File logo tidak dapat dibaca.", "error");
+          image.src = String(reader.result || "");
+        };
+        reader.onerror = () => this.showToast("File logo tidak dapat dibaca.", "error");
+        reader.readAsDataURL(file);
+      },
+
       configureTenantInstallationAction() {
         const spreadsheetId = String(this.installationForm.spreadsheetId || "").trim();
         if (!spreadsheetId) {

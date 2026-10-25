@@ -103,7 +103,11 @@
         <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <label class="block"><span class="app-label">Nama Pondok</span><input class="app-input" x-model="tenantProfileForm.PondokName"></label>
           <label class="block"><span class="app-label">Nama Aplikasi</span><input class="app-input" x-model="tenantProfileForm.ShortName"></label>
-          <label class="block md:col-span-2"><span class="app-label">URL Logo</span><input class="app-input" x-model="tenantProfileForm.LogoUrl" placeholder="https://..."></label>
+          <div class="md:col-span-2 rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+            <label class="block"><span class="app-label">Logo Pondok</span><input class="app-input" type="file" accept="image/png,image/jpeg,image/webp" @change="uploadTenantLogoAction($event)"></label>
+            <p class="mt-1 text-xs text-emerald-800">Pilih file logo dari komputer. Sistem akan mengecilkan dan menyimpannya otomatis.</p>
+            <input class="app-input mt-2" x-model="tenantProfileForm.LogoUrl" placeholder="Atau tempel link logo lama (opsional)">
+          </div>
           <label class="block md:col-span-2"><span class="app-label">Alamat</span><textarea class="app-input min-h-[88px]" x-model="tenantProfileForm.Address"></textarea></label>
           <label class="block"><span class="app-label">Kontak WhatsApp</span><input class="app-input" x-model="tenantProfileForm.ContactPhone"></label>
           <label class="block"><span class="app-label">Email</span><input class="app-input" x-model="tenantProfileForm.ContactEmail"></label>
@@ -303,7 +307,11 @@
         </label>
         <label class="block md:col-span-2">
           <span class="app-label">URL Logo</span>
-          <input class="app-input" x-model="tenantProfileForm.LogoUrl" placeholder="https://...">
+          <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-3 md:col-span-2">
+            <label class="block"><span class="app-label">Upload Logo</span><input class="app-input" type="file" accept="image/png,image/jpeg,image/webp" @change="uploadTenantLogoAction($event)"></label>
+            <p class="mt-1 text-xs text-emerald-800">PNG, JPG, atau WEBP. Pilih file dari komputer.</p>
+            <input class="app-input mt-2" x-model="tenantProfileForm.LogoUrl" placeholder="Atau tempel link logo lama (opsional)">
+          </div>
         </label>
         <label class="block md:col-span-2">
           <span class="app-label">Alamat</span>

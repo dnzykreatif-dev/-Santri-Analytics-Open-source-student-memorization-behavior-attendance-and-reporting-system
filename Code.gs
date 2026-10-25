@@ -299,6 +299,7 @@ function isExternalActionAllowed_(action) {
     "getAppReleaseStatus",
     "saveSharedCoreSettings",
     "saveTenantProfile",
+    "uploadTenantLogo",
     "saveProductSettings",
     "saveModuleLicenses",
     "saveSetupChecklistItem",
