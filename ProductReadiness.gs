@@ -852,14 +852,24 @@ function importSetupCsv(payload, currentUser) {
   if (kind === "schedules" && !incomingHeaders.includes("TeacherID") && !incomingHeaders.includes("TeacherSourceID")) missing.push("TeacherID atau TeacherSourceID");
   if (missing.length) return { ok: false, message: "Kolom wajib belum ada: " + missing.join(", ") };
   const sheet = getSheet_(sheetName);
-  if (sheet.getLastRow() > 1) sheet.deleteRows(2, sheet.getLastRow() - 1);
-  rows.slice(1).filter((row) => row.some((cell) => String(cell || "").trim())).forEach((row) => {
+  const dataRows = rows.slice(1).filter((row) => row.some((cell) => String(cell || "").trim()));
+  // Tulis sekali per kelompok data. appendRow satu per satu sangat lambat
+  // pada file pondok yang berisi ratusan atau ribuan baris.
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, requiredHeaders.length).clearContent();
+  }
+  const outputRows = dataRows.map((row) => {
     const item = {};
     incomingHeaders.forEach((header, index) => { item[header] = row[index] === undefined ? "" : row[index]; });
-    sheet.appendRow(requiredHeaders.map((header) => item[header] === undefined ? "" : item[header]));
+    return requiredHeaders.map((header) => item[header] === undefined ? "" : item[header]);
   });
-  AUTH_appendAuditLog_("IMPORT", "SetupCsv", sheetName, sessionUser, { fileName: String(payload.fileName || ""), rows: rows.length - 1 });
-  return { ok: true, message: "File " + kind + " berhasil dimuat. Lanjutkan dengan Preview.", data: { kind, sheetName, rows: rows.length - 1 } };
+  if (outputRows.length) {
+    const neededRows = outputRows.length + 1;
+    if (sheet.getMaxRows() < neededRows) sheet.insertRowsAfter(sheet.getMaxRows(), neededRows - sheet.getMaxRows());
+    sheet.getRange(2, 1, outputRows.length, requiredHeaders.length).setValues(outputRows);
+  }
+  AUTH_appendAuditLog_("IMPORT", "SetupCsv", sheetName, sessionUser, { fileName: String(payload.fileName || ""), rows: outputRows.length });
+  return { ok: true, message: "File " + kind + " berhasil dimuat. Lanjutkan dengan Preview.", data: { kind, sheetName, rows: outputRows.length } };
 }
 
 function previewSetupWizardImports(currentUser) {
