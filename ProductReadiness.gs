@@ -194,12 +194,29 @@ function setupProductReadinessSheets() {
     sheet: sheetName,
     result: setupSheetWithHeaders_(sheetName, schemas[sheetName]),
   }));
+  PRODUCT_hideTechnicalImportColumns_();
   seedProductReadinessDefaults_("system");
   return {
     ok: true,
     data: { results },
     message: "Pondasi produk siap.",
   };
+}
+
+/**
+ * Kolom keamanan tetap dipertahankan untuk kompatibilitas export/import lama,
+ * tetapi disembunyikan dari admin pondok. Admin cukup mengisi Password biasa;
+ * addUser() yang membuat Salt dan PasswordHash.
+ */
+function PRODUCT_hideTechnicalImportColumns_() {
+  const sheet = getSheet_(SHEET_SETUP_IMPORT_USERS);
+  if (!sheet) return;
+  const headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0]
+    .map((header) => String(header || "").trim());
+  ["Salt", "PasswordHash", "CreatedAt", "UpdatedAt", "LastLogin"].forEach((header) => {
+    const index = headers.indexOf(header);
+    if (index >= 0) sheet.hideColumns(index + 1);
+  });
 }
 
 function seedProductReadinessDefaults_(updatedBy) {
@@ -810,7 +827,7 @@ function importSetupCsv(payload, currentUser) {
     schedules: ["SubjectOrActivityName", "ClassOrGroupName", "DayOfWeek"],
   }[kind];
   const missing = minimumHeaders.filter((header) => !incomingHeaders.includes(header));
-  if (kind === "users" && !incomingHeaders.includes("Password") && !(incomingHeaders.includes("Salt") && incomingHeaders.includes("PasswordHash"))) missing.push("Password atau Salt + PasswordHash");
+  if (kind === "users" && !incomingHeaders.includes("Password") && !(incomingHeaders.includes("Salt") && incomingHeaders.includes("PasswordHash"))) missing.push("Password awal");
   if (kind === "schedules" && !incomingHeaders.includes("TeacherID") && !incomingHeaders.includes("TeacherSourceID")) missing.push("TeacherID atau TeacherSourceID");
   if (missing.length) return { ok: false, message: "Kolom wajib belum ada: " + missing.join(", ") };
   const sheet = getSheet_(sheetName);
@@ -1104,7 +1121,7 @@ function PRODUCT_previewUsers_() {
     if (!username) errors.push("Username wajib diisi.");
     if (!["Mudir", "Admin", "Ustadz", "Wali"].includes(role)) errors.push("Role tidak valid.");
     const hasImportedHash = PRODUCT_text_(row.Salt) && PRODUCT_text_(row.PasswordHash);
-    if (!hasImportedHash && PRODUCT_text_(row.Password).length < 6) errors.push("Password minimal 6 karakter, atau isi Salt + PasswordHash dari export aplikasi.");
+    if (!hasImportedHash && PRODUCT_text_(row.Password).length < 6) errors.push("Password awal minimal 6 karakter.");
     const action = username && existingUsernames[username.toLowerCase()] ? "skip" : "create";
     return {
       rowNumber,
