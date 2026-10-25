@@ -122,7 +122,7 @@ function runAppAction(request) {
   }
 
   const sharedCore = PRODUCT_getSharedCore_();
-  if (sharedCore) {
+  if (sharedCore && !PRODUCT_isWrapperOnlyAction_(action)) {
     if (typeof sharedCore.runAction !== "function") {
       return {
         ok: false,
@@ -152,6 +152,15 @@ function runAppAction(request) {
   }
 }
 
+function PRODUCT_isWrapperOnlyAction_(action) {
+  return [
+    "configureTenantInstallation",
+    "getInstallationManifest",
+    "getAppReleaseStatus",
+    "saveSharedCoreSettings",
+  ].includes(String(action || ""));
+}
+
 function PRODUCT_buildCoreContext_() {
   const properties = PropertiesService.getScriptProperties().getProperties();
   return {
@@ -162,6 +171,10 @@ function PRODUCT_buildCoreContext_() {
       TENANT_ID: String(properties.TENANT_ID || ""),
       REPORT_V2_ROLLOUT: String(properties.REPORT_V2_ROLLOUT || "off"),
       REPORT_V2_CANARY_USERS: String(properties.REPORT_V2_CANARY_USERS || ""),
+      CORE_LIBRARY_ID: String(properties.CORE_LIBRARY_ID || ""),
+      CORE_LIBRARY_VERSION: String(properties.CORE_LIBRARY_VERSION || ""),
+      CORE_UPDATE_CHANNEL: String(properties.CORE_UPDATE_CHANNEL || "stable"),
+      CORE_LIBRARY_ENABLED: String(properties.CORE_LIBRARY_ENABLED || "off"),
     },
   };
 }
@@ -284,6 +297,7 @@ function isExternalActionAllowed_(action) {
     "getInstallationManifest",
     "configureTenantInstallation",
     "getAppReleaseStatus",
+    "saveSharedCoreSettings",
     "saveTenantProfile",
     "saveProductSettings",
     "saveModuleLicenses",

@@ -683,6 +683,7 @@ function runHealthCheck(currentUser) {
       "getInstallationManifest",
       "configureTenantInstallation",
       "getAppReleaseStatus",
+      "saveSharedCoreSettings",
       "saveTenantProfile",
       "saveProductSettings",
       "saveModuleLicenses",

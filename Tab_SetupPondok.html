@@ -145,6 +145,22 @@
           <label class="block"><span class="app-label">Nama Paket</span><input class="app-input" x-model="productSettingsForm.PRODUCT_PACKAGE_NAME"></label>
           <label class="block"><span class="app-label">Batas Santri</span><input class="app-input" x-model="productSettingsForm.PRODUCT_MAX_STUDENTS"></label>
         </div>
+        <div class="mt-5 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p class="font-bold text-indigo-900">Update Inti Aplikasi</p>
+              <p class="mt-1 text-sm text-indigo-800">Biarkan Off sampai library dipasang dan diuji di staging. Setelah itu gunakan Test, Canary, lalu Stable.</p>
+            </div>
+            <button type="button" class="app-btn app-btn-primary" @click="saveSharedCoreSettingsAction()" :disabled="productSaving">Simpan Versi Inti</button>
+          </div>
+          <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+            <label class="block md:col-span-2"><span class="app-label">ID Library Apps Script</span><input class="app-input" x-model="coreSettingsForm.CORE_LIBRARY_ID" placeholder="ID project library"></label>
+            <label class="block"><span class="app-label">Nomor versi</span><input class="app-input" x-model="coreSettingsForm.CORE_LIBRARY_VERSION" placeholder="contoh: 1"></label>
+            <label class="block"><span class="app-label">Saluran update</span><select class="app-input" x-model="coreSettingsForm.CORE_UPDATE_CHANNEL"><option value="test">Test</option><option value="canary">Canary</option><option value="stable">Stable</option></select></label>
+            <label class="block"><span class="app-label">Status library</span><select class="app-input" x-model="coreSettingsForm.CORE_LIBRARY_ENABLED"><option value="off">Off - pakai kode lokal</option><option value="on">On - pakai library inti</option></select></label>
+          </div>
+          <p class="mt-2 text-xs text-indigo-800" x-text="productReadiness.release?.note || 'Library belum dikonfigurasi.'"></p>
+        </div>
         <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
           <template x-for="module in productReadiness.modules" :key="module.ModuleCode">
             <label class="flex items-center gap-3 rounded-lg border border-gray-200 p-3">

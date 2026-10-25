@@ -108,6 +108,22 @@ Import hanya mengisi tempat import terlebih dahulu. Data utama tidak langsung di
 
 Dengan model library bersama, pembaruan inti dapat dipakai oleh banyak instalasi setelah versi library diuji. Perubahan yang mengubah struktur Spreadsheet tetap harus diuji dan dimigrasikan secara bertahap.
 
+### Cara mengaktifkan Library inti
+
+1. Buat project Apps Script library dari folder `core-library`.
+2. Publikasikan versi library, misalnya versi `1`.
+3. Pada project pondok, buka `Project Settings` lalu tambahkan library menggunakan ID project library.
+4. Gunakan identifier `SantriCore` dan pilih nomor versi yang sudah diuji.
+5. Buka `Setup Pondok` lalu bagian `Update Inti Aplikasi`.
+6. Masukkan ID library dan nomor versinya.
+7. Simpan dengan status `Off` terlebih dahulu.
+8. Uji semua fungsi menggunakan kode lokal.
+9. Ubah saluran ke `test`, lalu aktifkan `On` hanya untuk staging.
+10. Setelah staging aman, gunakan `canary` dan baru kemudian `stable`.
+
+Jika library bermasalah, ubah status menjadi `Off`. Aplikasi kembali memakai
+kode lokal yang masih disimpan di project pondok.
+
 ## Jika terjadi masalah
 
 1. Matikan feature flag yang baru.

@@ -284,6 +284,13 @@
         PRODUCT_MAX_STUDENTS: "",
         DEMO_MODE: "off",
       },
+      coreSettingsForm: {
+        CORE_LIBRARY_ID: "",
+        CORE_LIBRARY_VERSION: "",
+        CORE_UPDATE_CHANNEL: "test",
+        CORE_LIBRARY_ENABLED: "off",
+        CORE_LIBRARY_IDENTIFIER: "SantriCore",
+      },
       setupChecklistForm: {
         ChecklistID: "",
         Category: "Setup",
@@ -1960,6 +1967,15 @@
             ...this.productSettingsForm,
             ...(this.productReadiness.settings || {}),
           };
+          const sharedCore = this.productReadiness.release?.sharedCore || {};
+          this.coreSettingsForm = {
+            ...this.coreSettingsForm,
+            CORE_LIBRARY_ID: sharedCore.libraryId || this.coreSettingsForm.CORE_LIBRARY_ID,
+            CORE_LIBRARY_VERSION: sharedCore.version || this.coreSettingsForm.CORE_LIBRARY_VERSION,
+            CORE_UPDATE_CHANNEL: sharedCore.channel || this.coreSettingsForm.CORE_UPDATE_CHANNEL,
+            CORE_LIBRARY_ENABLED: sharedCore.enabled ? "on" : "off",
+            CORE_LIBRARY_IDENTIFIER: sharedCore.identifier || this.coreSettingsForm.CORE_LIBRARY_IDENTIFIER,
+          };
           this.loadAppEntitlements();
         });
       },
@@ -2124,6 +2140,20 @@
             return;
           }
           this.showToast("Pengaturan produk tersimpan.", "success");
+          this.loadProductReadiness();
+        });
+      },
+
+      saveSharedCoreSettingsAction() {
+        if (this.coreSettingsForm.CORE_LIBRARY_ENABLED === "on" && !confirm("Aktifkan library inti untuk instalasi ini? Pastikan dependency library sudah dipasang dan versinya sudah diuji.")) return;
+        this.productSaving = true;
+        callGoogleScript("saveSharedCoreSettings", this.coreSettingsForm, this.user).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Pengaturan library gagal disimpan.", "error");
+            return;
+          }
+          this.showToast((data && data.message) || "Pengaturan library tersimpan.", "success");
           this.loadProductReadiness();
         });
       },

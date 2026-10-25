@@ -67,3 +67,30 @@ Repository ini juga memiliki source package `core-library`. Folder tersebut
 tidak ikut dikirim oleh deployment web app utama. Project Apps Script library
 terpisah harus dibuat untuk package ini, lalu Script ID-nya dicatat sebagai
 `CORE_LIBRARY_ID` sebelum `CORE_LIBRARY_ENABLED` boleh diubah menjadi `on`.
+
+## Konfigurasi dari aplikasi
+
+Setelah dependency library dipasang pada project pondok, Admin/Mudir dapat
+mengisi bagian `Update Inti Aplikasi` di menu `Setup Pondok`:
+
+- `ID Library Apps Script`: ID project library inti;
+- `Nomor versi`: nomor versi Apps Script yang sudah dipublikasikan;
+- `Saluran update`: `test`, `canary`, atau `stable`;
+- `Status library`: `off` atau `on`.
+
+Status awal harus tetap `off`. Jika library belum dipasang sebagai dependency,
+jangan mengubah status menjadi `on` karena aplikasi akan gagal memanggil inti
+bersama. Setiap penyimpanan konfigurasi dicatat ke `AuditLogs`.
+
+## Cara merilis versi baru
+
+1. Jalankan build package library dari repository.
+2. Uji package dengan data staging.
+3. Buat versi baru di project Apps Script library.
+4. Pasang versi tersebut pada satu project staging pondok.
+5. Set saluran `test`, lalu `canary` untuk akun terbatas.
+6. Setelah lulus, gunakan nomor versi yang sama pada instalasi produksi.
+7. Simpan nomor versi lama untuk rollback.
+
+Pembaruan library tidak otomatis mengubah Spreadsheet atau data pondok. Setiap
+instalasi tetap dapat memilih kapan menerima versi baru.

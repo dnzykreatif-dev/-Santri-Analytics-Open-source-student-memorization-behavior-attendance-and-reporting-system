@@ -486,6 +486,55 @@ function saveDemoAccount(account, currentUser) {
   return { ok: true, message: "Akun demo tersimpan." };
 }
 
+function syncDemoAccountsToUsers(currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, { roles: ["Mudir", "Admin"] });
+  setupProductReadinessSheets();
+  setupSheetWithHeaders_(SHEET_USERS, USER_HEADERS);
+  const demoAccounts = PRODUCT_readRows_(SHEET_DEMO_ACCOUNTS).filter((row) => PRODUCT_toBool_(row.IsActive));
+  if (!demoAccounts.length) return { ok: false, message: "Belum ada akun demo aktif." };
+  const usersSheet = getSheet_(SHEET_USERS);
+  const userValues = usersSheet.getDataRange().getValues();
+  const headers = userValues[0].map((header) => String(header || "").trim());
+  const usernameIndex = headers.indexOf("Username");
+  const results = [];
+  const errors = [];
+  demoAccounts.forEach((account) => {
+    const username = String(account.Username || "").trim();
+    const password = String(account.PasswordHint || "").trim();
+    if (!username || password.length < 6) {
+      errors.push((username || "(tanpa username)") + ": petunjuk password minimal 6 karakter");
+      return;
+    }
+    const normalized = normalizeUsername_(username);
+    const rowIndex = userValues.slice(1).findIndex((row) => normalizeUsername_(row[usernameIndex]) === normalized);
+    const salt = Utilities.getUuid().substring(0, 8);
+    const passwordHash = hashPasswordWithSalt(password, salt);
+    if (rowIndex === -1) {
+      const created = addUser({
+        Name: "Demo " + String(account.Role || "User"), Username: username, Password: password,
+        Role: account.Role || "Wali", StudentID: account.StudentID || "", Status: "Active",
+      }, currentUser);
+      if (!created || !created.ok) errors.push(username + ": " + (created && created.message ? created.message : "gagal dibuat"));
+      else { AUTH_clearLoginThrottle_(username); results.push({ username, action: "created" }); }
+      return;
+    }
+    const targetRow = rowIndex + 2;
+    const row = userValues[rowIndex + 1].slice(0, headers.length);
+    const set = (header, value) => { const index = headers.indexOf(header); if (index !== -1) row[index] = value; };
+    set("Salt", salt); set("PasswordHash", passwordHash); set("Role", account.Role || "Wali"); set("Status", "Active"); set("UpdatedAt", new Date().toISOString());
+    if (account.StudentID) set("StudentID", account.StudentID);
+    usersSheet.getRange(targetRow, 1, 1, headers.length).setValues([row]);
+    AUTH_clearLoginThrottle_(username);
+    results.push({ username, action: "updated" });
+  });
+  AUTH_appendAuditLog_("SYNC", "DemoAccounts", "Users", sessionUser, { count: results.length, errors: errors.length });
+  return {
+    ok: errors.length === 0,
+    message: errors.length ? "Sebagian akun demo gagal disinkronkan." : "Akun demo sekarang sudah bisa digunakan untuk login.",
+    data: { results, errors },
+  };
+}
+
 /**
  * Membuat satu paket demo yang benar-benar dapat dipakai login.
  * Password hanya dipakai untuk membuat hash dan tidak pernah disimpan.
@@ -833,6 +882,7 @@ function applySetupWizardImports(currentUser) {
   });
 
   AUTH_appendAuditLog_("IMPORT", "SetupWizard", "current", sessionUser, stats);
+  if (stats.errors.length === 0) PRODUCT_clearSetupImportStaging_();
   return {
     ok: stats.errors.length === 0,
     data: { stats },
@@ -841,6 +891,13 @@ function applySetupWizardImports(currentUser) {
         ? "Import setup selesai."
         : "Sebagian import gagal. Periksa daftar error.",
   };
+}
+
+function PRODUCT_clearSetupImportStaging_() {
+  [SHEET_SETUP_IMPORT_STUDENTS, SHEET_SETUP_IMPORT_USERS, SHEET_SETUP_IMPORT_SCHEDULES].forEach((sheetName) => {
+    const sheet = getSheet_(sheetName);
+    if (sheet && sheet.getLastRow() > 1) sheet.deleteRows(2, sheet.getLastRow() - 1);
+  });
 }
 
 function completeSetupWizard(currentUser) {

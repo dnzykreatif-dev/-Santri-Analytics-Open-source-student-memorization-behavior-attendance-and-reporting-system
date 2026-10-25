@@ -86,19 +86,24 @@ function PRODUCT_readInstallationManifest_() {
 }
 
 function PRODUCT_readReleaseStatus_() {
+  const configuredId = String(CORE_getContextProperty_("CORE_LIBRARY_ID", ""));
+  const configuredVersion = String(CORE_getContextProperty_("CORE_LIBRARY_VERSION", ""));
+  const configuredChannel = String(CORE_getContextProperty_("CORE_UPDATE_CHANNEL", "stable"));
+  const enabled = String(CORE_getContextProperty_("CORE_LIBRARY_ENABLED", "on")) === "on";
   return {
     product: "Santri Analytics",
     wrapperVersion: "host",
     localCoreVersion: "1.0.0",
     sharedCore: {
-      configured: true,
-      version: "1.0.0",
-      channel: "stable",
-      enabled: true,
+      configured: !!configuredId,
+      libraryId: configuredId,
+      version: configuredVersion || "1",
+      channel: configuredChannel,
+      enabled,
       identifier: "SantriCore",
       updatePolicy: "approval_required",
     },
-    updateReady: true,
+    updateReady: !!configuredId && enabled,
     note: "Permintaan sedang dijalankan oleh library inti.",
   };
 }
