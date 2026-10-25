@@ -2069,24 +2069,131 @@
         reader.onload = () => {
           try {
             const workbook = XLSX.read(reader.result, { type: "array", cellDates: false });
-            const normalize = (value) => String(value || "").toLowerCase().replace(/[\s_-]+/g, "");
-            const findSheet = (names) => {
-              const wanted = names.map(normalize);
-              const actual = workbook.SheetNames.find((name) => wanted.includes(normalize(name)));
-              return actual ? workbook.Sheets[actual] : null;
+            const normalize = (value) => String(value || "")
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9]/g, "");
+            const definitions = {
+              students: {
+                label: "Santri",
+                fields: {
+                  Name: ["name", "nama", "namasantri", "namalengkap", "studentname", "namasiswa"],
+                  NIS: ["nis", "nisn", "nomorinduk", "nomorsantri", "idsantri", "studentid"],
+                  ClassLevel: ["classlevel", "kelas", "kelaslevel", "rombel", "kelompok", "group", "class"],
+                  Level: ["level", "tingkat", "jenjang", "marhalah"],
+                  Gender: ["gender", "jeniskelamin", "jk", "kelamin"],
+                  ParentContact: ["parentcontact", "walicontact", "kontakwali", "kontakorangtua", "nohporangtua", "nohpwali", "nomorhporangtua", "teleponwali", "whatsappwali"],
+                  WaliUsername: ["waliusername", "usernamewali", "akunwali", "usernamesection", "parentusername"],
+                  BirthPlace: ["birthplace", "tempatlahir"],
+                  BirthDate: ["birthdate", "tanggallahir", "tgllahir", "dob"],
+                  SchoolUnit: ["schoolunit", "unit", "unitpendidikan", "lembaga"],
+                  CohortYear: ["cohortyear", "tahunmasuk", "angkatan", "tahunajaranmasuk"],
+                  ResidencyStatus: ["residencystatus", "statusmukim", "status tinggal", "mukim", "nonmukim"],
+                  Room: ["room", "kamar", "asrama"]
+                },
+                required: ["Name", "ClassLevel"]
+              },
+              users: {
+                label: "User",
+                fields: {
+                  Name: ["name", "nama", "namalengkap", "namauser", "namaakun", "fullname"],
+                  Username: ["username", "namapengguna", "akun", "user", "login", "userid"],
+                  Password: ["password", "katasandi", "sandi", "passwordawal", "passwordbaru"],
+                  Role: ["role", "peran", "jabatan", "hakakses", "jenisuser", "tipeuser"],
+                  Email: ["email", "alamatemail", "surel"],
+                  Phone: ["phone", "telepon", "nohp", "nomorhp", "nomerhp", "whatsapp", "hp"],
+                  StudentID: ["studentid", "idsantri", "nis", "nisn", "santriid"],
+                  Class: ["class", "kelas", "classlevel", "rombel"],
+                  TeacherSourceID: ["teachersourceid", "idguru", "kodeguru", "nip", "nuptk"],
+                  Status: ["status", "keaktifan", "aktif"]
+                },
+                required: ["Name", "Username", "Role", "Password"]
+              },
+              schedules: {
+                label: "Jadwal",
+                fields: {
+                  Type: ["type", "jenis", "kategori", "jeniskegiatan", "jenismapel"],
+                  TeacherID: ["teacherid", "guruid", "usernameguru", "pengajar", "guru", "ustadz"],
+                  TeacherSourceID: ["teachersourceid", "idguru", "kodeguru", "nipguru"],
+                  SubjectOrActivityName: ["subjectoractivityname", "subject", "mapel", "matapelajaran", "kegiatan", "nama kegiatan", "namamapel", "materi"],
+                  ClassOrGroupName: ["classorgroupname", "class", "kelas", "rombel", "group", "kelompok"],
+                  DayOfWeek: ["dayofweek", "day", "hari", "harikegiatan"],
+                  StartTime: ["starttime", "jammulai", "jam", "waktumulai", "mulai"],
+                  EndTime: ["endtime", "jamselesai", "waktuselesai", "selesai"],
+                  IsActive: ["isactive", "aktif", "status", "active"]
+                },
+                required: ["SubjectOrActivityName", "ClassOrGroupName", "DayOfWeek"]
+              }
             };
-            const imports = [
-              { kind: "students", names: ["Santri", "Students", "SetupImportStudents"] },
-              { kind: "users", names: ["User", "Users", "SetupImportUsers"] },
-              { kind: "schedules", names: ["Jadwal", "Schedules", "Schedule", "SetupImportSchedules"] },
-            ];
-            const csvFiles = imports.map((item) => {
-              const sheet = findSheet(item.names);
-              return { ...item, csv: sheet ? XLSX.utils.sheet_to_csv(sheet) : "" };
+            const findHeader = (matrix, definition) => {
+              let best = { index: -1, score: 0, headers: [] };
+              const aliases = Object.values(definition.fields).flat().map(normalize);
+              matrix.slice(0, 15).forEach((row, index) => {
+                const headers = row.map((cell) => String(cell || "").trim());
+                const score = headers.filter((cell) => aliases.includes(normalize(cell))).length;
+                if (score > best.score) best = { index, score, headers };
+              });
+              return best;
+            };
+            const classifySheet = (sheetName, matrix) => {
+              const sheetHint = normalize(sheetName);
+              let best = null;
+              Object.entries(definitions).forEach(([kind, definition]) => {
+                const header = findHeader(matrix, definition);
+                const hint = definition.label === "Santri"
+                  ? (sheetHint.includes("santri") || sheetHint.includes("student"))
+                  : definition.label === "User"
+                    ? (sheetHint.includes("user") || sheetHint.includes("akun") || sheetHint.includes("guru"))
+                    : (sheetHint.includes("jadwal") || sheetHint.includes("schedule"));
+                const score = header.score + (hint ? 2 : 0);
+                if (header.index >= 0 && (!best || score > best.score)) best = { kind, score, header };
+              });
+              return best;
+            };
+            const toCanonicalCsv = (sheetName, definition, matrix, headerInfo) => {
+              const aliases = {};
+              Object.entries(definition.fields).forEach(([canonical, names]) => {
+                names.forEach((name) => { aliases[normalize(name)] = canonical; });
+              });
+              const canonicalHeaders = Object.keys(definition.fields);
+              const sourceHeaders = headerInfo.headers;
+              const mapped = sourceHeaders.map((header) => aliases[normalize(header)] || "");
+              const recognized = mapped.filter(Boolean).length;
+              if (recognized < definition.required.length) return { error: "Kolom wajib pada sheet " + sheetName + " belum dikenali." };
+              const output = [canonicalHeaders];
+              matrix.slice(headerInfo.index + 1).forEach((row) => {
+                if (!row.some((cell) => String(cell || "").trim())) return;
+                const item = {};
+                mapped.forEach((canonical, index) => {
+                  if (canonical && item[canonical] === undefined) item[canonical] = row[index] === undefined ? "" : row[index];
+                });
+                output.push(canonicalHeaders.map((header) => item[header] === undefined ? "" : item[header]));
+              });
+              if (output.length < 2) return { error: "Sheet " + sheetName + " tidak memiliki baris data." };
+              const canonicalSheet = XLSX.utils.aoa_to_sheet(output);
+              return { csv: XLSX.utils.sheet_to_csv(canonicalSheet), recognized, headerRow: headerInfo.index + 1 };
+            };
+            const candidates = {};
+            workbook.SheetNames.forEach((sheetName) => {
+              const matrix = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "" });
+              const match = classifySheet(sheetName, matrix);
+              if (match && (!candidates[match.kind] || match.score > candidates[match.kind].score)) candidates[match.kind] = { ...match, sheetName, matrix };
             });
-            const missing = csvFiles.filter((item) => !item.csv.trim()).map((item) => item.kind);
-            if (missing.length) {
-              this.showToast("Sheet Excel belum lengkap: " + missing.join(", "), "error");
+            const csvFiles = Object.entries(definitions).map(([kind, definition]) => {
+              const candidate = candidates[kind];
+              if (!candidate) return { kind, label: definition.label, csv: "", error: "Sheet untuk " + definition.label + " tidak ditemukan." };
+              const converted = toCanonicalCsv(candidate.sheetName, definition, candidate.matrix, candidate.header);
+              return { kind, label: definition.label, sheetName: candidate.sheetName, ...converted };
+            });
+            const problems = csvFiles.filter((item) => item.error || !item.csv.trim());
+            if (problems.length) {
+              this.showToast("Excel belum dapat disesuaikan: " + problems.map((item) => item.error).join(" "), "error");
+              event.target.value = "";
+              return;
+            }
+            const summary = csvFiles.map((item) => item.label + " dari sheet '" + item.sheetName + "'").join("\n- ");
+            if (!confirm("Aplikasi menemukan susunan berikut:\n- " + summary + "\n\nLanjutkan membaca data ini? Data belum masuk sebelum tombol Proses Import ditekan.")) {
               event.target.value = "";
               return;
             }

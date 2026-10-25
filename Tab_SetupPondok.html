@@ -193,12 +193,12 @@
         </div>
         <div class="mt-4 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
           <p class="text-sm font-bold text-emerald-900">Import dari Excel</p>
-            <p class="mt-1 text-xs text-emerald-800">Cara paling mudah: download template Excel, isi tiga sheet, lalu upload satu file. CSV lama tetap bisa digunakan. Upload hanya mengganti tempat import, bukan data aplikasi utama.</p>
+            <p class="mt-1 text-xs text-emerald-800">Cara paling mudah: upload Excel milik pondok. Aplikasi akan mencari sheet dan judul kolom yang sesuai, meskipun namanya berbeda. Setelah itu periksa Preview sebelum menyimpan.</p>
           <div class="mt-3 flex flex-wrap gap-2">
             <button type="button" class="app-btn app-btn-soft" @click="downloadSetupExcelTemplateAction()" :disabled="productSaving">Download Template Excel</button>
             <label class="app-btn app-btn-primary cursor-pointer">Upload Satu File Excel<input type="file" class="hidden" accept=".xlsx,.xls" @change="importSetupExcelAction($event)"></label>
           </div>
-          <p class="mt-2 text-xs text-emerald-800">Template Excel berisi sheet Petunjuk dan beberapa sheet Contoh. Isi hanya sheet Santri, User, dan Jadwal; sheet Contoh jangan diupload sebagai data.</p>
+          <p class="mt-2 text-xs text-emerald-800">Template resmi tetap tersedia jika data belum siap. Untuk file Excel sendiri, gunakan tiga bagian: santri, pengguna, dan jadwal. Judul tambahan di atas tabel masih dapat dibaca. Data belum masuk sebelum klik Proses Import.</p>
           <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
             <label class="app-btn app-btn-soft cursor-pointer text-center">Upload Santri CSV<input type="file" class="hidden" accept=".csv,.txt" @change="importSetupCsvAction('students', $event)"></label>
             <label class="app-btn app-btn-soft cursor-pointer text-center">Upload User<input type="file" class="hidden" accept=".csv,.txt" @change="importSetupCsvAction('users', $event)"></label>
