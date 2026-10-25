@@ -2100,6 +2100,8 @@
                   Name: ["name", "nama", "namalengkap", "namauser", "namaakun", "fullname"],
                   Username: ["username", "namapengguna", "akun", "user", "login", "userid"],
                   Password: ["password", "katasandi", "sandi", "passwordawal", "passwordbaru"],
+                  Salt: ["salt", "garamkeamanan"],
+                  PasswordHash: ["passwordhash", "hashpassword", "hashsandi", "hashkatasandi"],
                   Role: ["role", "peran", "jabatan", "hakakses", "jenisuser", "tipeuser"],
                   Email: ["email", "alamatemail", "surel"],
                   Phone: ["phone", "telepon", "nohp", "nomorhp", "nomerhp", "whatsapp", "hp"],
@@ -2108,7 +2110,7 @@
                   TeacherSourceID: ["teachersourceid", "idguru", "kodeguru", "nip", "nuptk"],
                   Status: ["status", "keaktifan", "aktif"]
                 },
-                required: ["Name", "Username", "Role", "Password"]
+                required: ["Name", "Username", "Role"]
               },
               schedules: {
                 label: "Jadwal",
@@ -2161,6 +2163,10 @@
               const mapped = sourceHeaders.map((header) => aliases[normalize(header)] || "");
               const recognized = mapped.filter(Boolean).length;
               if (recognized < definition.required.length) return { error: "Kolom wajib pada sheet " + sheetName + " belum dikenali." };
+              const mappedFields = new Set(mapped.filter(Boolean));
+              if (definition === definitions.users && !mappedFields.has("Password") && !(mappedFields.has("Salt") && mappedFields.has("PasswordHash"))) {
+                return { error: "Sheet " + sheetName + " tidak memiliki Password atau pasangan Salt dan PasswordHash." };
+              }
               const output = [canonicalHeaders];
               matrix.slice(headerInfo.index + 1).forEach((row) => {
                 if (!row.some((cell) => String(cell || "").trim())) return;
