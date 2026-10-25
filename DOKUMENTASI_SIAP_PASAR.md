@@ -124,6 +124,22 @@ Dengan model library bersama, pembaruan inti dapat dipakai oleh banyak instalasi
 Jika library bermasalah, ubah status menjadi `Off`. Aplikasi kembali memakai
 kode lokal yang masih disimpan di project pondok.
 
+### Cara update tanpa menempel kode manual
+
+Pengelola aplikasi cukup memperbarui folder Library melalui `clasp`:
+
+```powershell
+cd core-library
+clasp push --force
+clasp version "SantriCore staging v2"
+clasp deploy --versionNumber 2 --description "SantriCore staging v2"
+```
+
+Template dan project pondok tidak perlu ditempeli file satu per satu. Mereka
+hanya diarahkan ke nomor versi Library yang sudah diuji. Untuk setiap perubahan
+yang memerlukan file baru atau perubahan sheet, tetap lakukan uji staging dan
+backup terlebih dahulu.
+
 ## Jika terjadi masalah
 
 1. Matikan feature flag yang baru.

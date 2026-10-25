@@ -23,6 +23,7 @@ logs/
 .tmp/
 tmp/
 temp/
+.template_sync/
 
 # ── Build Output ─────────────────────────────────────────────
 dist/

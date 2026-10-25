@@ -94,3 +94,21 @@ bersama. Setiap penyimpanan konfigurasi dicatat ke `AuditLogs`.
 
 Pembaruan library tidak otomatis mengubah Spreadsheet atau data pondok. Setiap
 instalasi tetap dapat memilih kapan menerima versi baru.
+
+## Perintah pembaruan dengan clasp
+
+Kode tidak ditempel satu per satu ke editor Apps Script. Folder `core-library`
+memiliki file `.clasp.json` yang menunjuk ke project Library staging. Perintah
+berikut dijalankan dari folder tersebut:
+
+```powershell
+cd core-library
+clasp push --force
+clasp version "SantriCore staging v2"
+clasp deploy --versionNumber 2 --description "SantriCore staging v2"
+```
+
+Nomor versi disesuaikan dengan nomor yang dibuat Apps Script. Setelah versi
+lulus uji, nomor itu dipasang sebagai dependency pada Template Apps Script dan
+project pondok. Produksi tidak boleh memakai `clasp push` dari folder utama;
+folder utama tetap menyimpan target deployment produksi sebagai titik aman.
