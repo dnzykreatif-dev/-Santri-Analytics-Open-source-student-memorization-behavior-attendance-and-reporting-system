@@ -6,6 +6,7 @@ const SHEET_DEMO_ACCOUNTS = "DemoAccounts";
 const SHEET_SETUP_IMPORT_STUDENTS = "SetupImportStudents";
 const SHEET_SETUP_IMPORT_USERS = "SetupImportUsers";
 const SHEET_SETUP_IMPORT_SCHEDULES = "SetupImportSchedules";
+const SHEET_SETUP_WORKSPACES = "SetupWorkspaces";
 
 const PRODUCT_MODULES = [
   { ModuleCode: "students", ModuleName: "Data Santri", DefaultActive: true },
@@ -184,6 +185,20 @@ function getProductReadinessSchemas_() {
       "StartTime",
       "EndTime",
       "IsActive",
+    ],
+    [SHEET_SETUP_WORKSPACES]: [
+      "WorkspaceID",
+      "PondokName",
+      "OwnerEmail",
+      "DatabaseSpreadsheetID",
+      "AppScriptProjectID",
+      "DeploymentUrl",
+      "ReportTemplateID",
+      "Status",
+      "CurrentStep",
+      "Notes",
+      "LastUpdated",
+      "UpdatedBy",
     ],
   };
 }
@@ -385,12 +400,44 @@ function getProductReadiness(currentUser) {
         ready: wizardStatus.ready,
       },
       wizardStatus,
+      workspaces: PRODUCT_readRows_(SHEET_SETUP_WORKSPACES),
       user: {
         Username: sessionUser.Username,
         Role: sessionUser.Role,
       },
     },
   };
+}
+
+function saveSetupWorkspace(payload, currentUser) {
+  const sessionUser = requireSessionUser_(currentUser, { roles: ["Mudir", "Admin"] });
+  setupProductReadinessSheets();
+  payload = payload || {};
+  const name = PRODUCT_text_(payload.PondokName);
+  if (!name) return { ok: false, message: "Nama pondok wajib diisi." };
+  const workspaceId = PRODUCT_text_(payload.WorkspaceID) || "WS-" + Utilities.getUuid().slice(0, 8).toUpperCase();
+  const now = new Date().toISOString();
+  const row = {
+    WorkspaceID: workspaceId,
+    PondokName: name,
+    OwnerEmail: PRODUCT_text_(payload.OwnerEmail),
+    DatabaseSpreadsheetID: PRODUCT_text_(payload.DatabaseSpreadsheetID),
+    AppScriptProjectID: PRODUCT_text_(payload.AppScriptProjectID),
+    DeploymentUrl: PRODUCT_text_(payload.DeploymentUrl),
+    ReportTemplateID: PRODUCT_text_(payload.ReportTemplateID),
+    Status: PRODUCT_text_(payload.Status) || "Draft",
+    CurrentStep: PRODUCT_text_(payload.CurrentStep) || "Profil",
+    Notes: PRODUCT_text_(payload.Notes),
+    LastUpdated: now,
+    UpdatedBy: sessionUser.Username,
+  };
+  PRODUCT_upsertRowsAndUpdate_(SHEET_SETUP_WORKSPACES, "WorkspaceID", [row], sessionUser.Username);
+  AUTH_appendAuditLog_("UPDATE", "SetupWorkspace", workspaceId, sessionUser, {
+    pondokName: name,
+    status: row.Status,
+    currentStep: row.CurrentStep,
+  });
+  return { ok: true, message: "Catatan setup pondok tersimpan.", data: { workspace: row } };
 }
 
 function saveTenantProfile(profile, currentUser) {

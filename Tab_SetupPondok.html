@@ -69,7 +69,45 @@
       <button type="button" class="app-btn" :class="productSection === 'modul' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'modul'">Paket Modul</button>
       <button type="button" class="app-btn" :class="productSection === 'checklist' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'checklist'">Checklist</button>
       <button type="button" class="app-btn" :class="productSection === 'demo' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'demo'">Demo</button>
+      <button type="button" class="app-btn" :class="productSection === 'workspace' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'workspace'">Daftar Pondok</button>
     </div>
+
+    <section x-show="productSection === 'workspace'" class="space-y-5">
+      <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
+        <h3 class="text-lg font-bold text-emerald-950">Daftar Pondok yang Sedang Disiapkan</h3>
+        <p class="mt-1 text-sm text-emerald-900">Catatan ini menyimpan progres dan link setiap instalasi. Data santri tiap pondok tetap berada di Spreadsheet masing-masing.</p>
+      </div>
+      <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm lg:col-span-1">
+          <h3 class="text-lg font-bold text-gray-900">Tambah / Ubah Catatan</h3>
+          <div class="mt-4 space-y-3">
+            <label class="block"><span class="app-label">Nama Pondok</span><input class="app-input" x-model="setupWorkspaceForm.PondokName" placeholder="Pondok baru"></label>
+            <label class="block"><span class="app-label">Email Pemilik</span><input class="app-input" x-model="setupWorkspaceForm.OwnerEmail" placeholder="admin@pondok.sch.id"></label>
+            <label class="block"><span class="app-label">ID Spreadsheet Database</span><input class="app-input" x-model="setupWorkspaceForm.DatabaseSpreadsheetID" placeholder="ID dari link Spreadsheet"></label>
+            <label class="block"><span class="app-label">Link Aplikasi / Deployment</span><input class="app-input" x-model="setupWorkspaceForm.DeploymentUrl" placeholder="https://script.google.com/macros/s/.../exec"></label>
+            <label class="block"><span class="app-label">Langkah Terakhir</span><select class="app-input" x-model="setupWorkspaceForm.CurrentStep"><option>Profil</option><option>Paket</option><option>Data</option><option>Jadwal</option><option>Akademik</option><option>Demo</option><option>Cek</option></select></label>
+            <label class="block"><span class="app-label">Status</span><select class="app-input" x-model="setupWorkspaceForm.Status"><option>Draft</option><option>Proses</option><option>Menunggu Data</option><option>Siap</option><option>Aktif</option></select></label>
+            <label class="block"><span class="app-label">Catatan</span><textarea class="app-input min-h-[75px]" x-model="setupWorkspaceForm.Notes" placeholder="Catatan pekerjaan terakhir"></textarea></label>
+            <button type="button" class="app-btn app-btn-primary w-full" @click="saveSetupWorkspaceAction()" :disabled="productSaving">Simpan Catatan Pondok</button>
+          </div>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
+          <div class="flex items-center justify-between gap-3"><h3 class="text-lg font-bold text-gray-900">Riwayat Setup</h3><span class="text-xs text-gray-500" x-text="(productReadiness.workspaces || []).length + ' pondok'"></span></div>
+          <div class="mt-4 space-y-3">
+            <template x-if="!(productReadiness.workspaces || []).length"><p class="rounded-lg border border-dashed p-5 text-sm text-gray-500">Belum ada catatan pondok. Tambahkan satu agar bisa dilanjutkan kapan saja.</p></template>
+            <template x-for="workspace in (productReadiness.workspaces || [])" :key="workspace.WorkspaceID">
+              <div class="rounded-lg border border-gray-200 p-4">
+                <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div><p class="font-bold text-gray-900" x-text="workspace.PondokName"></p><p class="text-xs text-gray-500" x-text="workspace.OwnerEmail || 'Email pemilik belum diisi'"></p><p class="mt-1 text-xs text-gray-500" x-text="'Terakhir: ' + (workspace.CurrentStep || '-') + ' · ' + (workspace.LastUpdated || '-')"></p></div>
+                  <div class="flex flex-wrap gap-2"><span class="rounded-full bg-amber-100 px-2 py-1 text-xs font-bold text-amber-800" x-text="workspace.Status"></span><button type="button" class="app-btn app-btn-soft" @click="editSetupWorkspace(workspace)">Ubah</button><button type="button" class="app-btn app-btn-primary" @click="openSetupWorkspace(workspace)">Lanjutkan</button></div>
+                </div>
+                <p class="mt-2 text-xs text-gray-600" x-text="workspace.Notes || 'Belum ada catatan.'"></p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section x-show="productSection === 'wizard'" class="space-y-5">
       <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">

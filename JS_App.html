@@ -248,6 +248,7 @@
         modules: [],
         checklist: [],
         demoAccounts: [],
+        workspaces: [],
         summary: {
           checklistTotal: 0,
           checklistDone: 0,
@@ -261,6 +262,18 @@
       setupWizardStep: "profil",
       setupWizardPreview: null,
       setupWizardCompleting: false,
+      setupWorkspaceForm: {
+        WorkspaceID: "",
+        PondokName: "",
+        OwnerEmail: "",
+        DatabaseSpreadsheetID: "",
+        AppScriptProjectID: "",
+        DeploymentUrl: "",
+        ReportTemplateID: "",
+        Status: "Draft",
+        CurrentStep: "Profil",
+        Notes: "",
+      },
       installationForm: {
         spreadsheetId: "",
         tenantId: "",
@@ -1978,6 +1991,38 @@
           };
           this.loadAppEntitlements();
         });
+      },
+
+      editSetupWorkspace(workspace) {
+        this.setupWorkspaceForm = { ...this.setupWorkspaceForm, ...(workspace || {}) };
+        this.productSection = "workspace";
+      },
+
+      saveSetupWorkspaceAction() {
+        if (!this.setupWorkspaceForm.PondokName) {
+          this.showToast("Nama pondok wajib diisi.", "error");
+          return;
+        }
+        this.productSaving = true;
+        callGoogleScript("saveSetupWorkspace", this.setupWorkspaceForm, this.user).onSuccess((err) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Catatan setup gagal disimpan.", "error");
+            return;
+          }
+          this.showToast("Catatan setup pondok tersimpan.", "success");
+          this.setupWorkspaceForm = { ...this.setupWorkspaceForm, WorkspaceID: "" };
+          this.loadProductReadiness();
+        });
+      },
+
+      openSetupWorkspace(workspace) {
+        const url = String(workspace?.DeploymentUrl || "").trim();
+        if (!url) {
+          this.showToast("Link aplikasi pondok belum diisi.", "error");
+          return;
+        }
+        window.open(url, "_blank");
       },
 
       createSetupImportTemplatesAction() {

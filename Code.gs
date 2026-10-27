@@ -288,6 +288,7 @@ function isExternalActionAllowed_(action) {
     "runParentContactConversion",
     "getAppEntitlements",
     "getProductReadiness",
+    "saveSetupWorkspace",
     "createSetupImportTemplates",
     "seedSetupDummyData",
     "importSetupCsv",
