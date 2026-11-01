@@ -49,6 +49,9 @@ Santri Analytics menggunakan arsitektur **Database Terisolasi**: data pondok And
 3. Setelah berhasil masuk ke Dashboard, klik menu **Setup Pondok** pada bilah navigasi samping/atas.
 4. Anda akan melihat halaman **Wizard Setup Pondok** yang memiliki 7 langkah berurutan (dari Langkah 1 Profil sampai Langkah 7 Cek).
 
+![Dashboard Mudir](../assets/screenshots/dashboard_mudir.png)
+*Gambar: Dashboard Pimpinan Pesantren (Mudir) — Pemantauan Statistik Santri & Guru*
+
 ---
 
 ## 4. Langkah 1: Profil Lembaga & Hubungkan Database
@@ -66,6 +69,9 @@ Langkah ini menetapkan identitas lembaga serta mengaitkan aplikasi ke Spreadshee
      * Masukkan email pemilik/admin pondok.
    * Klik tombol hijau: **`Simpan Profil & Hubungkan Spreadsheet Pondok`**.
 3. Sistem akan otomatis menyiapkan seluruh lembar sheet (Users, Students, Schedules, Attendance, dll.) di Spreadsheet Anda secara instan tanpa perlu login ulang!
+
+![Langkah 1 Hubungkan Database](../assets/screenshots/step1_hubungkan_database.png)
+*Gambar: Langkah 1 Wizard — Menghubungkan ID Spreadsheet & Template Raport Pondok*
 
 ---
 
@@ -89,6 +95,9 @@ Langkah ini menetapkan identitas lembaga serta mengaitkan aplikasi ke Spreadshee
    * Klik tombol **`Pasangkan Wali ↔ Santri Asli`**.
    * Sistem cerdas akan otomatis membuatkan akun login Wali Santri berdasarkan Nomor WhatsApp atau NIS santri, dan langsung memasangkan akun tersebut ke data anaknya masing-masing! Anda tidak perlu mengetik StudentID anak satu per satu.
 
+![Portal Wali Santri](../assets/screenshots/akses_wali_santri.png)
+*Gambar: Portal Khusus Wali Santri — Akses Capaian Hafalan dan Kehadiran dari HP*
+
 ---
 
 ## 7. Langkah 4: Upload Jadwal Cerdas (Excel/CSV) & Akun Ustadz
@@ -97,11 +106,18 @@ Santri Analytics dilengkapi teknologi **Smart Schedule Parser** yang sangat cerd
 1. Masuk ke **Langkah 4: Jadwal**.
 2. Klik tombol hijau: **`Pilih File Jadwal (Excel / CSV)`**.
 3. Pilih file jadwal pondok Anda (format `.xlsx`, `.xls`, atau `.csv`).
+
+![Langkah 4 Jadwal 3 Jalur](../assets/screenshots/step4_jadwal_3_jalur.png)
+*Gambar: Langkah 4 Wizard — 3 Jalur Penyiapan Jadwal KBM & Kegiatan*
+
 4. **Keunggulan Cerdas**:
    * **Mendukung format tabel biasa**: Kolom Hari, Jam Mulai, Jam Selesai, Mapel, Kelas, Ustadz Pengampu.
    * **Mendukung format Matriks Roster KBM**: Format tabel jadwal sekolah/pesantren mingguan yang kolomnya berupa kelas (`7A`, `7B`, `8A`) atau hari dengan jam ke-1 s/d 8 dan format jam bertitik (`07.30 - 08.30`).
    * **Pendaftaran Akun Guru Otomatis**: Sistem otomatis membaca seluruh nama ustadz pengampu di jadwal dan mendaftarkannya sebagai akun login Ustadz (kode `T001`, `T002`, dst.) ke database.
 5. Klik tombol **`✓ Terapkan Jadwal & Lanjut`**. Ratusan jadwal langsung tersimpan dalam hitungan detik!
+
+![Pratinjau Upload Jadwal Excel Cerdas](../assets/screenshots/step4_preview_upload_jadwal.png)
+*Gambar: Pratinjau Pembacaan 342 Jadwal & 13 Guru dari File Excel Pondok*
 
 ---
 
@@ -112,6 +128,12 @@ Santri Analytics dilengkapi teknologi **Smart Schedule Parser** yang sangat cerd
    * Membuka **Periode Akademik Aktif** sesuai Tahun Ajaran pondok Anda (`2026/2027 Ganjil`).
    * Menarik seluruh mata pelajaran dari Jadwal KBM yang diunggah di Langkah 4 menjadi **Item Ujian Raport** yang siap diisi nilai oleh dewan ustadz.
 
+![Langkah 5 Akademik](../assets/screenshots/step5_akademik_item_ujian.png)
+*Gambar: Langkah 5 Wizard — Otomatisasi Periode Akademik & Item Ujian Raport*
+
+![Raport Santri Google Docs](../assets/screenshots/akademik_raport.png)
+*Gambar: Modul Akademik & Cetak Raport Resmi Format Google Docs / PDF*
+
 ---
 
 ## 9. Langkah 6: Akun Wali Santri & Akun Demo
@@ -119,6 +141,9 @@ Santri Analytics dilengkapi teknologi **Smart Schedule Parser** yang sangat cerd
 2. Anda bisa memilih peran: Mudir, Admin, Ustadz, atau Wali.
 3. Masukkan password yang diinginkan (minimal 6 karakter, contoh: `wali123`).
 4. Klik **`Simpan Akun Demo & Lanjut`**.
+
+![Langkah 6 Akun Demo](../assets/screenshots/step6_akun_demo_wali.png)
+*Gambar: Langkah 6 Wizard — Penyiapan Akun Demo Pameran*
 
 ---
 
@@ -136,6 +161,15 @@ Santri Analytics dilengkapi teknologi **Smart Schedule Parser** yang sangat cerd
    * Cukup klik tombol **`⚡ Lengkapi Otomatis yang Kurang`**. Sistem akan otomatis melengkapi parameter yang kurang secara instan!
 3. Jika seluruh kotak sudah berwarna hijau (*Siap*), klik tombol **`Selesaikan Setup`**.
 4. **Selamat!** Status pondok Anda kini resmi **100% Siap Pakai**.
+
+![Langkah 7 Cek Kesiapan](../assets/screenshots/step7_cek_kesiapan.png)
+*Gambar: Langkah 7 Wizard — Cek Kesiapan Sistem Menyeluruh*
+
+![Riwayat Setup & Kontrol Pelanggan](../assets/screenshots/riwayat_kontrol_pelanggan_aktif.png)
+*Gambar: Panel Riwayat Setup & Kontrol Pelanggan — Status 100% Siap Pakai*
+
+![Catatan Perilaku & Adab](../assets/screenshots/catatan_perilaku.png)
+*Gambar: Modul Kedisiplinan & Poin Adab Santri*
 
 ---
 
