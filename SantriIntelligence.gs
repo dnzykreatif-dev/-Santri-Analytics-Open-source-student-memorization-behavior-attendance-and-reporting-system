@@ -656,7 +656,7 @@ function getStudent360Analytics(studentId, periodId, currentUser) {
     }
 
     // Tenant Profile for print header
-    const tenantProfile = SI_getTenantProfile_();
+    const tenantProfile = SI_getTenantProfile_(sessionUser);
 
     return {
       ok: true,
@@ -765,9 +765,39 @@ function getStudent360Analytics(studentId, periodId, currentUser) {
 }
 
 /**
- * Helper untuk membaca Profil Lembaga resmi
+ * Helper pencocokan kelas yang fleksibel dan toleran
+ * Contoh: "10" cocok dengan "KELAS 10", "10", "10 Ikhwan", "10 Akhwat"
  */
-function SI_getTenantProfile_() {
+function SI_isClassMatch_(a, b) {
+  if (!a || !b) return false;
+  const strA = String(a).toLowerCase().trim();
+  const strB = String(b).toLowerCase().trim();
+  if (strA === strB) return true;
+
+  // Hapus prefiks kata umum seperti kelas/tingkat/kls
+  const normA = strA.replace(/^(kelas|tingkat|kls)\s*/i, '').trim();
+  const normB = strB.replace(/^(kelas|tingkat|kls)\s*/i, '').trim();
+  if (normA && normB && (normA === normB || normA.startsWith(normB) || normB.startsWith(normA))) return true;
+
+  // Ekstraksi angka kelas (misal: "10" dari "KELAS 10" atau "10")
+  const numA = (strA.match(/\d+/) || [])[0];
+  const numB = (strB.match(/\d+/) || [])[0];
+  if (numA && numB && numA === numB) {
+    const hasIkhwanA = strA.includes("ikhwan") || strA.includes("putra");
+    const hasAkhwatA = strA.includes("akhwat") || strA.includes("putri");
+    const hasIkhwanB = strB.includes("ikhwan") || strB.includes("putra");
+    const hasAkhwatB = strB.includes("akhwat") || strB.includes("putri");
+    if ((hasIkhwanA && hasAkhwatB) || (hasAkhwatA && hasIkhwanB)) return false;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Helper untuk membaca Profil Lembaga resmi
+ * Dinamis mengambil Mudir aktif (Dede Nuriman, Lc.) & data riil Raudhatul Ulum
+ */
+function SI_getTenantProfile_(currentUser) {
   try {
     let pondokName = "";
     let yayasanName = "";
@@ -775,10 +805,14 @@ function SI_getTenantProfile_() {
     let address = "";
     let phone = "";
     let statistikNumber = "";
-    let city = "Tasikmalaya";
-    let headName = "KH. Ahmad Syarifuddin";
-    let waliKelasDefault = "Ustdz. Nida Fadhilah";
+    let city = "";
+    let headName = "";
+    let headTitle = "";
+    let waliKelasDefault = "";
     let logoUrl = "";
+    let waliKelasMapRaw = "";
+    let kitabMapRaw = "";
+    let showNadzam = false;
 
     // 1. Coba baca dari sheet TenantProfile jika ada
     if (typeof PRODUCT_readRows_ === "function" && typeof SHEET_TENANT_PROFILE !== "undefined") {
@@ -792,41 +826,214 @@ function SI_getTenantProfile_() {
           if (k === "YayasanName") yayasanName = v;
           if (k === "ArabicName") arabicName = v;
           if (k === "Address") address = v;
-          if (k === "Phone" || k === "WhatsApp") phone = v;
+          if (k === "Phone" || k === "WhatsApp" || k === "ContactPhone") phone = v;
           if (k === "StatistikNumber" || k === "NSPP") statistikNumber = v;
           if (k === "City") city = v;
           if (k === "HeadName") headName = v;
+          if (k === "HeadTitle") headTitle = v;
           if (k === "WaliKelasDefault") waliKelasDefault = v;
           if (k === "LogoUrl") logoUrl = v;
+          if (k === "WaliKelasMap") waliKelasMapRaw = v;
+          if (k === "KitabMap") kitabMapRaw = v;
+          if (k === "ShowNadzam") showNadzam = v === "true" || v === "1";
         });
       } catch (e) {}
     }
 
+    // 2. Jika HeadName belum diatur, cari user aktif ber-role Mudir
+    if (!headName) {
+      if (currentUser && currentUser.Name && (currentUser.Role === "Mudir" || currentUser.Role === "Admin")) {
+        headName = currentUser.Name;
+      } else {
+        try {
+          const users = typeof AUTH_getUsersByUsername_ === "function" ? AUTH_getUsersByUsername_() : [];
+          const mudirUser = users.find(u => String(u.Role || "").toLowerCase() === "mudir");
+          if (mudirUser && mudirUser.Name) {
+            headName = mudirUser.Name;
+          }
+        } catch (e) {}
+      }
+    }
+
+    let waliKelasMap = {};
+    if (waliKelasMapRaw) {
+      try {
+        waliKelasMap = JSON.parse(waliKelasMapRaw);
+      } catch (e) {}
+    }
+
+    let kitabMap = {};
+    if (kitabMapRaw) {
+      try {
+        kitabMap = JSON.parse(kitabMapRaw);
+      } catch (e) {}
+    }
+
     return {
-      InstitutionName: pondokName || "PONDOK PESANTREN MIFTAHUL HUDA AL-BAROKAH",
-      YayasanName: yayasanName || "YAYASAN MIFTAHUL HUDA AL-BAROKAH",
-      ArabicName: arabicName || "معهد مفتاح الهدى البركة",
-      Address: address || "Jl. Pesantren No. 7, Kp. Pasirhuni, Desa Margaluyu, Kec. Manonjaya, Jawa Barat",
+      InstitutionName: pondokName || "PONDOK PESANTREN RAUDHATUL ULUM",
+      YayasanName: yayasanName || "YAYASAN RAUDHATUL ULUM",
+      ArabicName: arabicName || "معهد روضة العلوم",
+      Address: address || "Sinam, Pemangkat, Kab. Sambas, Kalimantan Barat",
       Phone: phone || "0821-3377-9014",
       StatistikNumber: statistikNumber || "510032070118",
-      City: city || "Tasikmalaya",
-      HeadName: headName || "KH. Ahmad Syarifuddin",
-      WaliKelasDefault: waliKelasDefault || "Ustdz. Nida Fadhilah",
-      LogoUrl: logoUrl || ""
+      City: city || "Pemangkat",
+      HeadName: headName || "Dede Nuriman, Lc.",
+      HeadTitle: headTitle || "Pimpinan Pondok",
+      WaliKelasDefault: waliKelasDefault || "",
+      LogoUrl: logoUrl || "",
+      WaliKelasMapRaw: waliKelasMapRaw,
+      KitabMapRaw: kitabMapRaw,
+      waliKelasMap: waliKelasMap,
+      kitabMap: kitabMap,
+      ShowNadzam: showNadzam
     };
   } catch (err) {
     return {
-      InstitutionName: "PONDOK PESANTREN MIFTAHUL HUDA AL-BAROKAH",
-      YayasanName: "YAYASAN MIFTAHUL HUDA AL-BAROKAH",
-      ArabicName: "معهد مفتاح الهدى البركة",
-      Address: "Jl. Pesantren No. 7, Kp. Pasirhuni, Desa Margaluyu, Kec. Manonjaya, Jawa Barat",
+      InstitutionName: "PONDOK PESANTREN RAUDHATUL ULUM",
+      YayasanName: "YAYASAN RAUDHATUL ULUM",
+      ArabicName: "معهد روضة العلوم",
+      Address: "Sinam, Pemangkat, Kab. Sambas, Kalimantan Barat",
       Phone: "0821-3377-9014",
       StatistikNumber: "510032070118",
-      City: "Tasikmalaya",
-      HeadName: "KH. Ahmad Syarifuddin",
-      WaliKelasDefault: "Ustdz. Nida Fadhilah",
-      LogoUrl: ""
+      City: "Pemangkat",
+      HeadName: "Dede Nuriman, Lc.",
+      HeadTitle: "Pimpinan Pondok",
+      WaliKelasDefault: "",
+      LogoUrl: "",
+      WaliKelasMapRaw: "",
+      KitabMapRaw: "",
+      waliKelasMap: {},
+      kitabMap: {},
+      ShowNadzam: false
     };
+  }
+}
+
+/**
+ * Backend API: Mengambil Setup Lengkap Raport & Lembaga
+ */
+function getRaportSetup(currentUser) {
+  try {
+    const sessionUser = requireSessionUser_(currentUser, {
+      roles: ["Mudir", "Admin", "Ustadz"]
+    });
+
+    const tenantProfile = SI_getTenantProfile_(sessionUser);
+
+    // Ambil daftar kelas dari Students dan Schedules
+    const allStudents = typeof AC_getStudents_ === "function" ? AC_getStudents_() : [];
+    const classSet = new Set();
+    allStudents.forEach(s => {
+      const c = SI_text_(s["Class/Level"] || s.Class || s.Kelas);
+      if (c) classSet.add(c);
+    });
+
+    const allSchedules = typeof SCHEDULE_readSchedules_ === "function" ? SCHEDULE_readSchedules_() : [];
+    const subjectSet = new Set();
+    allSchedules.forEach(sch => {
+      const c = SI_text_(sch.ClassOrGroupName);
+      if (c) classSet.add(c);
+      const sub = SI_text_(sch.SubjectOrActivityName || sch.ActivityName);
+      if (sub && sch.Type === "KBM") subjectSet.add(sub);
+    });
+
+    // Ambil daftar guru dari Users
+    const allUsers = typeof AUTH_getUsersByUsername_ === "function" ? AUTH_getUsersByUsername_() : [];
+    const teacherList = allUsers
+      .filter(u => ["Ustadz", "Mudir", "Admin"].includes(SI_text_(u.Role)))
+      .map(u => ({
+        Username: u.Username,
+        Name: u.Name || u.Username,
+        Role: u.Role
+      }));
+
+    // Default pemetaan kitab kuning per mapel
+    const defaultKitabList = [
+      { subject: "Akidah", kitab: "Aqidatul Awam", kkm: 70 },
+      { subject: "Fiqih", kitab: "Safinatun Najah", kkm: 70 },
+      { subject: "Nahwu", kitab: "Al-Ajurumiyyah", kkm: 70 },
+      { subject: "Shorof", kitab: "Amtsilatut Tashrifiyyah", kkm: 70 },
+      { subject: "Hadits", kitab: "Al-Arba'in An-Nawawiyyah", kkm: 70 },
+      { subject: "Tajwid", kitab: "Tuhfatul Athfal", kkm: 70 },
+      { subject: "Tarikh / Siroh", kitab: "Khulashoh Nuril Yaqin", kkm: 70 },
+      { subject: "Akhlak / Tasawuf", kitab: "Taisirul Khalaq", kkm: 70 },
+      { subject: "Tafsir", kitab: "Tafsir Jalalain", kkm: 70 },
+      { subject: "Balaghah", kitab: "Jauharul Maknun", kkm: 70 },
+      { subject: "Ushul Fiqih", kitab: "Al-Waraqat", kkm: 70 }
+    ];
+
+    const sortedClasses = Array.from(classSet).sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+
+    return {
+      ok: true,
+      data: {
+        profile: tenantProfile,
+        classes: sortedClasses,
+        teachers: teacherList,
+        defaultKitabList: defaultKitabList,
+        waliKelasMap: tenantProfile.waliKelasMap || {},
+        kitabMap: tenantProfile.kitabMap || {},
+        showNadzam: tenantProfile.ShowNadzam === true
+      }
+    };
+  } catch (err) {
+    return { ok: false, message: "Gagal memuat setup raport: " + err.message };
+  }
+}
+
+/**
+ * Backend API: Menyimpan Setup Lengkap Raport & Lembaga
+ */
+function saveRaportSetup(payload, currentUser) {
+  try {
+    const sessionUser = requireSessionUser_(currentUser, {
+      roles: ["Mudir", "Admin"]
+    });
+
+    if (!payload) return { ok: false, message: "Payload kosong." };
+
+    setupProductReadinessSheets();
+
+    const updates = [];
+    if (payload.PondokName !== undefined) updates.push({ ProfileKey: "PondokName", ProfileValue: String(payload.PondokName).trim() });
+    if (payload.InstitutionName !== undefined) updates.push({ ProfileKey: "InstitutionName", ProfileValue: String(payload.InstitutionName || payload.PondokName).trim() });
+    if (payload.YayasanName !== undefined) updates.push({ ProfileKey: "YayasanName", ProfileValue: String(payload.YayasanName).trim() });
+    if (payload.ArabicName !== undefined) updates.push({ ProfileKey: "ArabicName", ProfileValue: String(payload.ArabicName).trim() });
+    if (payload.Address !== undefined) updates.push({ ProfileKey: "Address", ProfileValue: String(payload.Address).trim() });
+    if (payload.Phone !== undefined) updates.push({ ProfileKey: "ContactPhone", ProfileValue: String(payload.Phone).trim() });
+    if (payload.StatistikNumber !== undefined) updates.push({ ProfileKey: "StatistikNumber", ProfileValue: String(payload.StatistikNumber).trim() });
+    if (payload.City !== undefined) updates.push({ ProfileKey: "City", ProfileValue: String(payload.City).trim() });
+    if (payload.HeadName !== undefined) updates.push({ ProfileKey: "HeadName", ProfileValue: String(payload.HeadName).trim() });
+    if (payload.HeadTitle !== undefined) updates.push({ ProfileKey: "HeadTitle", ProfileValue: String(payload.HeadTitle).trim() });
+    if (payload.LogoUrl !== undefined) updates.push({ ProfileKey: "LogoUrl", ProfileValue: String(payload.LogoUrl).trim() });
+    if (payload.WaliKelasDefault !== undefined) updates.push({ ProfileKey: "WaliKelasDefault", ProfileValue: String(payload.WaliKelasDefault).trim() });
+    if (payload.ShowNadzam !== undefined) updates.push({ ProfileKey: "ShowNadzam", ProfileValue: String(payload.ShowNadzam) });
+
+    if (payload.waliKelasMap !== undefined) {
+      const jsonWali = typeof payload.waliKelasMap === "string" ? payload.waliKelasMap : JSON.stringify(payload.waliKelasMap);
+      updates.push({ ProfileKey: "WaliKelasMap", ProfileValue: jsonWali });
+    }
+
+    if (payload.kitabMap !== undefined) {
+      const jsonKitab = typeof payload.kitabMap === "string" ? payload.kitabMap : JSON.stringify(payload.kitabMap);
+      updates.push({ ProfileKey: "KitabMap", ProfileValue: jsonKitab });
+    }
+
+    if (updates.length > 0 && typeof PRODUCT_upsertKeyValueRows_ === "function") {
+      PRODUCT_upsertKeyValueRows_(SHEET_TENANT_PROFILE, "ProfileKey", "ProfileValue", updates, sessionUser.Username);
+    }
+
+    AUTH_appendAuditLog_("UPDATE", "RaportSetup", "current", sessionUser, {
+      keys: updates.map(u => u.ProfileKey)
+    });
+
+    return {
+      ok: true,
+      message: "Pengaturan Raport & Lembaga berhasil disimpan.",
+      data: SI_getTenantProfile_(sessionUser)
+    };
+  } catch (err) {
+    return { ok: false, message: "Gagal menyimpan setup raport: " + err.message };
   }
 }
 
@@ -948,8 +1155,8 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
       return { ok: false, message: "Tidak ada santri aktif pada kelas yang dipilih." };
     }
 
-    // 3. Baca Profil Lembaga Resmi
-    const tenantProfile = SI_getTenantProfile_();
+    // 3. Baca Profil Lembaga Resmi (Dinamis Mudir Dede Nuriman, Lc. & Raudhatul Ulum)
+    const tenantProfile = SI_getTenantProfile_(sessionUser);
 
     // 4. Baca Seluruh Sheet Data Riil Sekaligus (Batch Read untuk Performa Cepat)
     const allSchedules = typeof SCHEDULE_readSchedules_ === "function"
@@ -1053,9 +1260,9 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
       // SUMBER UTAMA: DIAMBIL LANGSUNG DARI JADWAL PELAJARAN LENGKAP YANG SUDAH ADA (Schedules)!
       const classSchedules = allSchedules.filter(sch => {
         if (sch.IsActive === false || String(sch.IsActive).toLowerCase() === "false") return false;
-        const sClass = SI_text_(sch.ClassOrGroupName).toLowerCase();
+        const sClass = SI_text_(sch.ClassOrGroupName);
         if (!sClass) return false;
-        return sClass === studentClass.toLowerCase() || (targetClassKey && sClass === targetClassKey);
+        return SI_isClassMatch_(sClass, studentClass) || (targetClassKey && SI_isClassMatch_(sClass, targetClassKey));
       });
 
       let scheduleSubjects = [];
@@ -1076,30 +1283,40 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
       let subjectsToProcess = [];
       let isDefaultSubjectsTemplate = false;
 
-      if (scheduleSubjects.length > 0) {
+      if (scheduleSubjects.length >= 3) {
         subjectsToProcess = scheduleSubjects;
       } else {
+        const combined = [...scheduleSubjects];
+        const combinedNames = new Set(scheduleSubjects.map(s => s.Name.toLowerCase()));
+
         const applicableSubjects = allSubjects.filter(sub => {
           if (!sub.IsActive || String(sub.IsActive).toLowerCase() === "false") return false;
           const classes = SI_text_(sub.Classes);
           if (!classes || classes.toLowerCase() === "semua") return true;
-          return classes.toLowerCase().includes(studentClass.toLowerCase());
+          return SI_isClassMatch_(classes, studentClass);
         });
 
-        if (applicableSubjects.length > 0) {
-          subjectsToProcess = applicableSubjects;
+        applicableSubjects.forEach(sub => {
+          if (!combinedNames.has(sub.Name.toLowerCase())) {
+            combinedNames.add(sub.Name.toLowerCase());
+            combined.push(sub);
+          }
+        });
+
+        if (combined.length > 0) {
+          subjectsToProcess = combined;
         } else {
           isDefaultSubjectsTemplate = true;
           subjectsToProcess = [
-            { SubjectID: "DEF-1", Name: "Tafsir", KitabName: "Tafsir Jalalain", DefaultKKM: 60 },
-            { SubjectID: "DEF-2", Name: "Hadits", KitabName: "Riyadhus Shalihin", DefaultKKM: 60 },
-            { SubjectID: "DEF-3", Name: "Mushthalah Hadits", KitabName: "Al-Baiquniyah", DefaultKKM: 60 },
-            { SubjectID: "DEF-4", Name: "Tauhid", KitabName: "Jauharatut Tauhid", DefaultKKM: 60 },
-            { SubjectID: "DEF-5", Name: "Fiqih", KitabName: "Fathul Mu'in", DefaultKKM: 60 },
-            { SubjectID: "DEF-6", Name: "Ushul Fiqih", KitabName: "Al-Waraqat", DefaultKKM: 60 },
-            { SubjectID: "DEF-7", Name: "Nahwu", KitabName: "Alfiyah Ibnu Malik", DefaultKKM: 60 },
-            { SubjectID: "DEF-8", Name: "Balaghah", KitabName: "Jauharul Maknun", DefaultKKM: 60 },
-            { SubjectID: "DEF-9", Name: "Tasawuf", KitabName: "Bidayatul Hidayah", DefaultKKM: 60 }
+            { SubjectID: "DEF-1", Name: "Tafsir", KitabName: "Tafsir Jalalain", DefaultKKM: 70 },
+            { SubjectID: "DEF-2", Name: "Hadits", KitabName: "Al-Arba'in An-Nawawiyyah", DefaultKKM: 70 },
+            { SubjectID: "DEF-3", Name: "Fiqih", KitabName: "Safinatun Najah", DefaultKKM: 70 },
+            { SubjectID: "DEF-4", Name: "Aqidah", KitabName: "Aqidatul Awam", DefaultKKM: 70 },
+            { SubjectID: "DEF-5", Name: "Nahwu", KitabName: "Al-Ajurumiyyah", DefaultKKM: 70 },
+            { SubjectID: "DEF-6", Name: "Shorof", KitabName: "Amtsilatut Tashrifiyyah", DefaultKKM: 70 },
+            { SubjectID: "DEF-7", Name: "Tajwid", KitabName: "Tuhfatul Athfal", DefaultKKM: 70 },
+            { SubjectID: "DEF-8", Name: "Tarikh / Siroh", KitabName: "Khulashoh Nuril Yaqin", DefaultKKM: 70 },
+            { SubjectID: "DEF-9", Name: "Akhlak", KitabName: "Taisirul Khalaq", DefaultKKM: 70 }
           ];
         }
       }
@@ -1110,9 +1327,13 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
 
       subjectsToProcess.forEach((sub, idx) => {
         const meta = SI_getSubjectMeta_(sub.Name);
-        const kkm = sub.DefaultKKM || sub.KKM || meta.defaultKkm || 60;
+        const kkm = sub.DefaultKKM || sub.KKM || meta.defaultKkm || 70;
         const arabic = sub.ArabicName || meta.arabic || "";
-        const kitab = sub.KitabName || meta.kitab || "Kitab Turots";
+        // Cek rujukan kitab dari pengaturan setup raport pondok
+        const kitab = (tenantProfile.kitabMap && tenantProfile.kitabMap[sub.Name]) ||
+                      sub.KitabName ||
+                      meta.kitab ||
+                      "Kitab Rujukan";
 
         let scoreValue = null;
         if (!isDefaultSubjectsTemplate) {
@@ -1183,37 +1404,39 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
         : "-";
 
       // --- C. HAFALAN NADZAM DAN MATAN RIIL ---
-      const studentNadzamScores = allCurriculumScores.filter(cs => 
-        SI_text_(cs.StudentID) === studentId &&
-        (!activePeriod.PeriodID || SI_text_(cs.PeriodID) === SI_text_(activePeriod.PeriodID))
-      );
-      
-      const defaultNadzamList = [
-        { no: 1, name: "Nadzam Alfiyah Ibnu Malik" },
-        { no: 2, name: "Nadzam Jauharul Maknun" },
-        { no: 3, name: "Nadzam Al-Baiquniyah" }
-      ];
+      let nadzamItems = [];
+      if (tenantProfile.ShowNadzam) {
+        const studentNadzamScores = allCurriculumScores.filter(cs => 
+          SI_text_(cs.StudentID) === studentId &&
+          (!activePeriod.PeriodID || SI_text_(cs.PeriodID) === SI_text_(activePeriod.PeriodID))
+        );
 
-      const nadzamItems = defaultNadzamList.map(item => {
-        const found = studentNadzamScores.find(ns => {
-          const matchedItem = allCurriculumItems.find(ci => SI_text_(ci.ItemID) === SI_text_(ns.ItemID));
-          return matchedItem && SI_text_(matchedItem.Name).toLowerCase().includes(item.name.toLowerCase());
+        const nadzamCandidateItems = allCurriculumItems.filter(ci => {
+          const cat = SI_text_(ci.Category).toLowerCase();
+          return (cat.includes("hafalan") || cat.includes("nadzam") || cat.includes("matan")) &&
+                 SI_isClassMatch_(ci.ClassOrGroupName, studentClass);
         });
-        const sc = found && found.Score !== "" && !isNaN(Number(found.Score)) ? Number(found.Score) : null;
-        let pred = "-";
-        if (sc !== null) {
-          if (sc >= 90) pred = "Mumtaz";
-          else if (sc >= 80) pred = "Jayyid Jiddan";
-          else if (sc >= 70) pred = "Jayyid";
-          else pred = "Maqbul";
+
+        if (nadzamCandidateItems.length > 0) {
+          nadzamItems = nadzamCandidateItems.map((ci, nIdx) => {
+            const foundScore = studentNadzamScores.find(ns => SI_text_(ns.ItemID) === SI_text_(ci.ItemID));
+            const sc = foundScore && foundScore.Score !== "" && !isNaN(Number(foundScore.Score)) ? Number(foundScore.Score) : null;
+            let pred = "-";
+            if (sc !== null) {
+              if (sc >= 90) pred = "Mumtaz";
+              else if (sc >= 80) pred = "Jayyid Jiddan";
+              else if (sc >= 70) pred = "Jayyid";
+              else pred = "Maqbul";
+            }
+            return {
+              no: nIdx + 1,
+              name: ci.Name,
+              score: sc,
+              predikat: pred
+            };
+          });
         }
-        return {
-          no: item.no,
-          name: item.name,
-          score: sc,
-          predikat: pred
-        };
-      });
+      }
 
       // --- D. KEGIATAN KEPESANTRENAN RIIL ---
       const kegiatanItems = [
@@ -1265,8 +1488,26 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
           ? "Mohon perhatian ekstra dari Ustadz dan Wali Santri untuk mendampingi adab dan kedisiplinan ananda, seraya terus memotivasi perbaikan ibadah serta belajarnya."
           : "Alhamdulillah, Ananda menunjukkan prestasi dan akhlak yang sangat baik. Pertahankan semangat mengaji dan khidmah di pondok.");
 
+      // Resolusi Wali Kelas Riil
+      let resolvedWaliKelas = SI_text_(student.WaliKelas);
+      if (!resolvedWaliKelas && tenantProfile.waliKelasMap) {
+        resolvedWaliKelas = tenantProfile.waliKelasMap[studentClass] || 
+                            tenantProfile.waliKelasMap[targetClassKey] ||
+                            tenantProfile.waliKelasMap[studentClass.replace(/^(kelas|tingkat|kls)\s*/i, '').trim()];
+      }
+      if (!resolvedWaliKelas) {
+        const teacherSchedule = classSchedules.find(sch => sch.TeacherID);
+        if (teacherSchedule && teacherSchedule.TeacherID) {
+          resolvedWaliKelas = teacherSchedule.TeacherID;
+        }
+      }
+      if (!resolvedWaliKelas) {
+        resolvedWaliKelas = tenantProfile.WaliKelasDefault || "";
+      }
+
       reports.push({
         student: student,
+        waliKelas: resolvedWaliKelas,
         reportData: {
           period: activePeriod,
           profile: student,

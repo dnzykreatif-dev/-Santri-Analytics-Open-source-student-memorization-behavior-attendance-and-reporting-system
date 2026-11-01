@@ -149,11 +149,11 @@
               <div class="flex items-center justify-between gap-3">
                 <!-- LOGO RESMI / EMBLEM CREST VEKTOR -->
                 <div class="w-20 h-20 flex-shrink-0 flex items-center justify-center">
-                  <template x-if="bulkRaportData?.tenantProfile?.LogoUrl">
-                    <img :src="bulkRaportData.tenantProfile.LogoUrl" class="w-full h-full object-contain" alt="Logo Pondok" />
+                  <template x-if="bulkRaportData?.tenantProfile?.LogoUrl && !logoBroken">
+                    <img :src="bulkRaportData.tenantProfile.LogoUrl" @error="logoBroken = true" class="w-full h-full object-contain" alt="Logo Pondok" />
                   </template>
-                  <template x-if="!bulkRaportData?.tenantProfile?.LogoUrl">
-                    <div class="w-18 h-18 rounded-full border-2 border-emerald-900 bg-[#0f5f4a] p-1 flex items-center justify-center text-amber-300 shadow-sm">
+                  <template x-if="!bulkRaportData?.tenantProfile?.LogoUrl || logoBroken">
+                    <div class="w-18 h-18 rounded-full border-2 border-emerald-900 bg-[#0f5f4a] p-1 flex items-center justify-center text-amber-300 shadow-sm" title="Lambang Resmi Lembaga">
                       <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 21h18"/>
                         <path d="M5 21V9a7 7 0 0 1 14 0v12"/>
@@ -166,13 +166,13 @@
 
                 <!-- TEKS KOP BERTINGKAT -->
                 <div class="flex-1 text-center pr-4">
-                  <h4 class="font-medium text-gray-600 text-[10.5px] tracking-wider uppercase leading-tight" x-text="bulkRaportData?.tenantProfile?.YayasanName || 'YAYASAN MIFTAHUL HUDA AL-BAROKAH'"></h4>
-                  <h2 class="font-black text-base md:text-lg text-emerald-950 tracking-wide uppercase leading-tight mt-0.5" x-text="bulkRaportData?.tenantProfile?.InstitutionName || 'PONDOK PESANTREN MIFTAHUL HUDA AL-BAROKAH'"></h2>
+                  <h4 class="font-medium text-gray-600 text-[10.5px] tracking-wider uppercase leading-tight" x-text="bulkRaportData?.tenantProfile?.YayasanName || 'YAYASAN RAUDHATUL ULUM'"></h4>
+                  <h2 class="font-black text-base md:text-lg text-emerald-950 tracking-wide uppercase leading-tight mt-0.5" x-text="bulkRaportData?.tenantProfile?.InstitutionName || 'PONDOK PESANTREN RAUDHATUL ULUM'"></h2>
                   
                   <!-- KALIGRAFI TEKS ARAB LEMBAGA -->
-                  <p class="font-serif text-sm md:text-base font-bold text-gray-800 my-0.5 leading-snug" dir="rtl" x-text="bulkRaportData?.tenantProfile?.ArabicName || 'معهد مفتاح الهدى البركة'"></p>
+                  <p class="font-serif text-sm md:text-base font-bold text-gray-800 my-0.5 leading-snug" dir="rtl" x-text="bulkRaportData?.tenantProfile?.ArabicName || 'معهد روضة العلوم'"></p>
                   
-                  <p class="text-[9px] text-gray-600 leading-tight" x-text="(bulkRaportData?.tenantProfile?.Address || 'Jl. Pesantren No. 7, Kp. Pasirhuni, Desa Margaluyu, Kec. Manonjaya, Jawa Barat') + ' — Telp/WA ' + (bulkRaportData?.tenantProfile?.Phone || '0821-3377-9014') + ' · No. Statistik: ' + (bulkRaportData?.tenantProfile?.StatistikNumber || '510032070118')"></p>
+                  <p class="text-[9px] text-gray-600 leading-tight" x-text="(bulkRaportData?.tenantProfile?.Address || 'Sinam, Pemangkat, Kab. Sambas, Kalimantan Barat') + ' — Telp/WA ' + (bulkRaportData?.tenantProfile?.Phone || '0821-3377-9014') + ' · No. Statistik: ' + (bulkRaportData?.tenantProfile?.StatistikNumber || '510032070118')"></p>
                 </div>
               </div>
             </div>
@@ -194,7 +194,7 @@
               <div class="space-y-0.5">
                 <div class="flex"><span class="w-28 text-gray-600">Tahun Ajaran</span><span class="font-bold text-gray-800" x-text="': ' + (bulkRaportData?.period?.AcademicYear || '2026/2027')"></span></div>
                 <div class="flex"><span class="w-28 text-gray-600">Periode</span><span class="text-gray-800" x-text="': ' + (bulkRaportData?.period?.Title || 'Semester 1 (Ganjil)')"></span></div>
-                <div class="flex"><span class="w-28 text-gray-600">Wali Kelas</span><span class="text-gray-800" x-text="': ' + (bulkRaportData?.tenantProfile?.WaliKelasDefault || item.student.WaliKelas || 'Ustdz. Nida Fadhilah')"></span></div>
+                <div class="flex"><span class="w-28 text-gray-600">Wali Kelas</span><span class="text-gray-800" x-text="': ' + (item.waliKelas || item.student.WaliKelas || (bulkRaportData?.tenantProfile?.waliKelasMap && bulkRaportData.tenantProfile.waliKelasMap[item.student['Class/Level'] || item.student.Class]) || bulkRaportData?.tenantProfile?.WaliKelasDefault || 'Wali Kelas')"></span></div>
               </div>
             </div>
 
@@ -312,9 +312,9 @@
                   </table>
                 </div>
 
-                <!-- C & D: HAFALAN NADZAM & KEGIATAN KEPESANTRENAN (DUA KOLOM BERSISIAN) -->
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
+                <!-- C & D: HAFALAN NADZAM & KEGIATAN KEPESANTRENAN (ADAPTIF SESUAI KURIKULUM RIIL) -->
+                <div :class="(item.reportData?.nadzam && item.reportData.nadzam.length > 0) ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-1 gap-3'">
+                  <div x-show="item.reportData?.nadzam && item.reportData.nadzam.length > 0">
                     <div class="font-bold text-[10px] text-gray-900 mb-1">C. Hafalan Nadzam dan Matan</div>
                     <table class="w-full border-collapse border border-gray-400 text-[9px]">
                       <thead>
@@ -339,7 +339,7 @@
                   </div>
 
                   <div>
-                    <div class="font-bold text-[10px] text-gray-900 mb-1">D. Kegiatan Kepesantrenan</div>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1" x-text="(item.reportData?.nadzam && item.reportData.nadzam.length > 0) ? 'D. Kegiatan Kepesantrenan' : 'C. Kegiatan Kepesantrenan'"></div>
                     <table class="w-full border-collapse border border-gray-400 text-[9px]">
                       <thead>
                         <tr class="bg-gray-100 font-bold text-center">
@@ -364,7 +364,7 @@
                 <!-- E & F: AKHLAK KEDISIPLINAN & KETIDAKHADIRAN (DUA KOLOM BERSISIAN) -->
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <div class="font-bold text-[10px] text-gray-900 mb-1">E. Akhlak dan Kedisiplinan</div>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1" x-text="(item.reportData?.nadzam && item.reportData.nadzam.length > 0) ? 'E. Akhlak dan Kedisiplinan' : 'D. Akhlak dan Kedisiplinan'"></div>
                     <table class="w-full border-collapse border border-gray-400 text-[9px]">
                       <thead>
                         <tr class="bg-gray-100 font-bold text-center">
@@ -388,7 +388,7 @@
                   </div>
 
                   <div>
-                    <div class="font-bold text-[10px] text-gray-900 mb-1">F. Ketidakhadiran</div>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1" x-text="(item.reportData?.nadzam && item.reportData.nadzam.length > 0) ? 'F. Ketidakhadiran' : 'E. Ketidakhadiran'"></div>
                     <table class="w-full border-collapse border border-gray-400 text-[9.5px]">
                       <tr>
                         <td class="p-1.5 border border-gray-400 font-medium">Sakit</td>
@@ -408,7 +408,7 @@
 
                 <!-- G. NASIHAT WALI KELAS -->
                 <div>
-                  <div class="font-bold text-[10px] text-gray-900 mb-1">G. Nasihat Wali Kelas</div>
+                  <div class="font-bold text-[10px] text-gray-900 mb-1" x-text="(item.reportData?.nadzam && item.reportData.nadzam.length > 0) ? 'G. Nasihat Wali Kelas' : 'F. Nasihat Wali Kelas'"></div>
                   <div class="border border-gray-400 p-2 rounded bg-gray-50/40 text-[9.5px] italic text-gray-800 leading-relaxed min-h-[38px]"
                        x-text="item.reportData?.catatanWaliKelas || 'Alhamdulillah, Ananda menunjukkan prestasi dan akhlak yang sangat baik. Pertahankan semangat mengaji dan khidmah di pondok.'">
                   </div>
@@ -422,16 +422,16 @@
                   </div>
 
                   <div>
-                    <p class="text-gray-600 mb-14">Mengetahui,<br><strong class="text-gray-800">Pimpinan Pondok</strong></p>
-                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'KH. Ahmad Syarifuddin'"></p>
+                    <p class="text-gray-600 mb-14">Mengetahui,<br><strong class="text-gray-800" x-text="bulkRaportData?.tenantProfile?.HeadTitle || 'Pimpinan Pondok'">Pimpinan Pondok</strong></p>
+                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'Dede Nuriman, Lc.'"></p>
                   </div>
 
                   <div>
                     <p class="text-gray-600 mb-14">
-                      <span x-text="(bulkRaportData?.tenantProfile?.City || 'Tasikmalaya') + ', ' + formatTanggalIndo(new Date())"></span><br>
+                      <span x-text="(bulkRaportData?.tenantProfile?.City || 'Pemangkat') + ', ' + formatTanggalIndo(new Date())"></span><br>
                       <strong class="text-gray-800">Wali Kelas</strong>
                     </p>
-                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.WaliKelasDefault || item.student.WaliKelas || 'Ustdz. Nida Fadhilah'"></p>
+                    <p class="font-bold text-gray-900 underline" x-text="item.waliKelas || item.student.WaliKelas || (bulkRaportData?.tenantProfile?.waliKelasMap && bulkRaportData.tenantProfile.waliKelasMap[item.student['Class/Level'] || item.student.Class]) || bulkRaportData?.tenantProfile?.WaliKelasDefault || 'Wali Kelas'"></p>
                   </div>
                 </div>
 
@@ -548,14 +548,14 @@
                   </div>
                   <div>
                     <p class="text-gray-600 mb-14">Mengetahui,<br><strong class="text-gray-800">Kepala TPQ</strong></p>
-                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'KH. Mamat Rahmat, S.Pd.I'"></p>
+                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'Dede Nuriman, Lc.'"></p>
                   </div>
                   <div>
                     <p class="text-gray-600 mb-14">
-                      <span x-text="(bulkRaportData?.tenantProfile?.City || 'Ciamis') + ', ' + formatTanggalIndo(new Date())"></span><br>
+                      <span x-text="(bulkRaportData?.tenantProfile?.City || 'Pemangkat') + ', ' + formatTanggalIndo(new Date())"></span><br>
                       <strong class="text-gray-800">Wali Kelas</strong>
                     </p>
-                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.WaliKelasDefault || item.student.WaliKelas || 'Ust. Abdul Hakim, S.Pd.I'"></p>
+                    <p class="font-bold text-gray-900 underline" x-text="item.waliKelas || item.student.WaliKelas || (bulkRaportData?.tenantProfile?.waliKelasMap && bulkRaportData.tenantProfile.waliKelasMap[item.student['Class/Level'] || item.student.Class]) || bulkRaportData?.tenantProfile?.WaliKelasDefault || 'Wali Kelas'"></p>
                   </div>
                 </div>
               </div>
@@ -647,14 +647,14 @@
                   </div>
                   <div>
                     <p class="text-gray-600 mb-14">Mengetahui,<br><strong class="text-gray-800">Kepala Madrasah</strong></p>
-                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'Ust. H. Endang Saepudin, S.Ag'"></p>
+                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'Dede Nuriman, Lc.'"></p>
                   </div>
                   <div>
                     <p class="text-gray-600 mb-14">
-                      <span x-text="(bulkRaportData?.tenantProfile?.City || 'Tasikmalaya') + ', ' + formatTanggalIndo(new Date())"></span><br>
+                      <span x-text="(bulkRaportData?.tenantProfile?.City || 'Pemangkat') + ', ' + formatTanggalIndo(new Date())"></span><br>
                       <strong class="text-gray-800">Wali Kelas</strong>
                     </p>
-                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.WaliKelasDefault || item.student.WaliKelas || 'Ustdz. Rina Nurjanah, S.Pd'"></p>
+                    <p class="font-bold text-gray-900 underline" x-text="item.waliKelas || item.student.WaliKelas || (bulkRaportData?.tenantProfile?.waliKelasMap && bulkRaportData.tenantProfile.waliKelasMap[item.student['Class/Level'] || item.student.Class]) || bulkRaportData?.tenantProfile?.WaliKelasDefault || 'Wali Kelas'"></p>
                   </div>
                 </div>
               </div>
@@ -738,15 +738,15 @@
         <!-- TANDA TANGAN LEGER -->
         <div class="mt-8 flex justify-between items-center text-center text-[10px] leading-tight px-8">
           <div>
-            <p class="text-gray-500 mb-12">Mengetahui,<br><strong class="text-gray-700">Pimpinan Pondok Pesantren</strong></p>
-            <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'KH. Ahmad Syarifuddin'"></p>
+            <p class="text-gray-500 mb-12">Mengetahui,<br><strong class="text-gray-700" x-text="bulkRaportData?.tenantProfile?.HeadTitle || 'Pimpinan Pondok Pesantren'">Pimpinan Pondok Pesantren</strong></p>
+            <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'Dede Nuriman, Lc.'"></p>
           </div>
           <div>
             <p class="text-gray-500 mb-12">
-              <span x-text="(bulkRaportData?.tenantProfile?.City || 'Tasikmalaya') + ', ' + formatTanggalIndo(new Date())"></span><br>
+              <span x-text="(bulkRaportData?.tenantProfile?.City || 'Pemangkat') + ', ' + formatTanggalIndo(new Date())"></span><br>
               <strong class="text-gray-700">Wali Kelas</strong>
             </p>
-            <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.WaliKelasDefault || 'Ustdz. Nida Fadhilah'"></p>
+            <p class="font-bold text-gray-900 underline" x-text="(bulkRaportData?.tenantProfile?.waliKelasMap && bulkRaportData.tenantProfile.waliKelasMap[bulkSelectedClass]) || bulkRaportData?.tenantProfile?.WaliKelasDefault || 'Wali Kelas'"></p>
           </div>
         </div>
       </div>
@@ -760,7 +760,7 @@
               <p class="text-xl md:text-2xl font-serif text-[#0f5f4a] font-bold mb-2">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
               
               <div class="mb-4">
-                <p class="text-[10px] uppercase tracking-widest text-gray-500 font-bold" x-text="bulkRaportData?.tenantProfile?.InstitutionName || 'PONDOK PESANTREN MIFTAHUL HUDA AL-BAROKAH'"></p>
+                <p class="text-[10px] uppercase tracking-widest text-gray-500 font-bold" x-text="bulkRaportData?.tenantProfile?.InstitutionName || 'PONDOK PESANTREN RAUDHATUL ULUM'"></p>
                 <h1 class="text-2xl md:text-3xl font-black text-amber-800 tracking-wider mt-1 uppercase">SERTIFIKAT</h1>
                 <p class="text-xs font-bold text-gray-700 uppercase tracking-widest">Kenaikan Jilid / Khatam Tahfidz</p>
                 <p class="text-[10px] text-gray-400 mt-1" x-text="'Nomor: ' + (cIdx + 101) + '/SKJ/' + (new Date().getFullYear())"></p>
@@ -783,14 +783,14 @@
               <div class="mt-8 flex justify-between items-center text-center text-xs px-8">
                 <div>
                   <p class="text-gray-500 mb-14">Penguji / Musyrif,</p>
-                  <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.WaliKelasDefault || 'Ustdz. Nida Fadhilah'"></p>
+                  <p class="font-bold text-gray-900 underline" x-text="item.waliKelas || item.student.WaliKelas || (bulkRaportData?.tenantProfile?.waliKelasMap && bulkRaportData.tenantProfile.waliKelasMap[item.student['Class/Level'] || item.student.Class]) || bulkRaportData?.tenantProfile?.WaliKelasDefault || 'Musyrif Penguji'"></p>
                 </div>
                 <div>
                   <p class="text-gray-500 mb-14">
-                    <span x-text="(bulkRaportData?.tenantProfile?.City || 'Tasikmalaya') + ', ' + formatTanggalIndo(new Date())"></span><br>
-                    Pimpinan Pondok Pesantren
+                    <span x-text="(bulkRaportData?.tenantProfile?.City || 'Pemangkat') + ', ' + formatTanggalIndo(new Date())"></span><br>
+                    <span x-text="bulkRaportData?.tenantProfile?.HeadTitle || 'Pimpinan Pondok Pesantren'">Pimpinan Pondok Pesantren</span>
                   </p>
-                  <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'KH. Ahmad Syarifuddin'"></p>
+                  <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'Dede Nuriman, Lc.'"></p>
                 </div>
               </div>
             </div>

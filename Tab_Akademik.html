@@ -3,257 +3,226 @@
   x-if="currentTab === 'akademik' && (user.Role === 'Mudir' || user.Role === 'Admin' || user.Role === 'Ustadz')"
 >
   <div class="space-y-6">
+    <!-- HEADER UTAMA AKADEMIK -->
     <div class="app-card p-6 bg-white">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">
-            Raport Akademik
+            Raport & Akademik Santri
           </p>
-          <h2 class="text-2xl font-black text-gray-900">Input dan Kelola Nilai</h2>
+          <h2 class="text-2xl font-black text-gray-900">Manajemen Raport & Nilai</h2>
           <p class="text-sm text-gray-500 mt-1">
-            Kelola periode, mapel, bobot, nilai, dan publish raport wali.
+            Kelola penilaian santri, rujukan kurikulum kitab kuning, setup raport resmi (F4), dan cetak massal satu kelas.
           </p>
         </div>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- NAVIGASI SUB-MENU TERSTRUKTUR & JELAS -->
           <button
             type="button"
-            class="app-btn"
-            :class="academicSection === 'nilai' ? 'app-btn-primary' : 'app-btn-soft'"
-            @click="academicSection = 'nilai'"
+            class="app-btn flex items-center gap-1.5"
+            :class="(academicSection === 'raport' || academicSection === 'nilai') ? 'app-btn-primary' : 'app-btn-soft'"
+            @click="academicSection = 'raport'"
           >
-            Input Nilai
+            <span>📋</span>
+            <span>Raport & Penilaian</span>
           </button>
           <button
             type="button"
-            class="app-btn"
+            class="app-btn flex items-center gap-1.5"
             :class="academicSection === 'kurikulum' ? 'app-btn-primary' : 'app-btn-soft'"
             @click="academicSection = 'kurikulum'; loadAcademicSetup(); loadCurriculumExamSetup()"
           >
-            Kurikulum Ujian
+            <span>📚</span>
+            <span>Kurikulum & Kitab</span>
           </button>
           <button
             type="button"
-            class="app-btn"
+            class="app-btn flex items-center gap-1.5 bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100"
+            x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
+            :class="academicSection === 'setup_raport' ? 'app-btn-primary !bg-[#0f5f4a] !text-white' : ''"
+            @click="academicSection = 'setup_raport'; loadRaportSetup()"
+          >
+            <span>⚙️</span>
+            <span>Setup Raport</span>
+          </button>
+          <button
+            type="button"
+            class="app-btn flex items-center gap-1.5"
             x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
             :class="academicSection === 'setup' ? 'app-btn-primary' : 'app-btn-soft'"
             @click="academicSection = 'setup'"
           >
-            Setup
+            <span>🔧</span>
+            <span>Master Periode & Mapel</span>
           </button>
           <button
             type="button"
-            class="app-btn"
+            class="app-btn flex items-center gap-1.5"
             x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
             :class="academicSection === 'profil' ? 'app-btn-primary' : 'app-btn-soft'"
             @click="academicSection = 'profil'"
           >
-            Profil Santri
+            <span>👤</span>
+            <span>Profil Santri</span>
           </button>
           <button
             type="button"
             class="app-btn bg-amber-600 text-white hover:bg-amber-700 shadow-sm flex items-center gap-1.5"
-            @click="openBulkRaportModal()"
+            @click="openBulkRaportModal(academicMatrixFilter.Class)"
           >
-            <span>📄</span>
-            <span>Cetak Raport Massal & Leger</span>
-          </button>
-          <button type="button" class="app-btn app-btn-soft" @click="loadAcademicSetup()">
-            Refresh
+            <span>🖨️</span>
+            <span>Cetak Raport Massal (F4)</span>
           </button>
         </div>
       </div>
     </div>
 
-    <div class="app-card p-6 bg-white">
-      <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-        <div class="max-w-3xl">
-          <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">
-            Cara Pengisian
-          </p>
-          <h3 class="text-xl font-black text-gray-900 mt-1">
-            Alur lengkap raport akademik
-          </h3>
-          <p class="text-sm text-gray-500 mt-2 leading-6">
-            Jika dropdown periode atau mapel masih kosong seperti pada tampilan awal,
-            berarti struktur sheet sudah siap tetapi data master akademik belum dibuat.
-            Isi setup secara berurutan sebelum input nilai.
-          </p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 text-sm">
-          <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
-            <p class="font-black text-emerald-900">1. Lengkapi Profil</p>
-            <p class="text-emerald-800 mt-1">
-              Buka Profil Santri, isi jenjang SMP/SMA dan gender Ikhwan/Akhwat
-              agar filter mapel tepat.
-            </p>
-          </div>
-          <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
-            <p class="font-black text-blue-900">2. Buat Periode</p>
-            <p class="text-blue-800 mt-1">
-              Buka Setup, buat tahun ajaran, semester, judul, dan tanggal raport.
-              Status awal adalah Draft.
-            </p>
-          </div>
-          <div class="rounded-2xl border border-purple-100 bg-purple-50/60 p-4">
-            <p class="font-black text-purple-900">3. Buat Mapel</p>
-            <p class="text-purple-800 mt-1">
-              Tambahkan mapel agama/umum, atur jenjang, gender, kelas khusus,
-              KKM, dan status aktif.
-            </p>
-          </div>
-          <div class="rounded-2xl border border-orange-100 bg-orange-50/60 p-4">
-            <p class="font-black text-orange-900">4. Cek Bobot</p>
-            <p class="text-orange-800 mt-1">
-              Sistem menyiapkan Harian 40%, Tugas 20%, PTS 20%, PAS/PAT 20%.
-              Ubah di Setup bila perlu.
-            </p>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p class="font-black text-slate-900">5. Input Nilai</p>
-            <p class="text-slate-700 mt-1">
-              Pilih periode, mapel, dan kelas, lalu klik Muat Matrix. Isi nilai
-              0-100 dan klik Simpan Nilai.
-            </p>
-          </div>
-          <div class="rounded-2xl border border-rose-100 bg-rose-50/60 p-4">
-            <p class="font-black text-rose-900">6. Publish</p>
-            <p class="text-rose-800 mt-1">
-              Publish hanya oleh Mudir/Admin. Periode akan terkunci dan tampil
-              ke Wali jika semua nilai wajib lengkap.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-5 rounded-2xl border border-dashed border-[#D8C3A5] bg-[#FBF8F1] p-4 text-sm text-gray-700 leading-6">
-        <p class="font-black text-gray-900">Import massal dari Google Sheet</p>
-        <p class="mt-1">
-          Isi sheet <strong>AcademicScoreImport</strong> dengan kolom:
-          StudentID/StudentName, SubjectID/SubjectName, ComponentID/ComponentName,
-          Score, Notes, dan TeacherID. Pilih periode di tab Input Nilai, lalu klik
-          Import Staging. Sistem akan menolak baris yang santri, mapel, komponen,
-          atau nilainya tidak valid.
-        </p>
-      </div>
-    </div>
-
-    <div x-show="academicSection === 'nilai'" class="space-y-6">
+    <!-- ================= SEKSI 1: RAPORT & PENILAIAN KELAS ================= -->
+    <div x-show="academicSection === 'raport' || academicSection === 'nilai'" class="space-y-6">
+      <!-- FILTER & TOOLBAR KELAS -->
       <div class="app-card p-6 bg-white">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div>
-            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Periode</label>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Periode Raport</label>
             <select x-model="academicMatrixFilter.PeriodID" class="app-input">
               <option value="">Pilih periode</option>
-              <template x-for="period in curriculumExamPeriods" :key="period.PeriodID">
+              <template x-for="period in (academicSetup.periods || [])" :key="period.PeriodID">
                 <option :value="period.PeriodID" x-text="period.Title + ' (' + period.Status + ')'"></option>
               </template>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Mapel</label>
-            <select x-model="academicMatrixFilter.SubjectID" class="app-input">
-              <option value="">Pilih mapel</option>
-              <template x-for="subject in academicSetup.subjects" :key="subject.SubjectID">
-                <option :value="subject.SubjectID" x-text="subject.Name + ' - ' + (subject.Category || 'Umum')"></option>
-              </template>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Kelas</label>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Pilih Kelas</label>
             <select x-model="academicMatrixFilter.Class" class="app-input">
-              <option value="">Semua kelas yang berlaku</option>
+              <option value="">Semua Kelas</option>
               <template x-for="className in uniqueClasses" :key="className">
                 <option :value="className" x-text="className"></option>
               </template>
             </select>
           </div>
-          <div class="flex items-end">
-            <button type="button" class="app-btn app-btn-primary w-full" @click="loadAcademicMatrix()">
-              Muat Matrix
+          <div class="flex items-center gap-2">
+            <div class="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1 w-full text-xs font-bold">
+              <button
+                type="button"
+                class="flex-1 py-2 rounded-lg transition text-center"
+                :class="academicViewMode === 'list' ? 'bg-white text-gray-900 shadow-sm font-black' : 'text-gray-500 hover:text-gray-900'"
+                @click="academicViewMode = 'list'"
+              >
+                👥 Daftar Santri
+              </button>
+              <button
+                type="button"
+                class="flex-1 py-2 rounded-lg transition text-center"
+                :class="academicViewMode === 'matrix' ? 'bg-white text-[#0f5f4a] shadow-sm font-black' : 'text-gray-500 hover:text-gray-900'"
+                @click="academicViewMode = 'matrix'"
+              >
+                📝 Input Nilai
+              </button>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="app-btn app-btn-primary flex-1 flex items-center justify-center gap-1.5"
+              @click="openBulkRaportModal(academicMatrixFilter.Class, 'ALL')"
+            >
+              <span>🖨️</span>
+              <span>Cetak 1 Kelas</span>
+            </button>
+            <button
+              type="button"
+              class="app-btn app-btn-soft flex items-center justify-center gap-1.5"
+              @click="openBulkRaportModal(academicMatrixFilter.Class, 'ALL'); bulkViewMode = 'leger'"
+              title="Unduh Leger Nilai"
+            >
+              <span>📊</span>
+              <span>Leger</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- INFO BAR KELAS & WALI KELAS AKTIF -->
+        <div class="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-gray-500">Kelas Aktif:</span>
+            <strong class="text-gray-900 text-sm font-black" x-text="academicMatrixFilter.Class || 'Semua Kelas'"></strong>
+            <span class="text-gray-300">•</span>
+            <span class="text-gray-500">Wali Kelas:</span>
+            <span class="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md" x-text="(raportSetup.waliKelasMap && raportSetup.waliKelasMap[academicMatrixFilter.Class]) || raportSetup.profile?.WaliKelasDefault || 'Belum diatur'"></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="text-emerald-700 hover:underline font-bold text-xs"
+              @click="academicSection = 'setup_raport'; loadRaportSetup()"
+            >
+              ⚙️ Atur Wali Kelas di Setup Raport &rarr;
             </button>
           </div>
         </div>
       </div>
 
-      <div class="app-card p-6 bg-white">
+      <!-- VIEW MODE A: DAFTAR SANTRI & CETAK RAPORT PER SANTRI / MASSAL -->
+      <div x-show="academicViewMode === 'list'" class="app-card p-6 bg-white">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
           <div>
-            <h3 class="font-black text-gray-900">Matrix Nilai</h3>
-            <p
-              class="text-sm text-gray-500"
-              x-text="academicMatrix.subject ? academicMatrix.subject.Name + ' - ' + academicMatrix.period.Title : 'Pilih periode dan mapel terlebih dahulu.'"
-            ></p>
+            <h3 class="font-black text-gray-900 text-lg">Daftar Santri & Status Raport</h3>
+            <p class="text-xs text-gray-500">
+              Klik <strong>Pratinjau Raport (F4)</strong> pada baris santri untuk melihat hasil nilai resmi atau cetak per santri.
+            </p>
           </div>
-          <div class="flex gap-2">
-            <button
-              type="button"
-              class="app-btn app-btn-soft"
-              @click="importAcademicScores()"
-              :disabled="!academicMatrixFilter.PeriodID || loadingAcademic"
-            >
-              Import Staging
-            </button>
-            <button
-              type="button"
-              class="app-btn app-btn-primary"
-              @click="saveAcademicMatrix()"
-              :disabled="!academicMatrix.rows.length || academicMatrix.isLocked || loadingAcademic"
-            >
-              Simpan Nilai
-            </button>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="app-badge app-badge-info" x-text="(students || []).filter(s => !academicMatrixFilter.Class || String(s['Class/Level'] || s.Class || '').toLowerCase().includes(academicMatrixFilter.Class.toLowerCase())).length + ' Santri'"></span>
           </div>
         </div>
 
-        <div x-show="academicMatrix.isLocked" class="mb-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-          Periode ini terkunci. Ubah status ke Draft sebagai Mudir/Admin sebelum mengedit nilai.
-        </div>
-
-        <div x-show="!academicMatrix.rows.length" class="app-empty-state py-10">
-          <p class="font-bold text-gray-700">Belum ada matrix nilai.</p>
-          <p class="text-sm text-gray-500 mt-1">Muat periode dan mapel untuk mulai input.</p>
-        </div>
-
-        <div x-show="academicMatrix.rows.length" class="overflow-x-auto">
+        <div class="overflow-x-auto">
           <table class="w-full min-w-[760px] text-sm">
             <thead>
-              <tr class="text-left text-gray-400 border-b">
-                <th class="py-3 pr-3">Santri</th>
-                <template x-for="component in academicMatrix.components" :key="component.ComponentID">
-                  <th class="py-3 px-3">
-                    <span x-text="component.Name"></span>
-                    <span class="block text-[10px]" x-text="'Bobot ' + component.Weight + '%'"></span>
-                  </th>
-                </template>
-                <th class="py-3 px-3">Akhir</th>
-                <th class="py-3 px-3">Status</th>
+              <tr class="text-left text-gray-400 border-b text-xs uppercase tracking-wider font-bold">
+                <th class="py-3 pr-3 w-12 text-center">No</th>
+                <th class="py-3 px-3">Nama Santri</th>
+                <th class="py-3 px-3">NIS</th>
+                <th class="py-3 px-3">Kelas / Kamar</th>
+                <th class="py-3 px-3">Hafalan</th>
+                <th class="py-3 px-3 text-right">Aksi Raport</th>
               </tr>
             </thead>
-            <tbody class="divide-y">
-              <template x-for="row in academicMatrix.rows" :key="row.student.StudentID">
-                <tr>
-                  <td class="py-3 pr-3">
-                    <p class="font-bold text-gray-900" x-text="row.student.Name"></p>
-                    <p class="text-xs text-gray-400" x-text="row.student['Class/Level']"></p>
-                  </td>
-                  <template x-for="(component, index) in academicMatrix.components" :key="component.ComponentID">
-                    <td class="py-3 px-3">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        x-model="row.scores[index].Score"
-                        class="app-input w-24"
-                        :disabled="academicMatrix.isLocked"
-                      />
-                    </td>
-                  </template>
-                  <td class="py-3 px-3 font-black" x-text="row.result.finalScore ?? '-'"></td>
+            <tbody class="divide-y divide-gray-100">
+              <template x-for="(st, idx) in (students || []).filter(s => !academicMatrixFilter.Class || String(s['Class/Level'] || s.Class || '').toLowerCase().includes(academicMatrixFilter.Class.toLowerCase()))" :key="st.StudentID">
+                <tr class="hover:bg-gray-50/80 transition-colors">
+                  <td class="py-3 pr-3 text-center text-gray-400 font-bold" x-text="idx + 1"></td>
                   <td class="py-3 px-3">
-                    <span
-                      class="app-badge"
-                      :class="row.result.complete ? 'app-badge-success' : 'app-badge-warning'"
-                      x-text="row.result.complete ? 'Lengkap' : 'Belum lengkap'"
-                    ></span>
+                    <p class="font-bold text-gray-900" x-text="st.Name"></p>
+                    <p class="text-[11px] text-gray-400" x-text="st.ParentContact ? 'Wali: ' + st.ParentContact : ''"></p>
+                  </td>
+                  <td class="py-3 px-3 font-mono text-xs text-gray-600" x-text="st.NIS || st.StudentID"></td>
+                  <td class="py-3 px-3">
+                    <span class="font-bold text-gray-800" x-text="st['Class/Level'] || st.Class || '-'"></span>
+                    <span class="block text-[11px] text-gray-400" x-text="st.Room || st.Kamar ? 'Kamar: ' + (st.Room || st.Kamar) : ''"></span>
+                  </td>
+                  <td class="py-3 px-3 font-semibold text-emerald-800" x-text="st.HafalanJuz ? st.HafalanJuz + ' Juz' : '1 Juz'"></td>
+                  <td class="py-3 px-3 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        class="app-btn bg-[#0f5f4a] text-white hover:bg-[#0b4939] text-xs shadow-sm flex items-center gap-1.5"
+                        @click="openBulkRaportModal(st['Class/Level'] || st.Class || academicMatrixFilter.Class, st.StudentID)"
+                        title="Buka Raport Format Resmi F4 untuk santri ini"
+                      >
+                        <span>📜</span>
+                        <span>Pratinjau Raport (F4)</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="app-btn app-btn-soft text-xs flex items-center gap-1"
+                        @click="openAnalytics360Modal(st.StudentID)"
+                        title="Buka Analisis 360° Perkembangan Santri"
+                      >
+                        <span>🧠</span>
+                        <span>Analisis</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </template>
@@ -261,8 +230,113 @@
           </table>
         </div>
       </div>
+
+      <!-- VIEW MODE B: MATRIX INPUT NILAI PER MAPEL -->
+      <div x-show="academicViewMode === 'matrix'" class="space-y-6">
+        <div class="app-card p-6 bg-white">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex-1">
+              <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Pilih Mata Pelajaran untuk Dinilai</label>
+              <select x-model="academicMatrixFilter.SubjectID" class="app-input" @change="loadAcademicMatrix()">
+                <option value="">Pilih mapel</option>
+                <template x-for="subject in academicSetup.subjects" :key="subject.SubjectID">
+                  <option :value="subject.SubjectID" x-text="subject.Name + ' (' + (subject.Category || 'Umum') + ')'"></option>
+                </template>
+              </select>
+            </div>
+            <div class="flex items-end gap-2">
+              <button type="button" class="app-btn app-btn-primary" @click="loadAcademicMatrix()">
+                Muat Matrix Nilai
+              </button>
+              <button
+                type="button"
+                class="app-btn app-btn-soft"
+                @click="importAcademicScores()"
+                :disabled="!academicMatrixFilter.PeriodID || loadingAcademic"
+              >
+                Import Sheet
+              </button>
+              <button
+                type="button"
+                class="app-btn bg-emerald-600 text-white hover:bg-emerald-700"
+                @click="saveAcademicMatrix()"
+                :disabled="!academicMatrix.rows.length || academicMatrix.isLocked || loadingAcademic"
+              >
+                Simpan Nilai
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="app-card p-6 bg-white">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-black text-gray-900">Form Pengisian Nilai Mapel</h3>
+              <p class="text-sm text-gray-500" x-text="academicMatrix.subject ? academicMatrix.subject.Name + ' — ' + (academicMatrix.period ? academicMatrix.period.Title : '') : 'Silakan pilih mata pelajaran di atas lalu klik Muat Matrix Nilai.'"></p>
+            </div>
+          </div>
+
+          <div x-show="academicMatrix.isLocked" class="mb-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+            Periode ini sedang terkunci. Ubah status ke Draft sebagai Mudir/Admin sebelum mengedit nilai.
+          </div>
+
+          <div x-show="!academicMatrix.rows.length" class="app-empty-state py-10">
+            <p class="font-bold text-gray-700">Belum ada matrix nilai yang dimuat.</p>
+            <p class="text-sm text-gray-500 mt-1">Pilih periode, mapel, dan kelas lalu klik tombol Muat Matrix Nilai.</p>
+          </div>
+
+          <div x-show="academicMatrix.rows.length" class="overflow-x-auto">
+            <table class="w-full min-w-[760px] text-sm">
+              <thead>
+                <tr class="text-left text-gray-400 border-b">
+                  <th class="py-3 pr-3">Santri</th>
+                  <template x-for="component in academicMatrix.components" :key="component.ComponentID">
+                    <th class="py-3 px-3">
+                      <span x-text="component.Name"></span>
+                      <span class="block text-[10px]" x-text="'Bobot ' + component.Weight + '%'"></span>
+                    </th>
+                  </template>
+                  <th class="py-3 px-3">Nilai Akhir</th>
+                  <th class="py-3 px-3">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                <template x-for="row in academicMatrix.rows" :key="row.student.StudentID">
+                  <tr>
+                    <td class="py-3 pr-3">
+                      <p class="font-bold text-gray-900" x-text="row.student.Name"></p>
+                      <p class="text-xs text-gray-400" x-text="row.student['Class/Level']"></p>
+                    </td>
+                    <template x-for="(component, index) in academicMatrix.components" :key="component.ComponentID">
+                      <td class="py-3 px-3">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          x-model="row.scores[index].Score"
+                          class="app-input w-24"
+                          :disabled="academicMatrix.isLocked"
+                        />
+                      </td>
+                    </template>
+                    <td class="py-3 px-3 font-black text-emerald-950" x-text="row.result.finalScore ?? '-'"></td>
+                    <td class="py-3 px-3">
+                      <span
+                        class="app-badge"
+                        :class="row.result.complete ? 'app-badge-success' : 'app-badge-warning'"
+                        x-text="row.result.complete ? 'Lengkap' : 'Belum lengkap'"
+                      ></span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
 
+    <!-- ================= SEKSI 2: KURIKULUM & KITAB ================= -->
     <div x-show="academicSection === 'kurikulum'" class="space-y-6">
       <div class="app-card p-6 bg-white">
         <div class="flex flex-col lg:flex-row lg:items-end gap-4">
@@ -292,27 +366,26 @@
               x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
               @click="syncCurriculumExamItems()"
             >
-              Siapkan dari Jadwal
+              🔄 Siapkan dari Jadwal KBM
             </button>
           </div>
         </div>
         <p class="text-sm text-gray-500 mt-3">
-          Pilih periode dan kelas, lalu klik kartu ujian untuk langsung input nilai.
-          Tombol Siapkan dari Jadwal mengambil materi KBM, Pondok, Kegiatan, hafalan, do'a, dan praktik dari jadwal aktif.
+          Tombol <strong>Siapkan dari Jadwal KBM</strong> otomatis membaca mata pelajaran dari jadwal aktif aplikasi agar tidak perlu mengetik ulang satu per satu.
         </p>
       </div>
 
       <div class="app-card p-6 bg-white">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
           <div>
-            <h3 class="font-black text-gray-900">Jadwal Ujian</h3>
-            <p class="text-sm text-gray-500">Klik satu kartu untuk membuka daftar santri dan mengisi nilai.</p>
+            <h3 class="font-black text-gray-900">Jadwal Ujian & Kurikulum Kitab</h3>
+            <p class="text-sm text-gray-500">Klik satu kartu materi di bawah untuk menginput nilai santri.</p>
           </div>
-          <span class="app-badge app-badge-info" x-text="filteredCurriculumExamItems.length + ' ujian'"></span>
+          <span class="app-badge app-badge-info" x-text="filteredCurriculumExamItems.length + ' Ujian'"></span>
         </div>
         <div x-show="!filteredCurriculumExamItems.length" class="app-empty-state py-10">
-          <p class="font-bold text-gray-700">Belum ada jadwal ujian.</p>
-          <p class="text-sm text-gray-500 mt-1">Pilih periode lalu klik Siapkan dari Jadwal.</p>
+          <p class="font-bold text-gray-700">Belum ada item kurikulum ujian.</p>
+          <p class="text-sm text-gray-500 mt-1">Pilih periode lalu klik tombol "Siapkan dari Jadwal KBM" di atas.</p>
         </div>
         <div x-show="filteredCurriculumExamItems.length" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           <template x-for="item in filteredCurriculumExamItems" :key="item.ItemID">
@@ -324,27 +397,27 @@
             >
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <p class="text-[11px] font-black text-gray-400 uppercase" x-text="item.Category || 'Kegiatan'"></p>
+                  <p class="text-[11px] font-black text-gray-400 uppercase" x-text="item.Category || 'Kitab'"></p>
                   <h4 class="font-black text-gray-900 truncate mt-1" x-text="item.Name"></h4>
                 </div>
-                <span class="app-badge" :class="item.IncludeInReport ? 'app-badge-success' : 'app-badge-warning'" x-text="item.IncludeInReport ? 'Raport' : 'Draft'"></span>
+                <span class="app-badge" :class="item.IncludeInReport ? 'app-badge-success' : 'app-badge-warning'" x-text="item.IncludeInReport ? 'Masuk Raport' : 'Draft'"></span>
               </div>
               <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500">
                 <p><span class="font-bold text-gray-700">Kelas:</span> <span x-text="item.ClassOrGroupName || '-'"></span></p>
-                <p><span class="font-bold text-gray-700">Jenis:</span> <span x-text="item.AssessmentType || 'Angka'"></span></p>
-                <p class="col-span-2"><span class="font-bold text-gray-700">Guru:</span> <span x-text="item.TeacherID || item.TeacherSourceID || '-'"></span></p>
+                <p><span class="font-bold text-gray-700">KKM:</span> <span x-text="item.KKM || 70"></span></p>
+                <p class="col-span-2"><span class="font-bold text-gray-700">Pengampu:</span> <span x-text="item.TeacherID || item.TeacherSourceID || '-'"></span></p>
               </div>
-              <p class="text-xs text-gray-400 mt-2 line-clamp-2" x-text="item.Rubric || 'Nilai ujian semester'"></p>
             </button>
           </template>
         </div>
       </div>
 
+      <!-- INPUT NILAI KURIKULUM SELECTED -->
       <div class="app-card p-6 bg-white">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
           <div>
-            <h3 class="font-black text-gray-900">Input Nilai</h3>
-            <p class="text-sm text-gray-500" x-text="curriculumScoreMatrix.item ? curriculumScoreMatrix.item.Name + ' - ' + curriculumScoreMatrix.item.ClassOrGroupName : 'Pilih kartu ujian di atas.'"></p>
+            <h3 class="font-black text-gray-900">Input Nilai Ujian Kurikulum</h3>
+            <p class="text-sm text-gray-500" x-text="curriculumScoreMatrix.item ? curriculumScoreMatrix.item.Name + ' — Kelas: ' + curriculumScoreMatrix.item.ClassOrGroupName : 'Pilih kartu materi ujian di atas.'"></p>
           </div>
           <button
             type="button"
@@ -356,17 +429,17 @@
           </button>
         </div>
         <div x-show="!(curriculumScoreMatrix.rows || []).length" class="app-empty-state py-10">
-          <p class="font-bold text-gray-700">Pilih jadwal ujian dahulu.</p>
-          <p class="text-sm text-gray-500 mt-1">Setelah kartu dipilih, daftar santri akan muncul di sini.</p>
+          <p class="font-bold text-gray-700">Pilih salah satu kartu ujian di atas.</p>
+          <p class="text-sm text-gray-500 mt-1">Daftar santri untuk mata uji tersebut akan tampil di sini.</p>
         </div>
         <div x-show="(curriculumScoreMatrix.rows || []).length" class="overflow-x-auto">
           <table class="w-full min-w-[680px] text-sm">
             <thead>
               <tr class="text-left text-gray-400 border-b">
                 <th class="py-3 pr-3">Santri</th>
-                <th class="py-3 px-3">Nilai</th>
-                <th class="py-3 px-3">Status Hafalan/Praktik</th>
-                <th class="py-3 px-3">Catatan</th>
+                <th class="py-3 px-3">Nilai (0-100)</th>
+                <th class="py-3 px-3">Status Hafalan / Praktik</th>
+                <th class="py-3 px-3">Catatan Ustadz</th>
               </tr>
             </thead>
             <tbody class="divide-y">
@@ -380,7 +453,7 @@
                     <input type="number" min="0" :max="curriculumScoreMatrix.item?.MaxScore || 100" x-model="row.score.Score" class="app-input w-24" />
                   </td>
                   <td class="py-3 px-3">
-                    <input type="text" x-model="row.score.Status" class="app-input" placeholder="Lancar / Belum / Lulus" />
+                    <input type="text" x-model="row.score.Status" class="app-input" placeholder="Lancar / Lulus" />
                   </td>
                   <td class="py-3 px-3">
                     <input type="text" x-model="row.score.Notes" class="app-input" placeholder="Catatan singkat" />
@@ -391,62 +464,241 @@
           </table>
         </div>
       </div>
-
-      <details
-        x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
-        class="app-card p-6 bg-white space-y-4"
-      >
-        <summary class="cursor-pointer font-black text-gray-900">Pengaturan Lanjutan Item Ujian</summary>
-        <div class="pt-4 space-y-4">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <h3 class="font-black text-gray-900">Master Item Ujian</h3>
-            <p class="text-sm text-gray-500">Bisa dibuat manual atau hasil sinkron dari jadwal.</p>
-          </div>
-          <button type="button" class="app-btn app-btn-soft" @click="resetCurriculumExamItemForm()">Baru</button>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <select x-model="curriculumExamItemForm.PeriodID" class="app-input">
-            <option value="">Periode</option>
-            <template x-for="period in academicSetup.periods" :key="period.PeriodID">
-              <option :value="period.PeriodID" x-text="period.Title"></option>
-            </template>
-          </select>
-          <select x-model="curriculumExamItemForm.Category" class="app-input">
-            <option value="KBM">KBM</option>
-            <option value="Pondok">Pondok</option>
-            <option value="Kegiatan">Kegiatan</option>
-            <option value="Hafalan">Hafalan</option>
-            <option value="Doa">Do'a</option>
-          </select>
-          <input type="text" x-model="curriculumExamItemForm.Name" class="app-input xl:col-span-2" placeholder="Nama materi ujian" />
-          <input type="text" x-model="curriculumExamItemForm.ClassOrGroupName" class="app-input" placeholder="Kelas / kelompok" />
-          <input type="text" x-model="curriculumExamItemForm.TeacherID" class="app-input" placeholder="Guru / pengampu" />
-          <input type="text" x-model="curriculumExamItemForm.TeacherSourceID" class="app-input" placeholder="TeacherSourceID" />
-          <select x-model="curriculumExamItemForm.AssessmentType" class="app-input">
-            <option value="Angka">Angka</option>
-            <option value="Hafalan">Hafalan</option>
-            <option value="Doa">Do'a</option>
-            <option value="Praktik">Praktik</option>
-          </select>
-          <input type="number" x-model.number="curriculumExamItemForm.MaxScore" class="app-input" placeholder="Maks" />
-          <input type="number" x-model.number="curriculumExamItemForm.KKM" class="app-input" placeholder="KKM" />
-          <input type="number" x-model.number="curriculumExamItemForm.Weight" class="app-input" placeholder="Bobot" />
-          <input type="text" x-model="curriculumExamItemForm.Rubric" class="app-input xl:col-span-2" placeholder="Rubrik singkat" />
-          <label class="inline-flex items-center gap-2 text-sm font-bold text-gray-600">
-            <input type="checkbox" x-model="curriculumExamItemForm.IncludeInReport" />
-            Masuk raport
-          </label>
-          <label class="inline-flex items-center gap-2 text-sm font-bold text-gray-600">
-            <input type="checkbox" x-model="curriculumExamItemForm.IsActive" />
-            Aktif
-          </label>
-        </div>
-        <button type="button" class="app-btn app-btn-primary" @click="saveCurriculumExamItem()">Simpan Item Ujian</button>
-        </div>
-      </details>
     </div>
 
+    <!-- ================= SEKSI 3: SETUP RAPORT & LEMBAGA (FITUR UTAMA BARU) ================= -->
+    <div x-show="academicSection === 'setup_raport' && (user.Role === 'Mudir' || user.Role === 'Admin')" class="space-y-6">
+      
+      <!-- PRATINJAU LANGSUNG KOP SURAT RESMI -->
+      <div class="app-card p-6 bg-white border-2 border-emerald-900/20">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="font-black text-gray-900 text-lg">Pratinjau Kop Surat Raport (F4)</h3>
+            <p class="text-xs text-gray-500">Tampilan ini mencerminkan kop resmi yang langsung tercetak di bagian atas kertas F4.</p>
+          </div>
+          <span class="app-badge app-badge-success">Pratinjau Nyata</span>
+        </div>
+
+        <div class="border-b-4 border-double border-gray-900 pb-3 mb-2 text-center max-w-4xl mx-auto p-4 bg-gray-50/50 rounded-xl">
+          <div class="flex items-center justify-between gap-4">
+            <!-- LOGO / EMBLEM PREVIEW -->
+            <div class="w-20 h-20 flex-shrink-0 flex items-center justify-center">
+              <template x-if="raportSetup.profile?.LogoUrl && !logoBroken">
+                <img :src="raportSetup.profile.LogoUrl" @error="logoBroken = true" class="w-full h-full object-contain" alt="Logo Pesantren" />
+              </template>
+              <template x-if="!raportSetup.profile?.LogoUrl || logoBroken">
+                <div class="w-18 h-18 rounded-full border-2 border-emerald-900 bg-[#0f5f4a] p-1 flex items-center justify-center text-amber-300 shadow-sm" title="Lambang Resmi Lembaga">
+                  <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 21h18"/>
+                    <path d="M5 21V9a7 7 0 0 1 14 0v12"/>
+                    <path d="M9 21v-6a3 3 0 0 1 6 0v6"/>
+                    <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
+                  </svg>
+                </div>
+              </template>
+            </div>
+
+            <!-- TEKS KOP -->
+            <div class="flex-1 text-center pr-4">
+              <h4 class="font-medium text-gray-600 text-xs tracking-wider uppercase leading-tight" x-text="raportSetup.profile?.YayasanName || 'YAYASAN RAUDHATUL ULUM'"></h4>
+              <h2 class="font-black text-lg md:text-xl text-emerald-950 tracking-wide uppercase leading-tight mt-0.5" x-text="raportSetup.profile?.InstitutionName || 'PONDOK PESANTREN RAUDHATUL ULUM'"></h2>
+              <p class="font-serif text-base md:text-lg font-bold text-gray-800 my-0.5 leading-snug" dir="rtl" x-text="raportSetup.profile?.ArabicName || 'معهد روضة العلوم'"></p>
+              <p class="text-[11px] text-gray-600 leading-tight" x-text="(raportSetup.profile?.Address || 'Sinam, Pemangkat, Kab. Sambas, Kalimantan Barat') + ' — Telp/WA ' + (raportSetup.profile?.Phone || '0821-3377-9014') + ' · No. Statistik: ' + (raportSetup.profile?.StatistikNumber || '510032070118')"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- FORM 1: IDENTITAS & KOP RESMI -->
+        <div class="app-card p-6 bg-white space-y-4">
+          <div class="flex items-center gap-2 border-b pb-3">
+            <span class="text-xl">🏛️</span>
+            <div>
+              <h4 class="font-black text-gray-900">Identitas Lembaga & Kop Raport</h4>
+              <p class="text-xs text-gray-500">Nama yayasan, pondok, dan alamat resmi</p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Pondok Pesantren</label>
+              <input type="text" x-model="raportSetup.profile.InstitutionName" class="app-input font-bold" placeholder="PONDOK PESANTREN RAUDHATUL ULUM" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Yayasan</label>
+              <input type="text" x-model="raportSetup.profile.YayasanName" class="app-input" placeholder="YAYASAN RAUDHATUL ULUM" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Kaligrafi / Teks Arab Lembaga</label>
+              <input type="text" x-model="raportSetup.profile.ArabicName" dir="rtl" class="app-input font-serif text-base" placeholder="معهد روضة العلوم" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Alamat Lengkap Pesantren</label>
+              <textarea x-model="raportSetup.profile.Address" rows="2" class="app-input text-xs" placeholder="Sinam, Pemangkat, Kab. Sambas, Kalimantan Barat"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">No. Telp / WhatsApp</label>
+                <input type="text" x-model="raportSetup.profile.Phone" class="app-input" placeholder="0821-3377-9014" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nomor Statistik (NSPP/NPSN)</label>
+                <input type="text" x-model="raportSetup.profile.StatistikNumber" class="app-input" placeholder="510032070118" />
+              </div>
+            </div>
+
+            <!-- UPLOAD LOGO RESMI / RESET EMBLEM -->
+            <div class="pt-2 border-t border-gray-100">
+              <label class="block text-xs font-bold text-gray-700 uppercase mb-1.5">Logo Resmi Pesantren</label>
+              <div class="flex items-center gap-3">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  @change="uploadRaportLogo($event)"
+                  class="text-xs file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-800 hover:file:bg-emerald-100 cursor-pointer"
+                />
+                <button
+                  type="button"
+                  class="app-btn app-btn-soft text-xs"
+                  @click="resetRaportLogo()"
+                  title="Gunakan lambang resmi SVG"
+                >
+                  Reset ke Lambang Resmi
+                </button>
+              </div>
+              <p class="text-[11px] text-gray-400 mt-1">Disarankan gambar berlatar transparan (PNG). Jika kosong, otomatis memakai lambang resmi pesantren yang tidak pernah pecah.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- FORM 2: PENANDATANGAN & TITIMANGSA -->
+        <div class="space-y-6">
+          <div class="app-card p-6 bg-white space-y-4">
+            <div class="flex items-center gap-2 border-b pb-3">
+              <span class="text-xl">✍️</span>
+              <div>
+                <h4 class="font-black text-gray-900">Pejabat Penandatangan & Titimangsa</h4>
+                <p class="text-xs text-gray-500">Pimpinan pondok (Mudir) dan kota titimangsa raport</p>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Pimpinan Pondok / Mudir</label>
+                <input type="text" x-model="raportSetup.profile.HeadName" class="app-input font-bold" placeholder="Dede Nuriman, Lc." />
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Jabatan Pimpinan</label>
+                  <input type="text" x-model="raportSetup.profile.HeadTitle" class="app-input" placeholder="Pimpinan Pondok Pesantren" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Kota Titimangsa</label>
+                  <input type="text" x-model="raportSetup.profile.City" class="app-input" placeholder="Pemangkat" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Wali Kelas Cadangan / Default (Opsional)</label>
+                <input type="text" x-model="raportSetup.profile.WaliKelasDefault" class="app-input" placeholder="Biarkan kosong atau isi nama ustadz utama" />
+              </div>
+
+              <!-- TOGGLE KOMPONEN RAPORT -->
+              <div class="pt-3 border-t border-gray-100 space-y-2">
+                <label class="inline-flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                  <input type="checkbox" x-model="raportSetup.showNadzam" class="w-4 h-4 text-emerald-600 rounded border-gray-300" />
+                  <span>Tampilkan Seksi C (Hafalan Nadzam & Matan) di Raport F4</span>
+                </label>
+                <p class="text-[11px] text-gray-400 pl-6">
+                  Jika dinonaktifkan, seksi Nadzam disembunyikan agar raport tidak menampilkan materi simulasi atau baris kosong yang belum diujikan.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- FORM 3: PENUGASAN WALI KELAS PER KELAS -->
+          <div class="app-card p-6 bg-white space-y-4">
+            <div class="flex items-center gap-2 border-b pb-3">
+              <span class="text-xl">👨‍🏫</span>
+              <div>
+                <h4 class="font-black text-gray-900">Penugasan Wali Kelas per Kelas</h4>
+                <p class="text-xs text-gray-500">Nama wali kelas asli yang dicetak pada raport tiap kelas</p>
+              </div>
+            </div>
+
+            <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <template x-for="cName in (raportSetup.classes || uniqueClasses || [])" :key="cName">
+                <div class="flex items-center gap-3 p-2 rounded-xl bg-gray-50 border border-gray-200">
+                  <span class="font-bold text-xs text-gray-700 w-28 truncate" x-text="cName"></span>
+                  <input
+                    type="text"
+                    x-model="raportSetup.waliKelasMap[cName]"
+                    class="app-input text-xs flex-1 py-1.5"
+                    :placeholder="'Nama Wali Kelas ' + cName"
+                    list="teacherListDatalist"
+                  />
+                </div>
+              </template>
+            </div>
+            <datalist id="teacherListDatalist">
+              <template x-for="t in (raportSetup.teachers || [])" :key="t.Username">
+                <option :value="t.Name"></option>
+              </template>
+            </datalist>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORM 4: PEMETAAN KITAB KUNING PER MATA PELAJARAN -->
+      <div class="app-card p-6 bg-white space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">📖</span>
+            <div>
+              <h4 class="font-black text-gray-900">Pemetaan Kitab Kuning per Mata Pelajaran</h4>
+              <p class="text-xs text-gray-500">Tentukan nama kitab kuning yang dikaji untuk masing-masing mata pelajaran raport</p>
+            </div>
+          </div>
+          <span class="text-xs text-gray-400">Dicetak di Kolom "Kitab" Tabel B Raport F4</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <template x-for="item in (raportSetup.defaultKitabList || [])" :key="item.subject">
+            <div class="p-3 rounded-xl border border-gray-200 bg-gray-50/70 space-y-1">
+              <p class="font-black text-xs text-gray-800" x-text="item.subject"></p>
+              <input
+                type="text"
+                x-model="raportSetup.kitabMap[item.subject]"
+                class="app-input text-xs py-1.5 bg-white"
+                :placeholder="item.kitab"
+              />
+            </div>
+          </template>
+        </div>
+
+        <!-- TOMBOL SIMPAN UTAMA SETUP RAPORT -->
+        <div class="pt-4 border-t border-gray-100 flex justify-end">
+          <button
+            type="button"
+            class="app-btn bg-[#0f5f4a] text-white hover:bg-[#0b4939] px-6 py-3 font-black text-sm shadow-md flex items-center gap-2"
+            :disabled="savingRaportSetup"
+            @click="saveRaportSetup()"
+          >
+            <span>💾</span>
+            <span x-text="savingRaportSetup ? 'Menyimpan Pengaturan...' : 'Simpan Seluruh Pengaturan Raport'"></span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= SEKSI 4: MASTER PERIODE & MAPEL (LANJUTAN) ================= -->
     <div x-show="academicSection === 'setup' && (user.Role === 'Mudir' || user.Role === 'Admin')" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
       <div class="app-card p-6 bg-white space-y-4">
         <div class="flex items-center justify-between gap-3">
@@ -475,9 +727,6 @@
             Ambang kehadiran ujian (%)
             <input type="number" min="0" max="100" step="0.1" x-model.number="academicPeriodForm.AttendanceThreshold" class="app-input mt-1" />
           </label>
-          <p x-show="academicSetup.features?.reportV2" class="md:col-span-2 text-xs text-gray-500">
-            Kehadiran dihitung dari KBM, Pondok, dan Kegiatan. Status Telat tetap dihitung hadir.
-          </p>
         </div>
         <button type="button" class="app-btn app-btn-primary w-full" @click="saveAcademicPeriod()">Simpan Periode</button>
 
@@ -511,8 +760,8 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <input type="text" x-model="academicSubjectForm.Name" class="app-input md:col-span-2" placeholder="Nama mapel" />
           <select x-model="academicSubjectForm.Category" class="app-input">
-            <option value="Umum">Umum</option>
             <option value="Agama">Agama</option>
+            <option value="Umum">Umum</option>
           </select>
           <select x-model="academicSubjectForm.Level" class="app-input">
             <option value="Semua">Semua jenjang</option>
@@ -545,116 +794,9 @@
           </template>
         </div>
       </div>
-
-      <div x-show="academicSetup.features?.reportV2" class="app-card p-6 bg-white space-y-4 xl:col-span-2">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 class="font-black text-gray-900">Penugasan Guru Akademik</h3>
-            <p class="text-sm text-gray-500">Penugasan ini membatasi input nilai dan akses raport guru.</p>
-          </div>
-          <div class="flex gap-2">
-            <button type="button" class="app-btn app-btn-soft" @click="resetAcademicAssignmentForm()">Baru</button>
-            <button type="button" class="app-btn app-btn-soft" @click="syncAcademicAssignments()">Sinkronkan Jadwal</button>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <select x-model="academicAssignmentForm.PeriodID" class="app-input">
-            <option value="">Periode</option>
-            <template x-for="period in academicSetup.periods" :key="period.PeriodID">
-              <option :value="period.PeriodID" x-text="period.Title"></option>
-            </template>
-          </select>
-          <select x-model="academicAssignmentForm.SubjectID" class="app-input">
-            <option value="">Mapel</option>
-            <template x-for="subject in academicSetup.subjects" :key="subject.SubjectID">
-              <option :value="subject.SubjectID" x-text="subject.Name"></option>
-            </template>
-          </select>
-          <input type="text" x-model="academicAssignmentForm.ClassOrGroupName" class="app-input" placeholder="Kelas" />
-          <select x-model="academicAssignmentForm.TeacherSourceID" @change="applyAcademicAssignmentTeacher()" class="app-input">
-            <option value="">Guru</option>
-            <template x-for="teacher in academicSetup.teacherOptions || []" :key="teacher.TeacherSourceID || teacher.TeacherID">
-              <option :value="teacher.TeacherSourceID || teacher.TeacherID" x-text="teacher.TeacherID || teacher.TeacherSourceID"></option>
-            </template>
-          </select>
-        </div>
-        <button type="button" class="app-btn app-btn-primary" @click="saveAcademicAssignment()">Simpan Penugasan</button>
-
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[720px] text-sm">
-            <thead><tr class="text-left text-gray-400 border-b"><th class="py-3">Periode</th><th class="py-3">Mapel</th><th class="py-3">Kelas</th><th class="py-3">Guru</th><th class="py-3 text-right">Status</th></tr></thead>
-            <tbody class="divide-y">
-              <template x-for="assignment in academicSetup.assignments || []" :key="assignment.AssignmentID">
-                <tr>
-                  <td class="py-3" x-text="academicPeriodTitle(assignment.PeriodID)"></td>
-                  <td class="py-3" x-text="academicSubjectName(assignment.SubjectID)"></td>
-                  <td class="py-3 font-bold" x-text="assignment.ClassOrGroupName"></td>
-                  <td class="py-3" x-text="assignment.TeacherID || assignment.TeacherSourceID"></td>
-                  <td class="py-3 text-right">
-                    <button type="button" class="app-btn app-btn-soft text-xs" @click="setAcademicAssignmentStatus(assignment, !assignment.IsActive)" x-text="assignment.IsActive ? 'Nonaktifkan' : 'Aktifkan'"></button>
-                    <button type="button" class="app-btn app-btn-soft text-xs" @click="editAcademicAssignment(assignment)">Edit</button>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="app-card p-6 bg-white space-y-4 xl:col-span-2">
-        <h3 class="font-black text-gray-900">Komponen dan Bobot Nilai</h3>
-        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
-          <select x-model="academicComponentForm.PeriodID" class="app-input md:col-span-2">
-            <option value="">Periode</option>
-            <template x-for="period in academicSetup.periods" :key="period.PeriodID">
-              <option :value="period.PeriodID" x-text="period.Title"></option>
-            </template>
-          </select>
-          <select x-model="academicComponentForm.SubjectID" class="app-input md:col-span-2">
-            <option value="">Mapel</option>
-            <template x-for="subject in academicSetup.subjects" :key="subject.SubjectID">
-              <option :value="subject.SubjectID" x-text="subject.Name"></option>
-            </template>
-          </select>
-          <input type="text" x-model="academicComponentForm.Name" class="app-input" placeholder="Komponen" />
-          <input type="number" x-model="academicComponentForm.Weight" class="app-input" placeholder="Bobot %" />
-          <input type="number" x-model="academicComponentForm.MaxScore" class="app-input" placeholder="Maks" />
-          <input type="number" x-model="academicComponentForm.SortOrder" class="app-input" placeholder="Urut" />
-          <label class="inline-flex items-center gap-2 text-sm font-bold text-gray-600">
-            <input type="checkbox" x-model="academicComponentForm.IsActive" />
-            Aktif
-          </label>
-          <button type="button" class="app-btn app-btn-primary md:col-span-2" @click="saveAssessmentComponent()">Simpan Komponen</button>
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-left text-gray-400 border-b">
-                <th class="py-3">Periode</th>
-                <th class="py-3">Mapel</th>
-                <th class="py-3">Komponen</th>
-                <th class="py-3">Bobot</th>
-                <th class="py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y">
-              <template x-for="component in academicSetup.components" :key="component.ComponentID">
-                <tr class="cursor-pointer hover:bg-gray-50" @click="editAssessmentComponent(component)">
-                  <td class="py-3" x-text="academicPeriodTitle(component.PeriodID)"></td>
-                  <td class="py-3" x-text="academicSubjectName(component.SubjectID)"></td>
-                  <td class="py-3 font-bold" x-text="component.Name"></td>
-                  <td class="py-3" x-text="component.Weight + '%'"></td>
-                  <td class="py-3" x-text="component.IsActive ? 'Aktif' : 'Nonaktif'"></td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
 
+    <!-- ================= SEKSI 5: PROFIL AKADEMIK SANTRI ================= -->
     <div x-show="academicSection === 'profil' && (user.Role === 'Mudir' || user.Role === 'Admin')" class="app-card p-6 bg-white">
       <h3 class="font-black text-gray-900 mb-4">Profil Akademik Santri</h3>
       <div class="overflow-x-auto">
