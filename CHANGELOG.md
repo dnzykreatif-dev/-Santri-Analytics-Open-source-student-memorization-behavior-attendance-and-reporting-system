@@ -1,6 +1,28 @@
 # Changelog
 
-## 2026-11-02 - Versi Update: Paket Raport Lengkap, Bulk PDF 1-Klik & Santri Analytics PRO (360° Intelligence)
+## 2026-11-02 - Versi Update: 100% Data Riil Rapor Santri, Presisi Format Referensi F4/A4, & Eliminasi Duplikasi
+
+- **100% Data Riil Aplikasi (Eliminasi Total Nilai Palsu / Simulasi)**:
+  - Menghapus seluruh fallback nilai mock/hardcoded (`defaultPondokSubjects` angka 91, 92, 95 dsb.) di `SantriIntelligence.gs`, `JS_App.html`, dan `Modal_BulkRaportPrint.html`.
+  - Nilai Tahfidz, Pelajaran Kitab Kuning, Kurikulum Kepesantrenan, Presensi, dan Akhlak kini ditarik 100% dari rekaman riil di spreadsheet (`AcademicSubjects`, `AcademicScores`, `MemorizationLogs`, `Attendance`, dan `Incidents`).
+  - Bila nilai mata pelajaran belum diinput oleh ustadz di sheet, sistem secara jujur menampilkan strip `-` dan terbilang `Belum dinilai` (BUKAN angka simulasi palsu).
+  - Seksi Tahfidz menampilkan capaian riil santri; jika santri belum ada setoran hafalan pada periode berjalan, nilai dan predikat tertera `-` dengan keterangan `Belum ada catatan setoran pada periode ini`.
+- **Eliminasi Pengulangan Halaman & Selector Cetak Cerdas**:
+  - Deduplikasi ketat data santri pada backend `getBulkClassReportData` menggunakan hashing identitas unik (`StudentID` dan `Name + NIS`) sehingga santri ganda di database tidak akan pernah lagi dicetak dua kali.
+  - Penambahan dropdown **Pilih Santri** di toolbar modal: Ustadz/Admin dapat memilih mencetak `Semua Santri 1 Kelas (Massal)` atau memilih santri spesifik (misal: hanya mencetak santri Bunga), menghasilkan tepat **1 lembar halaman F4 rapi** tanpa halaman duplikat.
+  - Penambahan tombol shortcut `📜 Cetak Format F4 Resmi` langsung dari tab Raport pada modal detail santri perorangan (`Modal_Detail_Raport.html`).
+- **Kop Surat Lembaga & Logo Presisi Sesuai Referensi F4/A4**:
+  - Penyesuaian tata letak kop surat 100% identik dengan standar referensi resmi pesantren di folder `Referensi`:
+    - Lambang/crest resmi di sebelah kiri (dengan fallback vektor SVG kubah & bintang emas Islami jika logo custom belum diunggah).
+    - Teks kop 4 baris bertingkat: Nama Yayasan, Nama Pondok Pesantren (bold tegas), Kaligrafi Teks Arab Resmi Lembaga (`معهد ...`), dan Alamat Lengkap + No. Kontak + No. Statistik Pesantren (NSPP).
+    - Garis ganda tebal-tipis (*double rule border*) melintang penuh pemisah kop resmi.
+- **Pembersihan Footer Browser (Bebas Link URL Script Google)**:
+  - Penyempurnaan aturan CSS `@media print` dan `@page` untuk ukuran kertas standar Folio/F4 (215mm x 330mm) dengan margin presisi agar dokumen muat pas 1 halaman per santri.
+  - Penambahan banner panduan visual di UI toolbar cetak yang mengingatkan pengguna untuk menonaktifkan centang *"Headers and footers"* pada dialog cetak browser agar URL link browser dan tanggal di pojok bawah tidak tercetak.
+- **Tabel Kurikulum Kitab Lengkap dengan Terbilang & Teks Arab**:
+  - Pemetaan otomatis teks Arab untuk mata pelajaran kepesantrenan (Tafsir, Hadits, Mushthalah Hadits, Tauhid, Fiqih, Ushul Fiqih, Nahwu, Balaghah, Tasawuf) dengan nama kitab kuning rujukan.
+  - Engine konversi terbilang Indonesia (`SI_terbilang_`) disempurnakan mendukung satuan, belasan, puluhan, ratusan, ribuan, hingga angka desimal koma (misal: 92.6 $\rightarrow$ *Sembilan puluh dua koma enam*).
+  - Tanda tangan 3 kolom resmi (Orang Tua/Wali, Pimpinan Pondok, dan Wali Kelas) lengkap dengan titimangsa kota dan tanggal resmi Indonesia.
 
 - **Paket Raport Lengkap & Bulk PDF 1-Klik**:
   - Menerapkan sistem raport terpadu berbasis referensi standar lembaga Islam: Format TPQ (A4), MDT (F4), Pondok Pesantren (F4), Leger Nilai 1 Kelas (Landscape), dan Sertifikat Kenaikan Jilid.

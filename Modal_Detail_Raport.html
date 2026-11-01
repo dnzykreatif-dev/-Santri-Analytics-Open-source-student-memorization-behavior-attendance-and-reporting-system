@@ -42,6 +42,15 @@
       <span x-text="loadingReport ? 'Menyiapkan...' : 'Bagikan ke Wali'"></span>
     </button>
     <button
+      type="button"
+      @click="openBulkRaportModal(selectedStudent['Class/Level'] || selectedStudent.Class, selectedStudent.StudentID)"
+      class="px-4 py-2 bg-[#0f5f4a] text-white rounded-lg text-sm font-bold hover:bg-[#0b4939] flex items-center gap-2 shadow-sm"
+      title="Buka format resmi Rapor Pondok (F4) 1 halaman pas siap cetak atau simpan PDF"
+    >
+      <span>📜</span>
+      <span>Cetak Format F4 Resmi</span>
+    </button>
+    <button
       @click="window.print()"
       class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-200 flex items-center gap-2"
     >

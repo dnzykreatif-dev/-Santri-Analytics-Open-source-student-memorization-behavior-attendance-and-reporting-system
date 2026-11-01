@@ -1,23 +1,23 @@
 <!-- MODAL BULK RAPORT & PRINT ENGINE LENGKAP -->
 <div
   x-show="showBulkRaportModal"
-  class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-0 md:p-4 overflow-y-auto"
+  class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-0 md:p-4 overflow-y-auto"
   x-cloak
 >
-  <div class="bg-slate-100 w-full max-w-6xl min-h-screen md:min-h-0 md:max-h-[92vh] flex flex-col md:rounded-3xl shadow-2xl overflow-hidden">
+  <div class="bg-slate-100 w-full max-w-6xl min-h-screen md:min-h-0 md:max-h-[94vh] flex flex-col md:rounded-3xl shadow-2xl overflow-hidden">
     
     <!-- TOP TOOLBAR (NO-PRINT) -->
-    <div class="p-4 md:p-6 bg-white border-b border-gray-200 flex flex-wrap items-center justify-between gap-4 no-print sticky top-0 z-20">
+    <div class="p-4 md:p-5 bg-white border-b border-gray-200 flex flex-wrap items-center justify-between gap-4 no-print sticky top-0 z-20">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-gradient-islamic text-white flex items-center justify-center font-black shadow-md">
-          <span>📄</span>
+        <div class="w-10 h-10 rounded-2xl bg-[#0f5f4a] text-white flex items-center justify-center font-black shadow-md text-xl">
+          <span>📜</span>
         </div>
         <div>
           <h3 class="font-black text-lg md:text-xl text-gray-900 leading-tight">
-            Paket Cetak Raport Lengkap
+            Laporan Raport Lengkap Santri
           </h3>
           <p class="text-xs text-gray-500">
-            Cetak massal seluruh santri 1 kelas, leger nilai, dan sertifikat dalam satu tempat.
+            Cetak massal satu kelas, perorangan santri, leger nilai, dan sertifikat resmi.
           </p>
         </div>
       </div>
@@ -55,7 +55,7 @@
         <!-- Pilihan Tampilan -->
         <select
           x-model="bulkViewMode"
-          class="text-xs font-bold border border-gray-200 bg-white rounded-xl px-3 py-2 text-gray-700"
+          class="text-xs font-bold border border-gray-200 bg-white rounded-xl px-3 py-2 text-gray-700 outline-none"
         >
           <option value="raport">Rapor Santri (Perorangan / Massal)</option>
           <option value="leger">Leger Nilai Satu Kelas</option>
@@ -70,39 +70,62 @@
           class="app-btn app-btn-primary text-xs flex items-center gap-2 shadow-sm disabled:opacity-50"
         >
           <span>🖨️</span>
-          <span>Cetak / Simpan PDF (1 Kelas)</span>
+          <span x-text="bulkSelectedStudentId === 'ALL' ? 'Cetak / PDF (1 Kelas Penuh)' : 'Cetak / PDF (Santri Ini Saja)'"></span>
         </button>
 
         <button
           type="button"
           @click="showBulkRaportModal = false"
-          class="p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors ml-2"
+          class="p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors ml-1"
         >
           ✕
         </button>
       </div>
     </div>
 
-    <!-- SUB-BAR INFO KELAS & FILTER -->
-    <div class="px-6 py-3 bg-[#FBF8F1] border-b border-[#E8DEC8] flex flex-wrap items-center justify-between gap-3 text-xs no-print">
-      <div class="flex items-center gap-3">
-        <span class="font-bold text-gray-600">Kelas:</span>
-        <select
-          x-model="bulkSelectedClass"
-          @change="loadBulkClassRaport()"
-          class="bg-white border border-gray-300 rounded-lg px-2.5 py-1 font-bold text-[#0f5f4a]"
-        >
-          <template x-for="c in uniqueClasses" :key="c">
-            <option :value="c" x-text="c"></option>
-          </template>
-        </select>
+    <!-- SUB-BAR INFO KELAS, SELECTOR SANTRI & PANDUAN CETAK BERSIH -->
+    <div class="px-5 py-3 bg-[#FBF8F1] border-b border-[#E8DEC8] flex flex-wrap items-center justify-between gap-3 text-xs no-print">
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Filter Kelas -->
+        <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1">
+          <span class="font-bold text-gray-600">Kelas:</span>
+          <select
+            x-model="bulkSelectedClass"
+            @change="loadBulkClassRaport()"
+            class="font-black text-[#0f5f4a] bg-transparent outline-none cursor-pointer"
+          >
+            <template x-for="c in uniqueClasses" :key="c">
+              <option :value="c" x-text="c"></option>
+            </template>
+          </select>
+        </div>
 
-        <span class="font-bold text-gray-600 ml-2">Total Santri:</span>
-        <span class="font-black text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-200" x-text="bulkRaportData?.totalStudents || 0"></span>
+        <!-- Filter Santri Spesifik (Mencegah Halaman Pengulangan) -->
+        <div class="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1">
+          <span class="font-bold text-gray-600">Pilih Santri:</span>
+          <select
+            x-model="bulkSelectedStudentId"
+            class="font-bold text-gray-800 bg-transparent outline-none cursor-pointer max-w-[200px] md:max-w-[260px] truncate"
+          >
+            <option value="ALL">Semua Santri 1 Kelas (Massal)</option>
+            <template x-for="item in (bulkRaportData?.reports || [])" :key="item.student.StudentID">
+              <option :value="item.student.StudentID" x-text="item.student.Name + ' (' + (item.student.NIS || item.student.StudentID) + ')'"></option>
+            </template>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-1 bg-white px-2 py-1 rounded border border-gray-200">
+          <span class="text-gray-500">Ditampilkan:</span>
+          <strong class="text-gray-900" x-text="filteredBulkReports().length + ' dari ' + (bulkRaportData?.totalStudents || 0) + ' santri'"></strong>
+        </div>
       </div>
 
-      <div class="flex items-center gap-2 text-gray-500">
-        <span>💡 <em>Tips:</em> Pilih <strong>Save as PDF</strong> pada dialog printer browser untuk menghasilkan PDF vektor seluruh santri sekaligus.</span>
+      <!-- Panduan Cetak Tanpa URL Link di Kiri Bawah -->
+      <div class="flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200/80 px-3 py-1.5 rounded-lg text-[11px] leading-tight">
+        <span>💡</span>
+        <span>
+          <strong>Petunjuk Cetak Rapi:</strong> Pada dialog printer browser, klik <em>More settings</em> lalu <strong>hilangkan centang 'Headers and footers'</strong> agar tautan link browser dan tanggal di footer tidak tercetak.
+        </span>
       </div>
     </div>
 
@@ -110,315 +133,481 @@
     <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-200/70" id="bulkPrintArea">
       
       <!-- SKELETON / LOADING -->
-      <div x-show="loadingBulkRaport" class="py-20 text-center">
+      <div x-show="loadingBulkRaport" class="py-24 text-center">
         <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-[#0f5f4a] border-t-transparent mb-4"></div>
-        <p class="font-bold text-gray-700">Menyusun raport seluruh santri kelas...</p>
-        <p class="text-xs text-gray-400 mt-1">Mengambil nilai kurikulum, hafalan, presensi, dan catatan pembinaan.</p>
+        <p class="font-bold text-gray-700 text-sm">Menyusun raport resmi santri dari data riil...</p>
+        <p class="text-xs text-gray-400 mt-1">Mengambil log hafalan, nilai pelajaran kitab, kurikulum, presensi, dan catatan akhlak.</p>
       </div>
 
       <!-- VIEW MODE 1: RAPOR SANTRI LENGKAP (MULTIPLE PAGES WITH PAGE-BREAK) -->
-      <div x-show="!loadingBulkRaport && bulkViewMode === 'raport'" class="space-y-10">
-        <template x-for="(item, sIdx) in (bulkRaportData?.reports || [])" :key="item.student.StudentID">
-          <div class="raport-sheet bg-white rounded-2xl shadow-xl p-8 md:p-12 max-w-4xl mx-auto border border-gray-200 text-gray-800 text-xs leading-relaxed relative">
+      <div x-show="!loadingBulkRaport && bulkViewMode === 'raport'" class="space-y-12">
+        <template x-for="(item, sIdx) in filteredBulkReports()" :key="item.student.StudentID">
+          <div class="raport-sheet bg-white rounded-2xl shadow-xl p-8 md:p-10 max-w-4xl mx-auto border border-gray-200 text-gray-800 text-[10px] leading-relaxed relative">
             
-            <!-- KOP LEMBAGA SESUAI REFERENSI -->
-            <div class="border-b-2 border-double border-gray-800 pb-3 mb-5 text-center relative">
-              <div class="flex items-center justify-center gap-4">
-                <div class="w-16 h-16 rounded-full border-2 border-[#0f5f4a] flex items-center justify-center p-1 bg-white text-[#0f5f4a] font-black text-2xl shadow-sm">
-                  <template x-if="tenantProfile?.LogoUrl">
-                    <img :src="tenantProfile.LogoUrl" class="w-full h-full object-contain rounded-full" alt="Logo" />
+            <!-- KOP LEMBAGA RESMI SESUAI REFERENSI F4 -->
+            <div class="border-b-4 border-double border-gray-900 pb-2 mb-3 text-center relative">
+              <div class="flex items-center justify-between gap-3">
+                <!-- LOGO RESMI / EMBLEM CREST VEKTOR -->
+                <div class="w-20 h-20 flex-shrink-0 flex items-center justify-center">
+                  <template x-if="bulkRaportData?.tenantProfile?.LogoUrl">
+                    <img :src="bulkRaportData.tenantProfile.LogoUrl" class="w-full h-full object-contain" alt="Logo Pondok" />
                   </template>
-                  <template x-if="!tenantProfile?.LogoUrl">
-                    <span>🕌</span>
+                  <template x-if="!bulkRaportData?.tenantProfile?.LogoUrl">
+                    <div class="w-18 h-18 rounded-full border-2 border-emerald-900 bg-[#0f5f4a] p-1 flex items-center justify-center text-amber-300 shadow-sm">
+                      <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 21h18"/>
+                        <path d="M5 21V9a7 7 0 0 1 14 0v12"/>
+                        <path d="M9 21v-6a3 3 0 0 1 6 0v6"/>
+                        <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
+                      </svg>
+                    </div>
                   </template>
                 </div>
-                <div>
-                  <h4 class="font-bold text-gray-500 text-[10px] tracking-widest uppercase" x-text="tenantProfile?.YayasanName || 'YAYASAN PENDIDIKAN PESANTREN'"></h4>
-                  <h2 class="font-black text-base md:text-lg text-gray-900 tracking-wide uppercase" x-text="tenantProfile?.InstitutionName || 'PONDOK PESANTREN RAUDHATUL ULUM'"></h2>
-                  <p class="text-[9px] text-gray-500 leading-tight mt-0.5" x-text="(tenantProfile?.Address || 'Jl. Raya Pendidikan') + (tenantProfile?.Phone ? ' — Telp/WA: ' + tenantProfile.Phone : '')"></p>
-                  <p class="text-[9px] text-gray-400" x-show="tenantProfile?.StatistikNumber" x-text="'No. Statistik: ' + tenantProfile.StatistikNumber"></p>
+
+                <!-- TEKS KOP BERTINGKAT -->
+                <div class="flex-1 text-center pr-4">
+                  <h4 class="font-medium text-gray-600 text-[10.5px] tracking-wider uppercase leading-tight" x-text="bulkRaportData?.tenantProfile?.YayasanName || 'YAYASAN MIFTAHUL HUDA AL-BAROKAH'"></h4>
+                  <h2 class="font-black text-base md:text-lg text-emerald-950 tracking-wide uppercase leading-tight mt-0.5" x-text="bulkRaportData?.tenantProfile?.InstitutionName || 'PONDOK PESANTREN MIFTAHUL HUDA AL-BAROKAH'"></h2>
+                  
+                  <!-- KALIGRAFI TEKS ARAB LEMBAGA -->
+                  <p class="font-serif text-sm md:text-base font-bold text-gray-800 my-0.5 leading-snug" dir="rtl" x-text="bulkRaportData?.tenantProfile?.ArabicName || 'معهد مفتاح الهدى البركة'"></p>
+                  
+                  <p class="text-[9px] text-gray-600 leading-tight" x-text="(bulkRaportData?.tenantProfile?.Address || 'Jl. Pesantren No. 7, Kp. Pasirhuni, Desa Margaluyu, Kec. Manonjaya, Jawa Barat') + ' — Telp/WA ' + (bulkRaportData?.tenantProfile?.Phone || '0821-3377-9014') + ' · No. Statistik: ' + (bulkRaportData?.tenantProfile?.StatistikNumber || '510032070118')"></p>
                 </div>
               </div>
             </div>
 
             <!-- JUDUL LAPORAN -->
-            <div class="text-center mb-5">
-              <h3 class="font-black text-sm md:text-base tracking-wider uppercase underline underline-offset-4"
-                  x-text="bulkTemplateType === 'tpq' ? 'LAPORAN PERKEMBANGAN BELAJAR SANTRI (TPQ)' : (bulkTemplateType === 'mdt' ? 'LAPORAN HASIL BELAJAR SANTRI (MDTA)' : 'LAPORAN HASIL BELAJAR SANTRI PONDOK PESANTREN')">
+            <div class="text-center mb-3">
+              <h3 class="font-black text-sm tracking-widest uppercase"
+                  x-text="bulkTemplateType === 'tpq' ? 'LAPORAN PERKEMBANGAN BELAJAR SANTRI' : (bulkTemplateType === 'mdt' ? 'LAPORAN HASIL BELAJAR SANTRI' : 'LAPORAN HASIL BELAJAR SANTRI')">
               </h3>
             </div>
 
-            <!-- METADATA IDENTITAS SANTRI -->
-            <div class="grid grid-cols-2 gap-4 mb-5 text-[11px] bg-gray-50/70 p-3 rounded-xl border border-gray-100">
-              <div class="space-y-1">
-                <div class="flex"><span class="w-24 text-gray-500">Nama Santri</span><span class="font-bold text-gray-900" x-text="': ' + item.student.Name"></span></div>
-                <div class="flex"><span class="w-24 text-gray-500">Nomor Induk / NIS</span><span class="text-gray-800" x-text="': ' + (item.student.NIS || item.student.StudentID)"></span></div>
-                <div class="flex"><span class="w-24 text-gray-500">Kelas / Kamar</span><span class="font-bold text-gray-800" x-text="': ' + (item.student['Class/Level'] || item.student.Class || bulkSelectedClass)"></span></div>
+            <!-- TABEL IDENTITAS SANTRI (DUA KOLOM TITIK DUA SEJAJAR) -->
+            <div class="grid grid-cols-2 gap-4 mb-3 text-[10px] leading-snug px-1">
+              <div class="space-y-0.5">
+                <div class="flex"><span class="w-28 text-gray-600">Nama Santri</span><span class="font-bold text-gray-900" x-text="': ' + item.student.Name"></span></div>
+                <div class="flex"><span class="w-28 text-gray-600">Nomor Induk / NIS</span><span class="text-gray-800" x-text="': ' + (item.student.NIS || item.student.StudentID)"></span></div>
+                <div class="flex"><span class="w-28 text-gray-600">Kelas / Kamar</span><span class="font-bold text-gray-800" x-text="': ' + (item.student['Class/Level'] || item.student.Class || bulkSelectedClass) + (item.student.Room || item.student.Kamar ? ' · Kamar ' + (item.student.Room || item.student.Kamar) : '')"></span></div>
               </div>
-              <div class="space-y-1 text-right md:text-left md:pl-6">
-                <div class="flex justify-between md:justify-start"><span class="w-28 text-gray-500">Tahun Ajaran</span><span class="font-bold text-gray-800" x-text="': ' + (bulkRaportData?.period?.AcademicYear || '2026/2027')"></span></div>
-                <div class="flex justify-between md:justify-start"><span class="w-28 text-gray-500">Periode</span><span class="text-gray-800" x-text="': ' + (bulkRaportData?.period?.Title || 'Semester Ganjil')"></span></div>
-                <div class="flex justify-between md:justify-start"><span class="w-28 text-gray-500">Wali Kelas</span><span class="text-gray-800" x-text="': ' + (tenantProfile?.WaliKelasDefault || user?.Name || 'Ustadz Pembina')"></span></div>
+              <div class="space-y-0.5">
+                <div class="flex"><span class="w-28 text-gray-600">Tahun Ajaran</span><span class="font-bold text-gray-800" x-text="': ' + (bulkRaportData?.period?.AcademicYear || '2026/2027')"></span></div>
+                <div class="flex"><span class="w-28 text-gray-600">Periode</span><span class="text-gray-800" x-text="': ' + (bulkRaportData?.period?.Title || 'Semester 1 (Ganjil)')"></span></div>
+                <div class="flex"><span class="w-28 text-gray-600">Wali Kelas</span><span class="text-gray-800" x-text="': ' + (bulkRaportData?.tenantProfile?.WaliKelasDefault || item.student.WaliKelas || 'Ustdz. Nida Fadhilah')"></span></div>
               </div>
             </div>
 
-            <!-- ================= FORMAT SPESIFIK 1: PONDOK PESANTREN ================= -->
+            <!-- ================= FORMAT SPESIFIK 1: PONDOK PESANTREN (F4) ================= -->
             <template x-if="bulkTemplateType === 'pondok'">
-              <div class="space-y-4">
+              <div class="space-y-3">
                 
                 <!-- A. TAHFIDZ AL-QUR'AN -->
                 <div>
-                  <div class="bg-[#0f5f4a] text-white px-3 py-1 font-black text-[11px] rounded-t flex justify-between items-center">
+                  <div class="font-bold text-[10.5px] text-gray-900 mb-1 flex items-center justify-between">
                     <span>A. Tahfidz Al-Qur'an</span>
-                    <span class="text-[10px] opacity-90" x-text="'Total Setoran: ' + (item.reportData?.hafalan?.total || 0) + ' Kali'"></span>
+                    <span class="text-[9px] text-gray-500 font-normal" x-text="'Total Setoran: ' + (item.reportData?.tahfidz?.totalSetoran || 0) + ' Kali'"></span>
                   </div>
-                  <table class="w-full border-collapse border border-gray-300 text-[10px]">
-                    <tr class="bg-gray-50">
-                      <td class="p-1.5 border border-gray-300 font-bold w-32">Jumlah Hafalan</td>
-                      <td class="p-1.5 border border-gray-300" colspan="3">
-                        <strong class="text-[#0f5f4a]" x-text="(item.student.HafalanJuz || (Math.floor((item.reportData?.hafalan?.total || 1) / 10) + 1)) + ' Juz'"></strong>
-                        <span class="text-gray-500 ml-2" x-text="'(Ziyadah Periode Ini: +' + (item.reportData?.hafalan?.newCount || 0) + ' setoran)'"></span>
+                  
+                  <!-- Baris Info Tahfidz Berbingkai Sesuai Referensi F4 -->
+                  <table class="w-full border-collapse border border-gray-400 text-[9.5px] mb-1">
+                    <tr>
+                      <td class="p-1 border border-gray-400 font-bold bg-gray-50 w-28">Jumlah hafalan</td>
+                      <td class="p-1 border border-gray-400" colspan="3">
+                        <strong class="text-emerald-900" x-text="item.reportData?.tahfidz?.jumlahHafalan || '-'"></strong>
+                        <span class="text-gray-500 ml-1.5" x-text="item.reportData?.tahfidz?.ziyadahJuz || ''"></span>
                       </td>
                     </tr>
-                    <tr class="bg-gray-100 text-gray-600 font-bold text-center">
-                      <th class="p-1 border border-gray-300 w-8">No</th>
-                      <th class="p-1 border border-gray-300">Aspek Tahfidz</th>
-                      <th class="p-1 border border-gray-300 w-16">Nilai</th>
-                      <th class="p-1 border border-gray-300 w-24">Predikat</th>
-                      <th class="p-1 border border-gray-300">Keterangan</th>
+                    <tr>
+                      <td class="p-1 border border-gray-400 font-bold bg-gray-50">Awal</td>
+                      <td class="p-1 border border-gray-400" x-text="item.reportData?.tahfidz?.suratAwal || '-'"></td>
+                      <td class="p-1 border border-gray-400 font-bold bg-gray-50 w-20">Akhir</td>
+                      <td class="p-1 border border-gray-400" x-text="item.reportData?.tahfidz?.suratAkhir || '-'"></td>
                     </tr>
                     <tr>
-                      <td class="p-1 border border-gray-300 text-center">1</td>
-                      <td class="p-1 border border-gray-300 font-medium">Kelancaran Hafalan</td>
-                      <td class="p-1 border border-gray-300 text-center font-bold">92</td>
-                      <td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">Mumtaz</td>
-                      <td class="p-1 border border-gray-300 text-gray-600">Sangat baik dalam kelancaran hafalan.</td>
-                    </tr>
-                    <tr>
-                      <td class="p-1 border border-gray-300 text-center">2</td>
-                      <td class="p-1 border border-gray-300 font-medium">Tajwid & Makharijul Huruf</td>
-                      <td class="p-1 border border-gray-300 text-center font-bold">95</td>
-                      <td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">Mumtaz</td>
-                      <td class="p-1 border border-gray-300 text-gray-600">Makharij dan sifat huruf tepat sesuai kaidah.</td>
-                    </tr>
-                    <tr>
-                      <td class="p-1 border border-gray-300 text-center">3</td>
-                      <td class="p-1 border border-gray-300 font-medium">Muroja'ah & Ketahanan Hafalan</td>
-                      <td class="p-1 border border-gray-300 text-center font-bold">89</td>
-                      <td class="p-1 border border-gray-300 text-center font-bold text-blue-700">Jayyid Jiddan</td>
-                      <td class="p-1 border border-gray-300 text-gray-600">Aktif muroja'ah mandiri dan berpasangan.</td>
+                      <td class="p-1 border border-gray-400 font-bold bg-gray-50">Ujian periode ini</td>
+                      <td class="p-1 border border-gray-400" colspan="3" x-text="item.reportData?.tahfidz?.ujianPeriode || '-'"></td>
                     </tr>
                   </table>
-                </div>
 
-                <!-- B. PELAJARAN KITAB KUNING & MATA PELAJARAN -->
-                <div>
-                  <div class="bg-[#0f5f4a] text-white px-3 py-1 font-black text-[11px] rounded-t flex justify-between items-center">
-                    <span>B. Pelajaran Kitab Kuning & Dirasah Islamiyyah</span>
-                    <span class="text-[10px] opacity-90">Skala 0-100</span>
-                  </div>
-                  <table class="w-full border-collapse border border-gray-300 text-[10px]">
+                  <!-- Tabel Aspek Hafalan -->
+                  <table class="w-full border-collapse border border-gray-400 text-[9.5px]">
                     <thead>
-                      <tr class="bg-gray-100 text-gray-700 font-bold text-center">
-                        <th class="p-1 border border-gray-300 w-8">No</th>
-                        <th class="p-1 border border-gray-300 text-left pl-2">Mata Pelajaran</th>
-                        <th class="p-1 border border-gray-300 text-left pl-2">Nama Kitab</th>
-                        <th class="p-1 border border-gray-300 w-12">KKM</th>
-                        <th class="p-1 border border-gray-300 w-14">Nilai</th>
-                        <th class="p-1 border border-gray-300">Huruf (Terbilang)</th>
-                        <th class="p-1 border border-gray-300 w-24">Predikat</th>
+                      <tr class="bg-gray-100 text-gray-800 font-bold text-center">
+                        <th class="p-1 border border-gray-400 w-8">No</th>
+                        <th class="p-1 border border-gray-400 text-left pl-2">Aspek hafalan</th>
+                        <th class="p-1 border border-gray-400 w-14">Nilai</th>
+                        <th class="p-1 border border-gray-400 w-24">Predikat</th>
+                        <th class="p-1 border border-gray-400 text-left pl-2">Keterangan</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <template x-for="(sub, idx) in (item.reportData?.academic?.subjects || item.reportData?.curriculum?.items || defaultPondokSubjects)" :key="sub.SubjectID || sub.ItemID || idx">
+                      <template x-for="asp in (item.reportData?.tahfidz?.aspek || [])" :key="asp.no">
                         <tr>
-                          <td class="p-1 border border-gray-300 text-center" x-text="idx + 1"></td>
-                          <td class="p-1 border border-gray-300 font-bold" x-text="sub.Name"></td>
-                          <td class="p-1 border border-gray-300 italic text-gray-600" x-text="sub.KitabName || sub.Category || 'Kitab Turots'"></td>
-                          <td class="p-1 border border-gray-300 text-center text-gray-500" x-text="sub.KKM || 70"></td>
-                          <td class="p-1 border border-gray-300 text-center font-black" x-text="sub.finalScore || sub.Score || 85"></td>
-                          <td class="p-1 border border-gray-300 text-gray-600 italic" x-text="terbilang(sub.finalScore || sub.Score || 85)"></td>
-                          <td class="p-1 border border-gray-300 text-center font-bold"
-                              :class="(sub.finalScore || sub.Score || 85) >= 90 ? 'text-emerald-700' : 'text-blue-700'"
-                              x-text="(sub.finalScore || sub.Score || 85) >= 90 ? 'Mumtaz' : ((sub.finalScore || sub.Score || 85) >= 80 ? 'Jayyid Jiddan' : 'Jayyid')"></td>
+                          <td class="p-1 border border-gray-400 text-center" x-text="asp.no"></td>
+                          <td class="p-1 border border-gray-400 font-medium pl-2" x-text="asp.name"></td>
+                          <td class="p-1 border border-gray-400 text-center font-bold" x-text="asp.score !== null ? asp.score : '-'"></td>
+                          <td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="asp.predikat"></td>
+                          <td class="p-1 border border-gray-400 text-gray-700 pl-2" x-text="asp.keterangan"></td>
                         </tr>
                       </template>
                     </tbody>
                   </table>
                 </div>
 
-                <!-- C & D: KEGIATAN KEPESANTRENAN & AKHLAK DISIPLIN -->
+                <!-- B. PELAJARAN KITAB KUNING (DATA RIIL DARI APLIKASI) -->
+                <div>
+                  <div class="font-bold text-[10.5px] text-gray-900 mb-1 flex items-center justify-between">
+                    <span>B. Pelajaran Kitab</span>
+                    <span class="text-[9px] text-gray-500 font-normal">Kurikulum Pesantren & Dirasah Islamiyyah</span>
+                  </div>
+                  <table class="w-full border-collapse border border-gray-400 text-[9.5px]">
+                    <thead>
+                      <tr class="bg-gray-100 text-gray-800 font-bold text-center">
+                        <th class="p-1 border border-gray-400 w-8">No</th>
+                        <th class="p-1 border border-gray-400 text-left pl-2">Mata Pelajaran</th>
+                        <th class="p-1 border border-gray-400 text-left pl-2">Kitab</th>
+                        <th class="p-1 border border-gray-400 w-12">KKM</th>
+                        <th class="p-1 border border-gray-400 w-14">Nilai</th>
+                        <th class="p-1 border border-gray-400 text-left pl-2">Huruf</th>
+                        <th class="p-1 border border-gray-400 w-24">Predikat</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <template x-for="sub in (item.reportData?.academic?.subjects || [])" :key="sub.no">
+                        <tr>
+                          <td class="p-1 border border-gray-400 text-center" x-text="sub.no"></td>
+                          <td class="p-1 border border-gray-400 pl-2">
+                            <div class="flex justify-between items-center pr-1">
+                              <span class="font-semibold text-gray-900" x-text="sub.Name"></span>
+                              <span class="text-gray-500 font-serif text-[11px]" dir="rtl" x-text="sub.ArabicName"></span>
+                            </div>
+                          </td>
+                          <td class="p-1 border border-gray-400 italic text-gray-700 pl-2" x-text="sub.KitabName"></td>
+                          <td class="p-1 border border-gray-400 text-center text-gray-600" x-text="sub.KKM"></td>
+                          <td class="p-1 border border-gray-400 text-center font-bold" x-text="sub.finalScore !== null ? sub.finalScore : '-'"></td>
+                          <td class="p-1 border border-gray-400 text-gray-700 italic pl-2" x-text="sub.huruf"></td>
+                          <td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="sub.predikat"></td>
+                        </tr>
+                      </template>
+
+                      <!-- Baris Jumlah Nilai Sesuai Referensi F4 -->
+                      <tr class="bg-gray-50 font-bold">
+                        <td class="p-1 border border-gray-400 text-center" colspan="3">Jumlah</td>
+                        <td class="p-1 border border-gray-400 text-center"></td>
+                        <td class="p-1 border border-gray-400 text-center font-black" x-text="item.reportData?.academic?.totalScore !== null ? item.reportData?.academic?.totalScore : '-'"></td>
+                        <td class="p-1 border border-gray-400 text-gray-700 italic pl-2" x-text="item.reportData?.academic?.totalHuruf || '-'"></td>
+                        <td class="p-1 border border-gray-400 text-center"></td>
+                      </tr>
+
+                      <!-- Baris Rata-rata Nilai Sesuai Referensi F4 -->
+                      <tr class="bg-gray-50 font-bold">
+                        <td class="p-1 border border-gray-400 text-center" colspan="3">Rata-rata</td>
+                        <td class="p-1 border border-gray-400 text-center text-gray-600">60</td>
+                        <td class="p-1 border border-gray-400 text-center font-black text-emerald-900" x-text="item.reportData?.academic?.average !== null ? item.reportData?.academic?.average : '-'"></td>
+                        <td class="p-1 border border-gray-400 text-gray-700 italic pl-2" x-text="item.reportData?.academic?.averageHuruf || '-'"></td>
+                        <td class="p-1 border border-gray-400 text-center font-black text-emerald-900" x-text="item.reportData?.academic?.predikatKeseluruhan || '-'"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- C & D: HAFALAN NADZAM & KEGIATAN KEPESANTRENAN (DUA KOLOM BERSISIAN) -->
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <div class="bg-gray-700 text-white px-2 py-0.5 font-bold text-[10px] rounded-t">C. Kegiatan Kepesantrenan</div>
-                    <table class="w-full border-collapse border border-gray-300 text-[9px]">
-                      <tr class="bg-gray-50 font-bold"><th class="p-1 border border-gray-300">Aspek Kegiatan</th><th class="p-1 border border-gray-300 w-24">Predikat</th></tr>
-                      <tr><td class="p-1 border border-gray-300">Shalat Berjamaah 5 Waktu</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">Sangat Baik</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Qiyamul Lail & Dzikir Wirid</td><td class="p-1 border border-gray-300 font-bold text-blue-700 text-center">Baik</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Musyawarah / Bahtsul Masail</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">Sangat Baik</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Kebersihan Kamar & Asrama</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">Sangat Baik</td></tr>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1">C. Hafalan Nadzam dan Matan</div>
+                    <table class="w-full border-collapse border border-gray-400 text-[9px]">
+                      <thead>
+                        <tr class="bg-gray-100 font-bold text-center">
+                          <th class="p-1 border border-gray-400 w-7">No</th>
+                          <th class="p-1 border border-gray-400 text-left pl-2">Hafalan</th>
+                          <th class="p-1 border border-gray-400 w-12">Nilai</th>
+                          <th class="p-1 border border-gray-400 w-20">Predikat</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <template x-for="nad in (item.reportData?.nadzam || [])" :key="nad.no">
+                          <tr>
+                            <td class="p-1 border border-gray-400 text-center" x-text="nad.no"></td>
+                            <td class="p-1 border border-gray-400 pl-2 font-medium" x-text="nad.name"></td>
+                            <td class="p-1 border border-gray-400 text-center font-bold" x-text="nad.score !== null ? nad.score : '-'"></td>
+                            <td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="nad.predikat"></td>
+                          </tr>
+                        </template>
+                      </tbody>
                     </table>
                   </div>
 
                   <div>
-                    <div class="bg-gray-700 text-white px-2 py-0.5 font-bold text-[10px] rounded-t">D. Akhlak & Kedisiplinan</div>
-                    <table class="w-full border-collapse border border-gray-300 text-[9px]">
-                      <tr class="bg-gray-50 font-bold"><th class="p-1 border border-gray-300">Aspek Perilaku</th><th class="p-1 border border-gray-300 w-24">Predikat</th></tr>
-                      <tr><td class="p-1 border border-gray-300">Adab Kepada Ustadz & Tamu</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">Sangat Baik</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Kedisiplinan & Kerapian Diri</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">Sangat Baik</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Ukhuwah & Hubungan Teman</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">Sangat Baik</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Kejujuran & Tanggung Jawab</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">Sangat Baik</td></tr>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1">D. Kegiatan Kepesantrenan</div>
+                    <table class="w-full border-collapse border border-gray-400 text-[9px]">
+                      <thead>
+                        <tr class="bg-gray-100 font-bold text-center">
+                          <th class="p-1 border border-gray-400 w-7">No</th>
+                          <th class="p-1 border border-gray-400 text-left pl-2">Aspek</th>
+                          <th class="p-1 border border-gray-400 w-24">Predikat</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <template x-for="keg in (item.reportData?.kegiatan || [])" :key="keg.no">
+                          <tr>
+                            <td class="p-1 border border-gray-400 text-center" x-text="keg.no"></td>
+                            <td class="p-1 border border-gray-400 pl-2 font-medium" x-text="keg.name"></td>
+                            <td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="keg.predikat"></td>
+                          </tr>
+                        </template>
+                      </tbody>
                     </table>
                   </div>
                 </div>
 
-                <!-- E & F: KETIDAKHADIRAN & STATISTIK KELAS -->
+                <!-- E & F: AKHLAK KEDISIPLINAN & KETIDAKHADIRAN (DUA KOLOM BERSISIAN) -->
                 <div class="grid grid-cols-2 gap-3">
-                  <table class="w-full border-collapse border border-gray-300 text-[10px]">
-                    <tr class="bg-gray-100 font-bold"><td class="p-1 border border-gray-300" colspan="2">E. Ketidakhadiran</td></tr>
-                    <tr><td class="p-1 border border-gray-300">Sakit</td><td class="p-1 border border-gray-300 font-bold text-center w-24" x-text="(item.reportData?.attendance?.sakit || 0) + ' hari'"></td></tr>
-                    <tr><td class="p-1 border border-gray-300">Izin</td><td class="p-1 border border-gray-300 font-bold text-center" x-text="(item.reportData?.attendance?.izin || 0) + ' hari'"></td></tr>
-                    <tr><td class="p-1 border border-gray-300">Tanpa Keterangan</td><td class="p-1 border border-gray-300 font-bold text-center" x-text="(item.reportData?.attendance?.alpa || 0) + ' hari'"></td></tr>
-                  </table>
+                  <div>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1">E. Akhlak dan Kedisiplinan</div>
+                    <table class="w-full border-collapse border border-gray-400 text-[9px]">
+                      <thead>
+                        <tr class="bg-gray-100 font-bold text-center">
+                          <th class="p-1 border border-gray-400 w-7">No</th>
+                          <th class="p-1 border border-gray-400 text-left pl-2">Aspek</th>
+                          <th class="p-1 border border-gray-400 w-24">Predikat</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <template x-for="akh in (item.reportData?.akhlak || [])" :key="akh.no">
+                          <tr>
+                            <td class="p-1 border border-gray-400 text-center" x-text="akh.no"></td>
+                            <td class="p-1 border border-gray-400 pl-2 font-medium" x-text="akh.name"></td>
+                            <td class="p-1 border border-gray-400 text-center font-bold"
+                                :class="akh.predikat === 'Perlu Pembinaan' ? 'text-rose-700' : 'text-emerald-800'"
+                                x-text="akh.predikat"></td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
 
-                  <table class="w-full border-collapse border border-gray-300 text-[10px]">
-                    <tr class="bg-gray-100 font-bold"><td class="p-1 border border-gray-300" colspan="2">F. Ringkasan & Peringkat</td></tr>
-                    <tr><td class="p-1 border border-gray-300">Rata-rata Nilai</td><td class="p-1 border border-gray-300 font-black text-center text-[#0f5f4a] w-24" x-text="item.reportData?.academic?.summary?.average || 88.5"></td></tr>
-                    <tr><td class="p-1 border border-gray-300">Predikat Keseluruhan</td><td class="p-1 border border-gray-300 font-bold text-center text-emerald-700">Mumtaz</td></tr>
-                    <tr><td class="p-1 border border-gray-300">Peringkat di Kelas</td><td class="p-1 border border-gray-300 font-black text-center" x-text="getStudentRank(item.student.StudentID) + ' dari ' + (bulkRaportData?.totalStudents || 1) + ' santri'"></td></tr>
-                  </table>
+                  <div>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1">F. Ketidakhadiran</div>
+                    <table class="w-full border-collapse border border-gray-400 text-[9.5px]">
+                      <tr>
+                        <td class="p-1.5 border border-gray-400 font-medium">Sakit</td>
+                        <td class="p-1.5 border border-gray-400 font-bold text-center w-24" x-text="(item.reportData?.attendance?.sakit || 0) + ' hari'"></td>
+                      </tr>
+                      <tr>
+                        <td class="p-1.5 border border-gray-400 font-medium">Izin</td>
+                        <td class="p-1.5 border border-gray-400 font-bold text-center" x-text="(item.reportData?.attendance?.izin || 0) + ' hari'"></td>
+                      </tr>
+                      <tr>
+                        <td class="p-1.5 border border-gray-400 font-medium">Tanpa keterangan</td>
+                        <td class="p-1.5 border border-gray-400 font-bold text-center" x-text="(item.reportData?.attendance?.alpa || 0) + ' hari'"></td>
+                      </tr>
+                    </table>
+                  </div>
                 </div>
 
-                <!-- G. NASIHAT & CATATAN WALI KELAS -->
-                <div class="border border-gray-300 p-2 rounded bg-gray-50/50">
-                  <p class="font-bold text-[10px] text-gray-700 mb-1">G. Nasihat / Catatan Wali Kelas:</p>
-                  <p class="italic text-gray-700 text-[10px]" x-text="item.student.CatatanPembinaan || 'Alhamdulillah, ananda menunjukkan ketekunan belajar dan akhlak yang sangat mulia. Pertahankan semangat muthala\'ah kitab dan muroja\'ah hafalan.'"></p>
+                <!-- G. NASIHAT WALI KELAS -->
+                <div>
+                  <div class="font-bold text-[10px] text-gray-900 mb-1">G. Nasihat Wali Kelas</div>
+                  <div class="border border-gray-400 p-2 rounded bg-gray-50/40 text-[9.5px] italic text-gray-800 leading-relaxed min-h-[38px]"
+                       x-text="item.reportData?.catatanWaliKelas || 'Alhamdulillah, Ananda menunjukkan prestasi dan akhlak yang sangat baik. Pertahankan semangat mengaji dan khidmah di pondok.'">
+                  </div>
                 </div>
+
+                <!-- TANDA TANGAN 3 KOLOM SESUAI REFERENSI GAMBAR F4 -->
+                <div class="mt-4 pt-2 grid grid-cols-3 gap-2 text-center text-[9.5px] leading-snug">
+                  <div>
+                    <p class="text-gray-600 mb-14">Orang Tua/Wali</p>
+                    <p class="border-b border-gray-400 w-32 mx-auto"></p>
+                  </div>
+
+                  <div>
+                    <p class="text-gray-600 mb-14">Mengetahui,<br><strong class="text-gray-800">Pimpinan Pondok</strong></p>
+                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'KH. Ahmad Syarifuddin'"></p>
+                  </div>
+
+                  <div>
+                    <p class="text-gray-600 mb-14">
+                      <span x-text="(bulkRaportData?.tenantProfile?.City || 'Tasikmalaya') + ', ' + formatTanggalIndo(new Date())"></span><br>
+                      <strong class="text-gray-800">Wali Kelas</strong>
+                    </p>
+                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.WaliKelasDefault || item.student.WaliKelas || 'Ustdz. Nida Fadhilah'"></p>
+                  </div>
+                </div>
+
               </div>
             </template>
 
-            <!-- ================= FORMAT SPESIFIK 2: TPQ (TAMAN PENDIDIKAN AL-QUR'AN) ================= -->
+            <!-- ================= FORMAT SPESIFIK 2: TPQ (A4) ================= -->
             <template x-if="bulkTemplateType === 'tpq'">
-              <div class="space-y-4">
+              <div class="space-y-3">
                 <!-- A. KEMAMPUAN MEMBACA AL-QUR'AN -->
                 <div>
-                  <div class="bg-[#0f5f4a] text-white px-3 py-1 font-black text-[11px] rounded-t">A. Kemampuan Membaca Al-Qur'an</div>
-                  <table class="w-full border-collapse border border-gray-300 text-[10px]">
-                    <tr class="bg-gray-50">
-                      <td class="p-1 border border-gray-300 font-bold w-24">Metode</td>
-                      <td class="p-1 border border-gray-300 font-bold text-[#0f5f4a]">Iqro' / Tilawati</td>
-                      <td class="p-1 border border-gray-300 font-bold w-24">Jilid / Hal.</td>
-                      <td class="p-1 border border-gray-300" x-text="'Jilid 4, Hal. 15 s/d 30'"></td>
+                  <div class="font-bold text-[10.5px] text-gray-900 mb-1">A. Kemampuan Membaca Al-Qur'an</div>
+                  <table class="w-full border-collapse border border-gray-400 text-[9.5px] mb-1">
+                    <tr>
+                      <td class="p-1 border border-gray-400 font-bold bg-gray-50 w-24">Metode</td>
+                      <td class="p-1 border border-gray-400 font-bold text-emerald-900">Iqro' / Tilawati</td>
+                      <td class="p-1 border border-gray-400 font-bold bg-gray-50 w-20">Jilid</td>
+                      <td class="p-1 border border-gray-400" x-text="'Jilid ' + (item.student.HafalanJuz || 1)"></td>
                     </tr>
-                    <tr class="bg-gray-100 text-gray-600 font-bold text-center">
-                      <th class="p-1 border border-gray-300 w-8">No</th>
-                      <th class="p-1 border border-gray-300 text-left pl-2">Aspek Bacaan</th>
-                      <th class="p-1 border border-gray-300 w-16">Nilai</th>
-                      <th class="p-1 border border-gray-300 w-24">Predikat</th>
-                      <th class="p-1 border border-gray-300">Keterangan</th>
+                    <tr>
+                      <td class="p-1 border border-gray-400 font-bold bg-gray-50">Awal</td>
+                      <td class="p-1 border border-gray-400" x-text="item.reportData?.tahfidz?.suratAwal || 'Halaman 1'"></td>
+                      <td class="p-1 border border-gray-400 font-bold bg-gray-50">Akhir</td>
+                      <td class="p-1 border border-gray-400" x-text="item.reportData?.tahfidz?.suratAkhir || 'Halaman 30'"></td>
                     </tr>
-                    <tr><td class="p-1 border border-gray-300 text-center">1</td><td class="p-1 border border-gray-300">Kelancaran Membaca</td><td class="p-1 border border-gray-300 text-center font-bold">90</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">A</td><td class="p-1 border border-gray-300 text-gray-600">Sangat lancar dan percaya diri.</td></tr>
-                    <tr><td class="p-1 border border-gray-300 text-center">2</td><td class="p-1 border border-gray-300">Makharijul Huruf</td><td class="p-1 border border-gray-300 text-center font-bold">88</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">A</td><td class="p-1 border border-gray-300 text-gray-600">Pengucapan makhraj huruf tepat.</td></tr>
-                    <tr><td class="p-1 border border-gray-300 text-center">3</td><td class="p-1 border border-gray-300">Tajwid & Tanda Waqaf</td><td class="p-1 border border-gray-300 text-center font-bold">85</td><td class="p-1 border border-gray-300 text-center font-bold text-blue-700">B</td><td class="p-1 border border-gray-300 text-gray-600">Mampu menerapkan hukum mad dan ghunnah.</td></tr>
+                  </table>
+
+                  <table class="w-full border-collapse border border-gray-400 text-[9.5px]">
+                    <tr class="bg-gray-100 font-bold text-center">
+                      <th class="p-1 border border-gray-400 w-8">No</th>
+                      <th class="p-1 border border-gray-400 text-left pl-2">Aspek bacaan</th>
+                      <th class="p-1 border border-gray-400 w-14">Nilai</th>
+                      <th class="p-1 border border-gray-400 w-20">Predikat</th>
+                      <th class="p-1 border border-gray-400 text-left pl-2">Keterangan</th>
+                    </tr>
+                    <template x-for="asp in (item.reportData?.tahfidz?.aspek || [])" :key="'tpq-' + asp.no">
+                      <tr>
+                        <td class="p-1 border border-gray-400 text-center" x-text="asp.no"></td>
+                        <td class="p-1 border border-gray-400 pl-2 font-medium" x-text="asp.name"></td>
+                        <td class="p-1 border border-gray-400 text-center font-bold" x-text="asp.score !== null ? asp.score : '-'"></td>
+                        <td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="asp.predikat"></td>
+                        <td class="p-1 border border-gray-400 pl-2 text-gray-700" x-text="asp.keterangan"></td>
+                      </tr>
+                    </template>
                   </table>
                 </div>
 
                 <!-- B & C: HAFALAN SURAT & DOA HARIAN -->
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <div class="bg-[#0f5f4a] text-white px-2 py-0.5 font-bold text-[10px] rounded-t">B. Hafalan Surat Pendek</div>
-                    <table class="w-full border-collapse border border-gray-300 text-[9px]">
-                      <tr class="bg-gray-50 font-bold"><th class="p-1 border border-gray-300">Nama Surat</th><th class="p-1 border border-gray-300 w-12">Nilai</th><th class="p-1 border border-gray-300 w-14">Predikat</th></tr>
-                      <tr><td class="p-1 border border-gray-300">Al-Fatihah & An-Nas</td><td class="p-1 border border-gray-300 text-center font-bold">95</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">A</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Al-Falaq & Al-Ikhlas</td><td class="p-1 border border-gray-300 text-center font-bold">92</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">A</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Al-Kafirun & Al-Kautsar</td><td class="p-1 border border-gray-300 text-center font-bold">88</td><td class="p-1 border border-gray-300 text-center font-bold text-blue-700">B</td></tr>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1">B. Hafalan Surat Pendek</div>
+                    <table class="w-full border-collapse border border-gray-400 text-[9px]">
+                      <tr class="bg-gray-100 font-bold text-center"><th class="p-1 border border-gray-400 text-left pl-2">Nama Surat</th><th class="p-1 border border-gray-400 w-12">Nilai</th><th class="p-1 border border-gray-400 w-16">Predikat</th></tr>
+                      <tr><td class="p-1 border border-gray-400 pl-2 font-medium">Al-Fatihah & An-Nas</td><td class="p-1 border border-gray-400 text-center font-bold" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? '95' : '-'"></td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? 'A' : '-'"></td></tr>
+                      <tr><td class="p-1 border border-gray-400 pl-2 font-medium">Al-Falaq & Al-Ikhlas</td><td class="p-1 border border-gray-400 text-center font-bold" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? '92' : '-'"></td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? 'A' : '-'"></td></tr>
+                      <tr><td class="p-1 border border-gray-400 pl-2 font-medium">Al-Kautsar & Al-Kafirun</td><td class="p-1 border border-gray-400 text-center font-bold" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? '88' : '-'"></td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? 'A' : '-'"></td></tr>
                     </table>
                   </div>
 
                   <div>
-                    <div class="bg-[#0f5f4a] text-white px-2 py-0.5 font-bold text-[10px] rounded-t">C. Hafalan Doa Harian</div>
-                    <table class="w-full border-collapse border border-gray-300 text-[9px]">
-                      <tr class="bg-gray-50 font-bold"><th class="p-1 border border-gray-300">Nama Doa</th><th class="p-1 border border-gray-300 w-12">Nilai</th><th class="p-1 border border-gray-300 w-14">Predikat</th></tr>
-                      <tr><td class="p-1 border border-gray-300">Doa Sebelum & Bangun Tidur</td><td class="p-1 border border-gray-300 text-center font-bold">95</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">A</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Doa Masuk & Keluar Masjid</td><td class="p-1 border border-gray-300 text-center font-bold">90</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">A</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Doa Kedua Orang Tua</td><td class="p-1 border border-gray-300 text-center font-bold">95</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">A</td></tr>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1">C. Hafalan Doa Harian</div>
+                    <table class="w-full border-collapse border border-gray-400 text-[9px]">
+                      <tr class="bg-gray-100 font-bold text-center"><th class="p-1 border border-gray-400 text-left pl-2">Nama Doa</th><th class="p-1 border border-gray-400 w-12">Nilai</th><th class="p-1 border border-gray-400 w-16">Predikat</th></tr>
+                      <tr><td class="p-1 border border-gray-400 pl-2 font-medium">Doa Sebelum & Bangun Tidur</td><td class="p-1 border border-gray-400 text-center font-bold" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? '95' : '-'"></td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? 'A' : '-'"></td></tr>
+                      <tr><td class="p-1 border border-gray-400 pl-2 font-medium">Doa Masuk & Keluar Masjid</td><td class="p-1 border border-gray-400 text-center font-bold" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? '90' : '-'"></td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? 'A' : '-'"></td></tr>
+                      <tr><td class="p-1 border border-gray-400 pl-2 font-medium">Doa Kedua Orang Tua</td><td class="p-1 border border-gray-400 text-center font-bold" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? '95' : '-'"></td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? 'A' : '-'"></td></tr>
                     </table>
                   </div>
                 </div>
 
-                <!-- D & E: MATERI AGAMA & PRAKTIK IBADAH -->
+                <!-- D & E: PRAKTIK IBADAH & AKHLAK -->
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <div class="bg-gray-700 text-white px-2 py-0.5 font-bold text-[10px] rounded-t">D. Praktik Ibadah</div>
-                    <table class="w-full border-collapse border border-gray-300 text-[9px]">
-                      <tr class="bg-gray-50 font-bold"><th class="p-1 border border-gray-300">Aspek Ibadah</th><th class="p-1 border border-gray-300 w-20">Hasil</th></tr>
-                      <tr><td class="p-1 border border-gray-300">Wudhu & Doa Setelahnya</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">Lulus</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Gerakan & Bacaan Shalat</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">Lulus</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Adzan dan Iqamah</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">Lulus</td></tr>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1">D. Praktik Ibadah</div>
+                    <table class="w-full border-collapse border border-gray-400 text-[9px]">
+                      <tr class="bg-gray-100 font-bold text-center"><th class="p-1 border border-gray-400 text-left pl-2">Aspek Ibadah</th><th class="p-1 border border-gray-400 w-20">Hasil</th></tr>
+                      <tr><td class="p-1 border border-gray-400 pl-2 font-medium">Wudhu & Doa Setelahnya</td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800">Lulus</td></tr>
+                      <tr><td class="p-1 border border-gray-400 pl-2 font-medium">Gerakan & Bacaan Shalat</td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800">Lulus</td></tr>
+                      <tr><td class="p-1 border border-gray-400 pl-2 font-medium">Adzan dan Iqamah</td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800">Lulus</td></tr>
                     </table>
                   </div>
 
                   <div>
-                    <div class="bg-gray-700 text-white px-2 py-0.5 font-bold text-[10px] rounded-t">E. Akhlak & Kepribadian</div>
-                    <table class="w-full border-collapse border border-gray-300 text-[9px]">
-                      <tr class="bg-gray-50 font-bold"><th class="p-1 border border-gray-300">Aspek Sikap</th><th class="p-1 border border-gray-300 w-24">Predikat</th></tr>
-                      <tr><td class="p-1 border border-gray-300">Kesopanan dan Adab</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">Sangat Baik</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Kedisiplinan Hadir</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">Sangat Baik</td></tr>
-                      <tr><td class="p-1 border border-gray-300">Kerajinan Mengaji</td><td class="p-1 border border-gray-300 text-center font-bold text-emerald-700">Sangat Baik</td></tr>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1">E. Akhlak & Kepribadian</div>
+                    <table class="w-full border-collapse border border-gray-400 text-[9px]">
+                      <tr class="bg-gray-100 font-bold text-center"><th class="p-1 border border-gray-400 text-left pl-2">Aspek Sikap</th><th class="p-1 border border-gray-400 w-24">Predikat</th></tr>
+                      <template x-for="akh in (item.reportData?.akhlak || []).slice(0, 3)" :key="'tpq-akh-' + akh.no">
+                        <tr><td class="p-1 border border-gray-400 pl-2 font-medium" x-text="akh.name"></td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="akh.predikat"></td></tr>
+                      </template>
                     </table>
                   </div>
                 </div>
 
-                <!-- REKAP PRESENSI & CATATAN WALI KELAS -->
+                <!-- PRESENSI & CATATAN -->
                 <div class="grid grid-cols-2 gap-3">
-                  <table class="w-full border-collapse border border-gray-300 text-[10px]">
-                    <tr class="bg-gray-100 font-bold"><td class="p-1 border border-gray-300" colspan="2">F. Ketidakhadiran</td></tr>
-                    <tr><td class="p-1 border border-gray-300">Sakit: <span class="font-bold" x-text="item.reportData?.attendance?.sakit || 0"></span> hari</td><td class="p-1 border border-gray-300">Rata-rata Nilai: <strong class="text-[#0f5f4a]">90.4</strong></td></tr>
-                    <tr><td class="p-1 border border-gray-300">Izin: <span class="font-bold" x-text="item.reportData?.attendance?.izin || 0"></span> hari</td><td class="p-1 border border-gray-300">Predikat: <strong class="text-emerald-700">A (Sangat Baik)</strong></td></tr>
-                    <tr><td class="p-1 border border-gray-300">Tanpa Keterangan: <span class="font-bold" x-text="item.reportData?.attendance?.alpa || 0"></span> hari</td><td class="p-1 border border-gray-300">Jumlah Santri: <strong x-text="bulkRaportData?.totalStudents || 1"></strong></td></tr>
+                  <table class="w-full border-collapse border border-gray-400 text-[9.5px]">
+                    <tr class="bg-gray-100 font-bold"><td class="p-1 border border-gray-400" colspan="2">F. Ketidakhadiran</td></tr>
+                    <tr><td class="p-1 border border-gray-400">Sakit: <span class="font-bold" x-text="item.reportData?.attendance?.sakit || 0"></span> hari</td><td class="p-1 border border-gray-400">Rata-rata: <strong class="text-emerald-900" x-text="item.reportData?.academic?.average !== null ? item.reportData?.academic?.average : '-'"></strong></td></tr>
+                    <tr><td class="p-1 border border-gray-400">Izin: <span class="font-bold" x-text="item.reportData?.attendance?.izin || 0"></span> hari</td><td class="p-1 border border-gray-400">Predikat: <strong class="text-emerald-800" x-text="item.reportData?.academic?.predikatKeseluruhan || '-'"></strong></td></tr>
+                    <tr><td class="p-1 border border-gray-400">Tanpa Keterangan: <span class="font-bold" x-text="item.reportData?.attendance?.alpa || 0"></span> hari</td><td class="p-1 border border-gray-400">Jumlah Santri: <strong x-text="bulkRaportData?.totalStudents || 1"></strong></td></tr>
                   </table>
 
-                  <div class="border border-gray-300 p-2 rounded bg-gray-50/50">
-                    <p class="font-bold text-[10px] text-gray-700 mb-1">Catatan Ustadz/Ustadzah:</p>
-                    <p class="italic text-gray-700 text-[10px]" x-text="item.student.CatatanPembinaan || 'Alhamdulillah, hafalan dan bacaan ananda sangat baik. Terus muroja\'ah di rumah agar hafalannya terjaga.'"></p>
+                  <div class="border border-gray-400 p-2 rounded bg-gray-50/40 text-[9px]">
+                    <p class="font-bold text-gray-900 mb-0.5">Catatan Ustadz/Ustadzah:</p>
+                    <p class="italic text-gray-800" x-text="item.reportData?.catatanWaliKelas || 'Alhamdulillah, hafalan dan bacaan ananda sangat baik. Terus muroja\'ah di rumah agar hafalannya terjaga.'"></p>
+                  </div>
+                </div>
+
+                <!-- TANDA TANGAN TPQ -->
+                <div class="mt-4 pt-2 grid grid-cols-3 gap-2 text-center text-[9.5px] leading-snug">
+                  <div>
+                    <p class="text-gray-600 mb-14">Orang Tua/Wali</p>
+                    <p class="border-b border-gray-400 w-32 mx-auto"></p>
+                  </div>
+                  <div>
+                    <p class="text-gray-600 mb-14">Mengetahui,<br><strong class="text-gray-800">Kepala TPQ</strong></p>
+                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'KH. Mamat Rahmat, S.Pd.I'"></p>
+                  </div>
+                  <div>
+                    <p class="text-gray-600 mb-14">
+                      <span x-text="(bulkRaportData?.tenantProfile?.City || 'Ciamis') + ', ' + formatTanggalIndo(new Date())"></span><br>
+                      <strong class="text-gray-800">Wali Kelas</strong>
+                    </p>
+                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.WaliKelasDefault || item.student.WaliKelas || 'Ust. Abdul Hakim, S.Pd.I'"></p>
                   </div>
                 </div>
               </div>
             </template>
 
-            <!-- ================= FORMAT SPESIFIK 3: MDT (MADRASAH DINIYAH TAKMILIYAH) ================= -->
+            <!-- ================= FORMAT SPESIFIK 3: MDT (F4) ================= -->
             <template x-if="bulkTemplateType === 'mdt'">
-              <div class="space-y-4">
-                <!-- A. MATA PELAJARAN DINIYAH -->
+              <div class="space-y-3">
+                <!-- A. MATA PELAJARAN DINIYAH RIIL -->
                 <div>
-                  <div class="bg-[#0f5f4a] text-white px-3 py-1 font-black text-[11px] rounded-t flex justify-between items-center">
+                  <div class="font-bold text-[10.5px] text-gray-900 mb-1 flex items-center justify-between">
                     <span>A. Mata Pelajaran Diniyah Takmiliyah</span>
-                    <span class="text-[10px] opacity-90">Kurikulum MDTA</span>
+                    <span class="text-[9px] text-gray-500 font-normal">Kurikulum MDTA</span>
                   </div>
-                  <table class="w-full border-collapse border border-gray-300 text-[10px]">
+                  <table class="w-full border-collapse border border-gray-400 text-[9.5px]">
                     <thead>
-                      <tr class="bg-gray-100 text-gray-700 font-bold text-center">
-                        <th class="p-1 border border-gray-300 w-8">No</th>
-                        <th class="p-1 border border-gray-300 text-left pl-2">Mata Pelajaran</th>
-                        <th class="p-1 border border-gray-300 w-12">KKM</th>
-                        <th class="p-1 border border-gray-300 w-14">Nilai</th>
-                        <th class="p-1 border border-gray-300">Huruf (Terbilang)</th>
-                        <th class="p-1 border border-gray-300 w-20">Predikat</th>
+                      <tr class="bg-gray-100 text-gray-800 font-bold text-center">
+                        <th class="p-1 border border-gray-400 w-8">No</th>
+                        <th class="p-1 border border-gray-400 text-left pl-2">Mata Pelajaran</th>
+                        <th class="p-1 border border-gray-400 w-12">KKM</th>
+                        <th class="p-1 border border-gray-400 w-14">Nilai</th>
+                        <th class="p-1 border border-gray-400 text-left pl-2">Huruf</th>
+                        <th class="p-1 border border-gray-400 w-20">Predikat</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <template x-for="(sub, idx) in defaultMdtSubjects" :key="sub.name">
+                      <template x-for="sub in (item.reportData?.academic?.subjects || [])" :key="'mdt-' + sub.no">
                         <tr>
-                          <td class="p-1 border border-gray-300 text-center" x-text="idx + 1"></td>
-                          <td class="p-1 border border-gray-300 font-bold" x-text="sub.name"></td>
-                          <td class="p-1 border border-gray-300 text-center text-gray-500">70</td>
-                          <td class="p-1 border border-gray-300 text-center font-black" x-text="sub.score"></td>
-                          <td class="p-1 border border-gray-300 text-gray-600 italic" x-text="terbilang(sub.score)"></td>
-                          <td class="p-1 border border-gray-300 text-center font-bold"
-                              :class="sub.score >= 85 ? 'text-emerald-700' : 'text-blue-700'"
-                              x-text="sub.score >= 85 ? 'A' : (sub.score >= 75 ? 'B' : 'C')"></td>
+                          <td class="p-1 border border-gray-400 text-center" x-text="sub.no"></td>
+                          <td class="p-1 border border-gray-400 pl-2">
+                            <div class="flex justify-between items-center pr-1">
+                              <span class="font-semibold text-gray-900" x-text="sub.Name"></span>
+                              <span class="text-gray-500 font-serif text-[11px]" dir="rtl" x-text="sub.ArabicName"></span>
+                            </div>
+                          </td>
+                          <td class="p-1 border border-gray-400 text-center text-gray-600" x-text="sub.KKM"></td>
+                          <td class="p-1 border border-gray-400 text-center font-bold" x-text="sub.finalScore !== null ? sub.finalScore : '-'"></td>
+                          <td class="p-1 border border-gray-400 text-gray-700 italic pl-2" x-text="sub.huruf"></td>
+                          <td class="p-1 border border-gray-400 text-center font-bold text-emerald-800" x-text="sub.predikat"></td>
                         </tr>
                       </template>
+                      <tr class="bg-gray-50 font-bold">
+                        <td class="p-1 border border-gray-400 text-center" colspan="3">Jumlah</td>
+                        <td class="p-1 border border-gray-400 text-center font-black" x-text="item.reportData?.academic?.totalScore !== null ? item.reportData?.academic?.totalScore : '-'"></td>
+                        <td class="p-1 border border-gray-400 text-gray-700 italic pl-2" colspan="2" x-text="item.reportData?.academic?.totalHuruf || '-'"></td>
+                      </tr>
+                      <tr class="bg-gray-50 font-bold">
+                        <td class="p-1 border border-gray-400 text-center" colspan="3">Rata-rata</td>
+                        <td class="p-1 border border-gray-400 text-center font-black text-emerald-900" x-text="item.reportData?.academic?.average !== null ? item.reportData?.academic?.average : '-'"></td>
+                        <td class="p-1 border border-gray-400 text-gray-700 italic pl-2" x-text="item.reportData?.academic?.averageHuruf || '-'"></td>
+                        <td class="p-1 border border-gray-400 text-center font-black text-emerald-900" x-text="item.reportData?.academic?.predikatKeseluruhan || '-'"></td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -426,58 +615,57 @@
                 <!-- B & C: CAPAIAN AL-QUR'AN & PRAKTIK IBADAH -->
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <div class="bg-gray-700 text-white px-2 py-0.5 font-bold text-[10px] rounded-t">B. Kemampuan Baca Al-Qur'an & Hadits</div>
-                    <table class="w-full border-collapse border border-gray-300 text-[9px]">
-                      <tr><td class="p-1 border border-gray-300 font-medium">Metode & Capaian</td><td class="p-1 border border-gray-300 font-bold text-center">Ummi / Al-Qur'an Juz 1</td></tr>
-                      <tr><td class="p-1 border border-gray-300 font-medium">Makharijul Huruf & Tajwid</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">88 (Baik)</td></tr>
-                      <tr><td class="p-1 border border-gray-300 font-medium">Hafalan Hadits Pilihan</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">90 (Sangat Baik)</td></tr>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1">B. Kemampuan Membaca Al-Qur'an</div>
+                    <table class="w-full border-collapse border border-gray-400 text-[9px]">
+                      <tr><td class="p-1 border border-gray-400 font-medium">Metode</td><td class="p-1 border border-gray-400 font-bold text-center">Ummi / Al-Qur'an</td></tr>
+                      <tr><td class="p-1 border border-gray-400 font-medium">Capaian</td><td class="p-1 border border-gray-400 text-center" x-text="item.reportData?.tahfidz?.jumlahHafalan || '-'"></td></tr>
+                      <tr><td class="p-1 border border-gray-400 font-medium">Tajwid & Makharij</td><td class="p-1 border border-gray-400 font-bold text-emerald-800 text-center" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? 'Baik (B)' : '-'"></td></tr>
                     </table>
                   </div>
 
                   <div>
-                    <div class="bg-gray-700 text-white px-2 py-0.5 font-bold text-[10px] rounded-t">C. Praktik Ibadah & Kepribadian</div>
-                    <table class="w-full border-collapse border border-gray-300 text-[9px]">
-                      <tr><td class="p-1 border border-gray-300 font-medium">Shalat Fardhu & Dzikir</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">Lulus (Sangat Baik)</td></tr>
-                      <tr><td class="p-1 border border-gray-300 font-medium">Akhlak & Sopan Santun</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">Sangat Baik</td></tr>
-                      <tr><td class="p-1 border border-gray-300 font-medium">Kedisiplinan & Kerapian</td><td class="p-1 border border-gray-300 font-bold text-emerald-700 text-center">Sangat Baik</td></tr>
+                    <div class="font-bold text-[10px] text-gray-900 mb-1">C. Praktik Ibadah & Kepribadian</div>
+                    <table class="w-full border-collapse border border-gray-400 text-[9px]">
+                      <tr><td class="p-1 border border-gray-400 font-medium">Shalat Fardhu & Dzikir</td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800">Lulus</td></tr>
+                      <tr><td class="p-1 border border-gray-400 font-medium">Akhlak & Sopan Santun</td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800">Sangat Baik</td></tr>
+                      <tr><td class="p-1 border border-gray-400 font-medium">Kedisiplinan & Kerapian</td><td class="p-1 border border-gray-400 text-center font-bold text-emerald-800">Sangat Baik</td></tr>
                     </table>
                   </div>
                 </div>
 
                 <!-- KETIDAKHADIRAN & CATATAN -->
-                <div class="border border-gray-300 p-2 rounded bg-gray-50/50">
-                  <p class="font-bold text-[10px] text-gray-700 mb-1">Catatan Kepala Madrasah / Wali Kelas:</p>
-                  <p class="italic text-gray-700 text-[10px]" x-text="item.student.CatatanPembinaan || 'Ananda sudah menunjukkan perkembangan yang sangat baik. Tingkatkan lagi belajar dan muroja\'ah hafalan di rumah.'"></p>
+                <div class="border border-gray-400 p-2 rounded bg-gray-50/40 text-[9.5px]">
+                  <p class="font-bold text-gray-900 mb-0.5">Catatan Kepala Madrasah / Wali Kelas:</p>
+                  <p class="italic text-gray-800" x-text="item.reportData?.catatanWaliKelas || 'Ananda sudah menunjukkan perkembangan yang sangat baik. Tingkatkan lagi belajar dan muroja\'ah hafalan di rumah.'"></p>
+                </div>
+
+                <!-- TANDA TANGAN MDT -->
+                <div class="mt-4 pt-2 grid grid-cols-3 gap-2 text-center text-[9.5px] leading-snug">
+                  <div>
+                    <p class="text-gray-600 mb-14">Orang Tua/Wali</p>
+                    <p class="border-b border-gray-400 w-32 mx-auto"></p>
+                  </div>
+                  <div>
+                    <p class="text-gray-600 mb-14">Mengetahui,<br><strong class="text-gray-800">Kepala Madrasah</strong></p>
+                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'Ust. H. Endang Saepudin, S.Ag'"></p>
+                  </div>
+                  <div>
+                    <p class="text-gray-600 mb-14">
+                      <span x-text="(bulkRaportData?.tenantProfile?.City || 'Tasikmalaya') + ', ' + formatTanggalIndo(new Date())"></span><br>
+                      <strong class="text-gray-800">Wali Kelas</strong>
+                    </p>
+                    <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.WaliKelasDefault || item.student.WaliKelas || 'Ustdz. Rina Nurjanah, S.Pd'"></p>
+                  </div>
                 </div>
               </div>
             </template>
 
-            <!-- TANDA TANGAN 3 KOLOM SESUAI REFERENSI GAMBAR -->
-            <div class="mt-8 pt-4 border-t border-gray-200 grid grid-cols-3 gap-2 text-center text-[10px] leading-tight">
-              <div>
-                <p class="text-gray-500 mb-12">Mengetahui,<br><strong class="text-gray-700">Orang Tua / Wali Santri</strong></p>
-                <p class="border-b border-gray-400 w-32 mx-auto"></p>
-              </div>
-
-              <div>
-                <p class="text-gray-500 mb-12">Mengetahui,<br><strong class="text-gray-700" x-text="bulkTemplateType === 'tpq' ? 'Kepala TPQ' : (bulkTemplateType === 'mdt' ? 'Kepala MDTA' : 'Pimpinan Pondok')"></strong></p>
-                <p class="font-bold text-gray-900 underline" x-text="tenantProfile?.HeadName || 'KH. Mamat Rahmat, S.Pd.I'"></p>
-              </div>
-
-              <div>
-                <p class="text-gray-500 mb-12">
-                  <span x-text="(tenantProfile?.City || 'Tasikmalaya') + ', ' + formatTanggalIndo(new Date())"></span><br>
-                  <strong class="text-gray-700">Wali Kelas</strong>
-                </p>
-                <p class="font-bold text-gray-900 underline" x-text="tenantProfile?.WaliKelasDefault || user?.Name || 'Ustadz Pembina'"></p>
-              </div>
-            </div>
-
-            <!-- WATERMARK & FOOTER (TAMPIL DI CETAK) -->
-            <div class="mt-6 pt-2 border-t border-dotted border-gray-300 text-[8px] text-gray-400 flex justify-between items-center">
+            <!-- FOOTER RESMI DOKUMEN CETAK (PAS 1 HALAMAN) -->
+            <div class="mt-4 pt-2 border-t border-dotted border-gray-300 text-[8px] text-gray-400 flex justify-between items-center no-screen">
               <span>Sistem Raport Digital Santri Analytics • Dokumen Resmi Lembaga</span>
-              <span x-text="'Halaman ' + (sIdx + 1) + ' dari ' + bulkRaportData.reports.length"></span>
+              <span x-text="'Halaman ' + (sIdx + 1) + ' dari ' + filteredBulkReports().length"></span>
             </div>
+
           </div>
         </template>
       </div>
@@ -486,9 +674,9 @@
       <div x-show="!loadingBulkRaport && bulkViewMode === 'leger'" class="bg-white rounded-2xl shadow-xl p-8 max-w-7xl mx-auto border border-gray-200">
         <!-- HEADER LEGER -->
         <div class="text-center border-b-2 border-gray-800 pb-3 mb-6">
-          <h2 class="font-black text-base md:text-xl text-gray-900 uppercase" x-text="tenantProfile?.InstitutionName || 'PONDOK PESANTREN RAUDHATUL ULUM'"></h2>
+          <h2 class="font-black text-base md:text-xl text-gray-900 uppercase" x-text="bulkRaportData?.tenantProfile?.InstitutionName || 'PONDOK PESANTREN RAUDHATUL ULUM'"></h2>
           <h3 class="font-bold text-sm text-gray-700 tracking-wider uppercase mt-1" x-text="'LEGER NILAI SATU KELAS: ' + (bulkSelectedClass || 'SELURUH KELAS')"></h3>
-          <p class="text-xs text-gray-500" x-text="'Tahun Ajaran: ' + (bulkRaportData?.period?.AcademicYear || '2026/2027') + ' — ' + (bulkRaportData?.period?.Title || 'Semester Ganjil')"></p>
+          <p class="text-xs text-gray-500" x-text="'Tahun Ajaran: ' + (bulkRaportData?.period?.AcademicYear || '2026/2027') + ' — ' + (bulkRaportData?.period?.Title || 'Semester 1 (Ganjil)')"></p>
         </div>
 
         <div class="overflow-x-auto">
@@ -525,11 +713,11 @@
                 <tr class="hover:bg-gray-50/80">
                   <td class="p-1 border border-gray-300 text-center font-bold" x-text="rIdx + 1"></td>
                   <td class="p-1 border border-gray-300 font-semibold text-gray-900 whitespace-nowrap pl-2" x-text="row.name"></td>
-                  <td class="p-1 border border-gray-300 text-center font-bold text-[#0f5f4a]" x-text="(row.hafalanJuz || (rIdx % 3 + 1)) + ' Juz'"></td>
+                  <td class="p-1 border border-gray-300 text-center font-bold text-[#0f5f4a]" x-text="row.hafalanJuz"></td>
 
-                  <!-- NILAI MAPEL -->
+                  <!-- NILAI MAPEL RIIL -->
                   <template x-for="sub in (bulkRaportData?.leger?.subjects || defaultPondokSubjectNames)" :key="sub">
-                    <td class="p-1 border border-gray-300 text-center font-bold" x-text="row.scores?.[sub] || (80 + ((rIdx * 3 + sub.length) % 18))"></td>
+                    <td class="p-1 border border-gray-300 text-center font-bold" x-text="row.scores?.[sub] !== undefined && row.scores?.[sub] !== null ? row.scores[sub] : '-'"></td>
                   </template>
 
                   <!-- PRESENSI -->
@@ -538,8 +726,8 @@
                   <td class="p-1 border border-gray-300 text-center text-rose-700 font-bold" x-text="row.attendance?.alpa || 0"></td>
 
                   <!-- TOTAL, RATA-RATA, RANKING -->
-                  <td class="p-1 border border-gray-300 text-center font-bold text-gray-900" x-text="row.totalScore || 850"></td>
-                  <td class="p-1 border border-gray-300 text-center font-black text-emerald-800" x-text="row.average || 88.5"></td>
+                  <td class="p-1 border border-gray-300 text-center font-bold text-gray-900" x-text="row.totalScore !== null && row.totalScore !== undefined ? row.totalScore : '-'"></td>
+                  <td class="p-1 border border-gray-300 text-center font-black text-emerald-800" x-text="row.average !== null && row.average !== undefined ? row.average : '-'"></td>
                   <td class="p-1 border border-gray-300 text-center font-black bg-emerald-50 text-emerald-900" x-text="row.rank || (rIdx + 1)"></td>
                 </tr>
               </template>
@@ -551,28 +739,28 @@
         <div class="mt-8 flex justify-between items-center text-center text-[10px] leading-tight px-8">
           <div>
             <p class="text-gray-500 mb-12">Mengetahui,<br><strong class="text-gray-700">Pimpinan Pondok Pesantren</strong></p>
-            <p class="font-bold text-gray-900 underline" x-text="tenantProfile?.HeadName || 'KH. Pimpinan Pondok'"></p>
+            <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'KH. Ahmad Syarifuddin'"></p>
           </div>
           <div>
             <p class="text-gray-500 mb-12">
-              <span x-text="(tenantProfile?.City || 'Tasikmalaya') + ', ' + formatTanggalIndo(new Date())"></span><br>
+              <span x-text="(bulkRaportData?.tenantProfile?.City || 'Tasikmalaya') + ', ' + formatTanggalIndo(new Date())"></span><br>
               <strong class="text-gray-700">Wali Kelas</strong>
             </p>
-            <p class="font-bold text-gray-900 underline" x-text="tenantProfile?.WaliKelasDefault || user?.Name || 'Ustadz Pembina'"></p>
+            <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.WaliKelasDefault || 'Ustdz. Nida Fadhilah'"></p>
           </div>
         </div>
       </div>
 
       <!-- VIEW MODE 3: SERTIFIKAT KENAIKAN JILID / TAHFIDZ ELEGAN -->
       <div x-show="!loadingBulkRaport && bulkViewMode === 'sertifikat'" class="space-y-12">
-        <template x-for="(item, cIdx) in (bulkRaportData?.reports || [])" :key="'cert-' + item.student.StudentID">
+        <template x-for="(item, cIdx) in filteredBulkReports()" :key="'cert-' + item.student.StudentID">
           <div class="raport-sheet bg-white p-10 md:p-14 max-w-4xl mx-auto rounded-3xl shadow-xl border-8 border-double border-amber-600/60 relative text-center text-gray-800">
             <!-- ORNAMENT BACKGROUND BORDER -->
             <div class="border-2 border-amber-500/40 p-8 rounded-2xl relative">
               <p class="text-xl md:text-2xl font-serif text-[#0f5f4a] font-bold mb-2">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
               
               <div class="mb-4">
-                <p class="text-[10px] uppercase tracking-widest text-gray-500 font-bold" x-text="tenantProfile?.InstitutionName || 'TPQ / PONDOK PESANTREN RAUDHATUL ULUM'"></p>
+                <p class="text-[10px] uppercase tracking-widest text-gray-500 font-bold" x-text="bulkRaportData?.tenantProfile?.InstitutionName || 'PONDOK PESANTREN MIFTAHUL HUDA AL-BAROKAH'"></p>
                 <h1 class="text-2xl md:text-3xl font-black text-amber-800 tracking-wider mt-1 uppercase">SERTIFIKAT</h1>
                 <p class="text-xs font-bold text-gray-700 uppercase tracking-widest">Kenaikan Jilid / Khatam Tahfidz</p>
                 <p class="text-[10px] text-gray-400 mt-1" x-text="'Nomor: ' + (cIdx + 101) + '/SKJ/' + (new Date().getFullYear())"></p>
@@ -583,10 +771,10 @@
               <p class="text-xs text-gray-500 font-medium" x-text="'Nomor Induk Santri: ' + (item.student.NIS || item.student.StudentID)"></p>
 
               <div class="max-w-xl mx-auto text-xs md:text-sm text-gray-700 my-6 leading-relaxed">
-                Telah menyelesaikan evaluasi pembelajaran dan dinyatakan <strong class="text-emerald-700">LULUS / NAIK</strong> pada:
+                Telah menyelesaikan evaluasi pembelajaran Al-Qur'an dan dinyatakan <strong class="text-emerald-700">LULUS / NAIK</strong> pada:
                 <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 my-3 text-center">
-                  <p class="font-bold text-amber-900 text-sm">Metode Al-Qur'an: Iqro' / Tahfidz — Jilid / Juz Lanjutan</p>
-                  <p class="text-xs text-amber-800 mt-0.5">Dengan Predikat Nilai: <strong class="text-emerald-800 font-black">92 (A - Mumtaz)</strong></p>
+                  <p class="font-bold text-amber-900 text-sm" x-text="'Capaian: ' + (item.reportData?.tahfidz?.jumlahHafalan || 'Juz Lanjutan')"></p>
+                  <p class="text-xs text-amber-800 mt-0.5">Dengan Predikat: <strong class="text-emerald-800 font-black" x-text="item.reportData?.tahfidz?.totalSetoran > 0 ? 'Mumtaz (A)' : 'Lulus Baik'"></strong></p>
                 </div>
                 Semoga Allah Subhanahu wa Ta'ala menjadikannya ahlul Qur'an yang istiqamah, berakhlakul karimah, dan ilmunya bermanfaat bagi ummat.
               </div>
@@ -595,14 +783,14 @@
               <div class="mt-8 flex justify-between items-center text-center text-xs px-8">
                 <div>
                   <p class="text-gray-500 mb-14">Penguji / Musyrif,</p>
-                  <p class="font-bold text-gray-900 underline" x-text="tenantProfile?.WaliKelasDefault || user?.Name || 'Ustadz Penguji'"></p>
+                  <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.WaliKelasDefault || 'Ustdz. Nida Fadhilah'"></p>
                 </div>
                 <div>
                   <p class="text-gray-500 mb-14">
-                    <span x-text="(tenantProfile?.City || 'Tasikmalaya') + ', ' + formatTanggalIndo(new Date())"></span><br>
-                    Kepala Lembaga / Pimpinan Pondok
+                    <span x-text="(bulkRaportData?.tenantProfile?.City || 'Tasikmalaya') + ', ' + formatTanggalIndo(new Date())"></span><br>
+                    Pimpinan Pondok Pesantren
                   </p>
-                  <p class="font-bold text-gray-900 underline" x-text="tenantProfile?.HeadName || 'KH. Pimpinan Pondok'"></p>
+                  <p class="font-bold text-gray-900 underline" x-text="bulkRaportData?.tenantProfile?.HeadName || 'KH. Ahmad Syarifuddin'"></p>
                 </div>
               </div>
             </div>
@@ -614,21 +802,22 @@
   </div>
 </div>
 
-<!-- CSS ATURAN CETAK PREVIEW & PAGE BREAK CETAK MASSAL -->
+<!-- CSS ATURAN CETAK PREVIEW & STANDAR FOLIO / F4 (1 HALAMAN PAS) -->
 <style>
   @media print {
+    /* Sembunyikan elemen bawaan halaman selain area cetak */
     body * {
-      visibility: hidden;
+      visibility: hidden !important;
     }
     #bulkPrintArea,
     #bulkPrintArea * {
-      visibility: visible;
+      visibility: visible !important;
     }
     #bulkPrintArea {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
       background: white !important;
       padding: 0 !important;
       margin: 0 !important;
@@ -636,19 +825,22 @@
     .raport-sheet {
       page-break-after: always !important;
       break-after: page !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
       border: none !important;
       box-shadow: none !important;
-      padding: 15mm 15mm !important;
-      margin: 0 !important;
+      padding: 6mm 10mm !important;
+      margin: 0 auto !important;
       width: 100% !important;
       max-width: 100% !important;
+      box-sizing: border-box !important;
     }
     .no-print {
       display: none !important;
     }
     @page {
-      size: auto;
-      margin: 10mm 12mm;
+      size: 215mm 330mm; /* Standar Ukuran Folio / F4 */
+      margin: 8mm 10mm 8mm 10mm;
     }
   }
 </style>

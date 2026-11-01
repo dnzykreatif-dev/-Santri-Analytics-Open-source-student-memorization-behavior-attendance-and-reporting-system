@@ -269,6 +269,7 @@
       loadingBulkRaport: false,
       bulkRaportData: null,
       bulkSelectedClass: "",
+      bulkSelectedStudentId: "ALL",
       bulkTemplateType: "pondok", // "pondok" | "tpq" | "mdt"
       bulkViewMode: "raport", // "raport" | "leger" | "sertifikat"
 
@@ -280,25 +281,25 @@
       radarChartInstance: null,
 
       defaultPondokSubjects: [
-        { Name: "Tafsir Al-Qur'an", KitabName: "Tafsir Jalalain", KKM: 70, finalScore: 91 },
-        { Name: "Hadits Nabawi", KitabName: "Riyadhus Shalihin", KKM: 70, finalScore: 92 },
-        { Name: "Mustholah Hadits", KitabName: "Al-Baiquniyah", KKM: 70, finalScore: 90 },
-        { Name: "Tauhid / Aqidah", KitabName: "Jauharatut Tauhid", KKM: 70, finalScore: 95 },
-        { Name: "Fiqih Madzhab", KitabName: "Fathul Mu'in", KKM: 70, finalScore: 94 },
-        { Name: "Ushul Fiqih", KitabName: "Al-Waraqat", KKM: 70, finalScore: 92 },
-        { Name: "Nahwu & Shorof", KitabName: "Alfiyah Ibnu Malik", KKM: 70, finalScore: 92 },
-        { Name: "Balaghah", KitabName: "Jauharul Maknun", KKM: 70, finalScore: 88 },
-        { Name: "Tasawuf & Akhlak", KitabName: "Bidayatul Hidayah", KKM: 70, finalScore: 96 }
+        { Name: "Tafsir Al-Qur'an", KitabName: "Tafsir Jalalain", KKM: 60, finalScore: null, huruf: "Belum dinilai", predikat: "-" },
+        { Name: "Hadits Nabawi", KitabName: "Riyadhus Shalihin", KKM: 60, finalScore: null, huruf: "Belum dinilai", predikat: "-" },
+        { Name: "Mustholah Hadits", KitabName: "Al-Baiquniyah", KKM: 60, finalScore: null, huruf: "Belum dinilai", predikat: "-" },
+        { Name: "Tauhid / Aqidah", KitabName: "Jauharatut Tauhid", KKM: 60, finalScore: null, huruf: "Belum dinilai", predikat: "-" },
+        { Name: "Fiqih Madzhab", KitabName: "Fathul Mu'in", KKM: 60, finalScore: null, huruf: "Belum dinilai", predikat: "-" },
+        { Name: "Ushul Fiqih", KitabName: "Al-Waraqat", KKM: 60, finalScore: null, huruf: "Belum dinilai", predikat: "-" },
+        { Name: "Nahwu & Shorof", KitabName: "Alfiyah Ibnu Malik", KKM: 60, finalScore: null, huruf: "Belum dinilai", predikat: "-" },
+        { Name: "Balaghah", KitabName: "Jauharul Maknun", KKM: 60, finalScore: null, huruf: "Belum dinilai", predikat: "-" },
+        { Name: "Tasawuf & Akhlak", KitabName: "Bidayatul Hidayah", KKM: 60, finalScore: null, huruf: "Belum dinilai", predikat: "-" }
       ],
-      defaultPondokSubjectNames: ["Tafsir", "Hadits", "Tauhid", "Fiqih", "Ushul Fiqih", "Nahwu", "Balaghah", "Tasawuf"],
+      defaultPondokSubjectNames: ["Tafsir", "Hadits", "Mushthalah Hadits", "Tauhid", "Fiqih", "Ushul Fiqih", "Nahwu", "Balaghah", "Tasawuf"],
       defaultMdtSubjects: [
-        { name: "Al-Qur'an & Tajwid", score: 90 },
-        { name: "Hadits & Doa", score: 88 },
-        { name: "Aqidah Akhlak", score: 92 },
-        { name: "Fiqih Ibadah", score: 86 },
-        { name: "Tarikh Islam (SKI)", score: 85 },
-        { name: "Bahasa Arab", score: 84 },
-        { name: "Imla' & Khat", score: 90 }
+        { name: "Al-Qur'an & Tajwid", score: null },
+        { name: "Hadits & Doa", score: null },
+        { name: "Aqidah Akhlak", score: null },
+        { name: "Fiqih Ibadah", score: null },
+        { name: "Tarikh Islam (SKI)", score: null },
+        { name: "Bahasa Arab", score: null },
+        { name: "Imla' & Khat", score: null }
       ],
       productSaving: false,
       productSection: "wizard",
@@ -5574,15 +5575,40 @@
 
       // ===== BULK RAPORT & LEGER ENGINE =====
       terbilang(n) {
-        const num = Math.round(Number(n) || 0);
+        if (n === null || n === undefined || n === "" || isNaN(Number(n))) return "-";
+        const num = Number(n);
         const angka = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas"];
-        let hasil = "";
-        if (num < 12) hasil = angka[num];
-        else if (num < 20) hasil = this.terbilang(num - 10) + " belas";
-        else if (num < 100) hasil = this.terbilang(Math.floor(num / 10)) + " puluh" + (num % 10 !== 0 ? " " + angka[num % 10] : "");
-        else if (num === 100) hasil = "seratus";
-        else hasil = String(num);
-        return hasil ? (hasil.charAt(0).toUpperCase() + hasil.slice(1)) : "-";
+        
+        function convertInt(val) {
+          val = Math.floor(val);
+          if (val < 12) return angka[val];
+          if (val < 20) return convertInt(val - 10) + " belas";
+          if (val < 100) return convertInt(Math.floor(val / 10)) + " puluh" + (val % 10 !== 0 ? " " + angka[val % 10] : "");
+          if (val < 200) return "seratus" + (val % 100 !== 0 ? " " + convertInt(val % 100) : "");
+          if (val < 1000) return convertInt(Math.floor(val / 100)) + " ratus" + (val % 100 !== 0 ? " " + convertInt(val % 100) : "");
+          if (val < 2000) return "seribu" + (val % 1000 !== 0 ? " " + convertInt(val % 1000) : "");
+          if (val < 1000000) return convertInt(Math.floor(val / 1000)) + " ribu" + (val % 1000 !== 0 ? " " + convertInt(val % 1000) : "");
+          return String(val);
+        }
+
+        const parts = String(num).split(".");
+        let res = convertInt(Number(parts[0]));
+        if (parts.length > 1 && parts[1]) {
+          res += " koma";
+          for (let i = 0; i < parts[1].length; i++) {
+            const char = parts[1][i];
+            res += " " + (char === "0" ? "nol" : angka[Number(char)] || char);
+          }
+        }
+        return res ? (res.charAt(0).toUpperCase() + res.slice(1).trim()) : "-";
+      },
+
+      filteredBulkReports() {
+        if (!this.bulkRaportData || !this.bulkRaportData.reports) return [];
+        if (!this.bulkSelectedStudentId || this.bulkSelectedStudentId === "ALL") {
+          return this.bulkRaportData.reports;
+        }
+        return this.bulkRaportData.reports.filter(r => r.student && r.student.StudentID === this.bulkSelectedStudentId);
       },
 
       formatTanggalIndo(dateInput) {
@@ -5601,8 +5627,9 @@
         return row ? (row.rank || 1) : 1;
       },
 
-      openBulkRaportModal(targetClass) {
+      openBulkRaportModal(targetClass, studentId) {
         this.bulkSelectedClass = targetClass || this.filterClass || (this.uniqueClasses && this.uniqueClasses[0]) || "";
+        this.bulkSelectedStudentId = studentId || "ALL";
         this.bulkTemplateType = "pondok";
         this.bulkViewMode = "raport";
         this.showBulkRaportModal = true;

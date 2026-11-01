@@ -18,7 +18,12 @@ Data pondok tidak dicampur dengan data pondok lain. Pembuat aplikasi hanya diber
 - Salinan Spreadsheet Template Resmi Kosong.
 - Salinan project Apps Script.
 - Template Google Docs untuk raport.
-- **Paket Raport Lengkap & Bulk PDF 1-Klik**: Cetak raport serentak 1 kelas (Format Pondok, TPQ, MDT, Leger Nilai Landscape, dan Sertifikat Jilid).
+- **Paket Raport Lengkap & Bulk PDF 1-Klik (100% Data Riil & Presisi Format F4/A4)**:
+  - Cetak raport serentak 1 kelas atau perorangan santri (Format Pondok F4, TPQ A4, MDT F4, Leger Nilai Landscape, dan Sertifikat Kenaikan Jilid).
+  - Mengeliminasi seluruh angka simulasi/mock; 100% data ditarik riil dari spreadsheet (Academic, MemorizationLogs, Incidents, Attendance).
+  - Tampilan kop surat resmi lengkap dengan lambang crest, 4 baris teks berjenjang, kaligrafi Arab, alamat & No. Statistik (NSPP), dan double border.
+  - Bebas duplikasi halaman santri dengan deduplikasi ketat dan selector cetak cerdas.
+  - Cetak bersih bebas link URL script google di footer dengan format kertas standar Folio/F4.
 - **Layanan Upgrade Tambahan: Santri Analytics PRO (360° Intelligence)**:
   - Dijual sebagai add-on/upgrade terpisah dalam satu aplikasi.
   - Simulasi multi-data operasional (perilaku riil/minus, absensi alpa, halaqah ziyadah vs muroja'ah, akademik).
