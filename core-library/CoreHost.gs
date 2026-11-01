@@ -36,6 +36,10 @@ function getInstallationMode_() {
   return ["legacy", "tenant"].includes(mode) ? mode : "tenant";
 }
 
+function isTenantInstallation_() {
+  return getInstallationMode_() === "tenant";
+}
+
 function getConfiguredSpreadsheetId_() {
   const spreadsheetId = String(
     (SANTRI_CORE_CONTEXT && SANTRI_CORE_CONTEXT.spreadsheetId) || "",
@@ -71,15 +75,44 @@ function getReportV2Rollout_() {
   };
 }
 
+function isReportV2EnabledFor_(currentUser) {
+  const rollout = getReportV2Rollout_();
+  if (rollout.mode === "on") return true;
+  if (rollout.mode === "off") return false;
+
+  const role = String((currentUser && currentUser.Role) || "").trim();
+  if (["Mudir", "Admin"].includes(role)) return true;
+  const username = String((currentUser && currentUser.Username) || "")
+    .trim()
+    .toLowerCase();
+  return !!username && rollout.canaryUsers.includes(username);
+}
+
 function PRODUCT_readInstallationManifest_() {
+  const mode = getInstallationMode_();
+  const spreadsheetId = String(
+    (SANTRI_CORE_CONTEXT && SANTRI_CORE_CONTEXT.spreadsheetId) || "",
+  ).trim();
+  const reportTemplateId = String(
+    (SANTRI_CORE_CONTEXT && SANTRI_CORE_CONTEXT.reportTemplateId) || "",
+  ).trim();
+  const tenantId = String(CORE_getContextProperty_("TENANT_ID", "")).trim();
+  const ownerEmail = String(
+    CORE_getContextProperty_("INSTALLATION_OWNER_EMAIL", ""),
+  ).trim();
+  const supportEmail = String(
+    CORE_getContextProperty_("SUPPORT_EMAIL", ""),
+  ).trim();
   return {
-    mode: "tenant",
-    tenantId: String(CORE_getContextProperty_("TENANT_ID", "")),
-    hasSpreadsheetId: !!getConfiguredSpreadsheetId_(),
-    hasReportTemplateId: !!String(
-      (SANTRI_CORE_CONTEXT && SANTRI_CORE_CONTEXT.reportTemplateId) || "",
-    ).trim(),
-    ready: !!getConfiguredSpreadsheetId_(),
+    mode,
+    tenantId,
+    spreadsheetId,
+    reportTemplateId,
+    hasSpreadsheetId: !!spreadsheetId,
+    hasReportTemplateId: !!reportTemplateId,
+    ownerEmail,
+    supportEmail,
+    ready: mode === "tenant" && !!spreadsheetId && !!reportTemplateId && !!tenantId,
     checks: [],
     note: "Manifest dibaca dari wrapper pondok.",
   };

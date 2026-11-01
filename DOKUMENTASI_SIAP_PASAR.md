@@ -56,37 +56,40 @@ Di Google Drive:
 
 Setelah langkah ini, aplikasi tidak lagi memakai database template.
 
-### 4. Isi data pondok
+### 4. Isi data pondok & Jadwal Cerdas
 
-Gunakan menu `Setup Pondok`:
+Gunakan menu `Wizard Setup`:
 
-1. Klik `Buat Template`.
-2. Isi data santri, guru, wali, dan jadwal.
-3. Untuk Excel, simpan setiap sheet sebagai CSV UTF-8.
-4. Unggah melalui `Upload Santri`, `Upload User`, atau `Upload Jadwal`.
-5. Klik `Preview`.
-6. Perbaiki baris yang salah.
-7. Klik `Proses Import`.
+1. **Santri & Pengguna**:
+   - Klik `Buat Template` atau unggah file data santri dan akun.
+   - Klik `Preview` lalu `Proses Import`.
+   - Klik `Pasangkan Wali ↔ Santri Asli` agar seluruh akun wali otomatis tertaut ke anaknya tanpa ketik StudentID manual.
+2. **Jadwal KBM & Kegiatan (Cerdas Baca Excel & CSV)**:
+   - Pilih tab **Langkah 4. Jadwal**.
+   - Unggah langsung file jadwal pondok dalam format `.xlsx`, `.xls`, atau `.csv`.
+   - Sistem cerdas mendeteksi otomatis format tabel biasa maupun matriks roster KBM (jam pelajaran kolom/baris).
+   - Akun Ustadz baru (kode `T001` - `T013`) otomatis didaftarkan ke sistem tanpa perlu input manual.
+   - Klik `Terapkan Jadwal & Lanjut`.
 
-Import hanya mengisi tempat import terlebih dahulu. Data utama tidak langsung ditimpa tanpa proses preview.
+### 5. Siapkan akademik otomatis (1x Klik)
 
-### 5. Siapkan akademik
+1. Pada **Langkah 5. Akademik**, klik tombol **Siapkan Periode & Item Ujian Otomatis (1x Klik)**.
+2. Sistem otomatis membuat periode akademik aktif (misal `2026/2027 Ganjil`) dan menyinkronkan seluruh item ujian raport dari jadwal aktif yang baru diunggah.
+3. Seluruh kurikulum raport langsung siap digunakan oleh guru untuk input nilai.
 
-1. Buat periode akademik.
-2. Pastikan tanggal awal dan akhir benar.
-3. Buat item ujian dari seluruh jadwal.
-4. Masukkan nilai KBM, pondok, kegiatan, hafalan, doa, praktik, dan ujian lainnya.
-5. Periksa kelayakan ujian berdasarkan persentase kehadiran.
-6. Publikasikan periode setelah nilai wajib lengkap.
+### 6. Buat akun demo & verifikasi kesiapan
 
-### 6. Buat akun demo
+1. Buka **Langkah 6. Demo**, simpan akun demo wali/ustadz untuk uji coba atau presentasi.
+2. Buka **Langkah 7. Cek Kesiapan**: jika ada bagian yang kurang, gunakan tombol `⚡ Lengkapi Otomatis yang Kurang`.
+3. Klik `Selesaikan Setup`. Status pondok otomatis berubah menjadi `100% Siap Pakai`.
 
-1. Buka tab `Demo`.
-2. Klik `Buat Paket Demo Otomatis`.
-3. Gunakan password demo yang berbeda dari password admin.
-4. Catat akun Mudir, Admin, Ustadz, dan Wali.
-5. Uji setiap akun pada browser atau jendela berbeda.
-6. Jangan masukkan data santri asli ke akun demo.
+### 7. Pengelolaan Multi-Pondok & Penjualan (Katalog Pelanggan)
+
+Pada menu **📋 2. Riwayat Setup & Kontrol Pelanggan**:
+1. Melihat status seluruh pondok pelanggan (Aktif, Proses, Terkendala, Siap Pakai).
+2. Mengelola status pembayaran (Belum Bayar, DP/Cicilan, Lunas) serta masa aktif lisensi.
+3. Pondok aktif ditandai dengan badge `★ PONDOK AKTIF` dan form kiri otomatis memuat profil pondok aktif saat ini.
+4. Jika ingin mendaftarkan pondok baru, klik `+ Setup Pondok Baru`.
 
 ## Pembagian akses
 

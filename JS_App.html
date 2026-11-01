@@ -183,10 +183,13 @@
                 if (res && res.ok) {
                   callback(null, res.data);
                 } else {
-                  callback(new Error(
-                    res?.message ||
-                    "Server tidak mengirim respons untuk " + methodName + ". Silakan refresh lalu coba lagi.",
-                  ));
+                  callback(
+                    new Error(
+                      res?.message ||
+                      "Server tidak mengirim respons untuk " + methodName + ". Silakan refresh lalu coba lagi.",
+                    ),
+                    res?.data,
+                  );
                 }
               })
               .withFailureHandler((err) => callback(new Error(
@@ -249,6 +252,9 @@
         checklist: [],
         demoAccounts: [],
         workspaces: [],
+        activeWorkspaceId: "",
+        activeWorkspace: null,
+        savedWizardStep: "profil",
         summary: {
           checklistTotal: 0,
           checklistDone: 0,
@@ -259,9 +265,26 @@
       productLoading: false,
       productSaving: false,
       productSection: "wizard",
-      setupWizardStep: "profil",
+      setupWizardStep: (typeof localStorage !== "undefined" && localStorage.getItem("santri_setup_wizard_step")) || "profil",
+      setupWizardStepRestored: false,
       setupWizardPreview: null,
       setupWizardCompleting: false,
+      workspaceSearchQuery: "",
+      workspaceFilterStatus: "",
+      workspaceFilterPayment: "",
+      quickScheduleForm: {
+        Type: "KBM",
+        SubjectOrActivityName: "",
+        ClassOrGroupName: "",
+        TeacherID: "",
+        DayOfWeek: "Senin",
+        StartTime: "07:30",
+        EndTime: "08:30",
+      },
+      smartSchedulePreview: null,
+      smartScheduleParsing: false,
+      smartScheduleApplying: false,
+      setupWorkspaceMode: "active",
       setupWorkspaceForm: {
         WorkspaceID: "",
         PondokName: "",
@@ -270,9 +293,27 @@
         AppScriptProjectID: "",
         DeploymentUrl: "",
         ReportTemplateID: "",
-        Status: "Draft",
+        Status: "Proses",
         CurrentStep: "Profil",
         Notes: "",
+        TenantID: "",
+        ContactPerson: "",
+        ContactPhone: "",
+        City: "",
+        SetupProgress: 15,
+        LastError: "",
+        PackageName: "Standar",
+        ServiceType: "Web App + APK Android",
+        ActiveModules: "Tahfidz, Perilaku, Absensi, Akademik, Raport, Wali",
+        MaxStudents: "",
+        BillingCycle: "Tahunan",
+        PriceAmount: "",
+        PaidAmount: "",
+        PaymentStatus: "Belum Bayar",
+        PaymentMethod: "",
+        LastPaymentDate: "",
+        StartDate: "",
+        ExpiryDate: "",
       },
       installationForm: {
         spreadsheetId: "",
@@ -288,8 +329,8 @@
         Address: "",
         ContactPhone: "",
         ContactEmail: "",
-        AcademicYear: "",
-        Semester: "",
+        AcademicYear: "2026/2027",
+        Semester: "Ganjil",
       },
       productSettingsForm: {
         PRODUCT_MODULE_GATING: "off",
@@ -818,6 +859,97 @@
 
       get setupWizardMissingChecks() {
         return (this.productWizardStatus.checks || []).filter((check) => !check.ok);
+      },
+
+      get activeSetupWorkspace() {
+        if (this.productReadiness.activeWorkspace) {
+          return this.productReadiness.activeWorkspace;
+        }
+        const activeId = String(this.productReadiness.activeWorkspaceId || "").trim();
+        const workspaces = this.productReadiness.workspaces || [];
+        if (activeId) {
+          const match = workspaces.find((item) => item.WorkspaceID === activeId);
+          if (match) return match;
+        }
+        return workspaces[0] || null;
+      },
+
+      get filteredSetupWorkspaces() {
+        const list = this.productReadiness.workspaces || [];
+        const statusFilter = String(this.workspaceFilterStatus || "").trim().toLowerCase();
+        const paymentFilter = String(this.workspaceFilterPayment || "").trim().toLowerCase();
+        const query = String(this.workspaceSearchQuery || "").trim().toLowerCase();
+        return list.filter((item) => {
+          if (statusFilter && String(item.Status || "").trim().toLowerCase() !== statusFilter) {
+            return false;
+          }
+          if (paymentFilter && String(item.PaymentStatus || "").trim().toLowerCase() !== paymentFilter) {
+            return false;
+          }
+          if (query) {
+            const haystack = [
+              item.PondokName,
+              item.City,
+              item.ContactPerson,
+              item.ContactPhone,
+              item.OwnerEmail,
+              item.PackageName,
+              item.ServiceType,
+              item.TenantID,
+              item.Status,
+              item.CurrentStep,
+              item.Notes,
+              item.LastError,
+            ]
+              .map((val) => String(val || "").toLowerCase())
+              .join(" ");
+            if (!haystack.includes(query)) return false;
+          }
+          return true;
+        });
+      },
+
+      get workspaceStats() {
+        const list = this.productReadiness.workspaces || [];
+        let active = 0;
+        let inProgress = 0;
+        let blocked = 0;
+        let paid = 0;
+        let unpaid = 0;
+        let totalPrice = 0;
+        let totalPaid = 0;
+        list.forEach((item) => {
+          const status = String(item.Status || "").trim().toLowerCase();
+          const payStatus = String(item.PaymentStatus || "").trim().toLowerCase();
+          const hasError = Boolean(String(item.LastError || "").trim());
+          if (status === "aktif" || status === "siap") {
+            active += 1;
+          } else {
+            inProgress += 1;
+          }
+          if (status === "terkendala" || hasError) {
+            blocked += 1;
+          }
+          if (payStatus === "lunas") {
+            paid += 1;
+          } else {
+            unpaid += 1;
+          }
+          const price = Number(String(item.PriceAmount || "0").replace(/[^0-9.-]/g, "")) || 0;
+          const paidAmt = Number(String(item.PaidAmount || "0").replace(/[^0-9.-]/g, "")) || 0;
+          totalPrice += price;
+          totalPaid += paidAmt;
+        });
+        return {
+          total: list.length,
+          active,
+          inProgress,
+          blocked,
+          paid,
+          unpaid,
+          totalPrice,
+          totalPaid,
+        };
       },
 
       get filteredStudents() {
@@ -1938,10 +2070,587 @@
         };
       },
 
-      setSetupWizardStep(step) {
-        if (!this.setupWizardSteps.some((item) => item.id === step)) return;
-        this.setupWizardStep = step;
+      formatRupiah(value) {
+        const num = Number(String(value || "0").replace(/[^0-9.-]/g, "")) || 0;
+        return "Rp " + num.toLocaleString("id-ID");
+      },
+
+      workspaceRemainingPayment(workspace) {
+        const price = Number(String(workspace?.PriceAmount || "0").replace(/[^0-9.-]/g, "")) || 0;
+        const paid = Number(String(workspace?.PaidAmount || "0").replace(/[^0-9.-]/g, "")) || 0;
+        return Math.max(0, price - paid);
+      },
+
+      isWizardStepDone(step) {
+        if (!step || !step.check) return false;
+        if (step.check === "ready") return Boolean(this.productWizardStatus?.ready);
+        const checks = this.productWizardStatus?.checks || [];
+        if (step.id === "data") {
+          const s = checks.find((item) => item.id === "students");
+          const u = checks.find((item) => item.id === "users");
+          return Boolean(s && s.ok && u && u.ok);
+        }
+        if (step.id === "akademik") {
+          const p = checks.find((item) => item.id === "periods");
+          const c = checks.find((item) => item.id === "curriculum");
+          return Boolean(p && p.ok && c && c.ok);
+        }
+        const checkItem = checks.find((item) => item.id === step.check);
+        return Boolean(checkItem && checkItem.ok);
+      },
+
+      parseSmartScheduleFile(event) {
+        const file = event && event.target && event.target.files ? event.target.files[0] : null;
+        if (!file) return;
+        this.smartScheduleParsing = true;
+        this.smartSchedulePreview = null;
+
+        const reader = new FileReader();
+        const fileName = file.name;
+        const isExcel = /\.(xlsx|xls)$/i.test(fileName);
+
+        const defaultClass = (this.students && this.students[0] && (this.students[0]["Class/Level"] || this.students[0].ClassLevel)) || "KELAS 1";
+
+        const parseMatrix = (matrix) => {
+          if (!matrix || matrix.length < 2) return [];
+
+          const normalizeText = (v) => String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+
+          const parseDay = (v) => {
+            const norm = normalizeText(v);
+            if (/senin|mon/.test(norm)) return "Senin";
+            if (/selasa|tue/.test(norm)) return "Selasa";
+            if (/rabu|wed/.test(norm)) return "Rabu";
+            if (/kamis|thu/.test(norm)) return "Kamis";
+            if (/jum|fri/.test(norm)) return "Jumat";
+            if (/sabtu|sat/.test(norm)) return "Sabtu";
+            if (/ahad|minggu|sun/.test(norm)) return "Ahad";
+            return "";
+          };
+
+          const parseTime = (v, defaultStart = "07:30", defaultEnd = "08:30") => {
+            if (v === null || v === undefined) return { start: defaultStart, end: defaultEnd };
+            if (typeof v === "number" && v > 0 && v < 1) {
+              const totalMinutes = Math.round(v * 24 * 60);
+              const h = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+              const m = String(totalMinutes % 60).padStart(2, "0");
+              return { start: `${h}:${m}`, end: defaultEnd };
+            }
+            const str = String(v).trim();
+            const rangeMatch = str.match(/(\d{1,2})[:.](\d{2})\s*(?:-|–|s\/?d|sampai|to)\s*(\d{1,2})[:.](\d{2})/i);
+            if (rangeMatch) {
+              return { start: `${rangeMatch[1].padStart(2, "0")}:${rangeMatch[2]}`, end: `${rangeMatch[3].padStart(2, "0")}:${rangeMatch[4]}` };
+            }
+            const singleMatch = str.match(/(\d{1,2})[:.](\d{2})/);
+            if (singleMatch) {
+              const sH = singleMatch[1].padStart(2, "0");
+              const sM = singleMatch[2];
+              const endMinutes = Number(singleMatch[1]) * 60 + Number(singleMatch[2]) + 45;
+              const eH = String(Math.floor(endMinutes / 60) % 24).padStart(2, "0");
+              const eM = String(endMinutes % 60).padStart(2, "0");
+              return { start: `${sH}:${sM}`, end: `${eH}:${eM}` };
+            }
+            const periodMatch = str.match(/(?:jam\s*(?:ke)?\s*)?(\d+)/i);
+            if (periodMatch) {
+              const num = Number(periodMatch[1]);
+              const slots = {
+                1: { start: "07:30", end: "08:15" },
+                2: { start: "08:15", end: "09:00" },
+                3: { start: "09:15", end: "10:00" },
+                4: { start: "10:00", end: "10:45" },
+                5: { start: "10:45", end: "11:30" },
+                6: { start: "13:00", end: "13:45" },
+                7: { start: "13:45", end: "14:30" },
+                8: { start: "15:45", end: "16:30" },
+              };
+              if (slots[num]) return slots[num];
+            }
+            return { start: defaultStart, end: defaultEnd };
+          };
+
+          const parseItem = (rawSubj, rawTeach = "") => {
+            let subject = String(rawSubj || "").trim();
+            let teacher = String(rawTeach || "").trim();
+            if (!teacher && subject) {
+              const parenMatch = subject.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+              if (parenMatch) {
+                subject = parenMatch[1].trim();
+                teacher = parenMatch[2].trim();
+              } else {
+                const dashMatch = subject.match(/^(.*?)\s*[-–/]\s*(ust\.?|ustadz|guru|ustaz|kyai)\s*(.*)$/i);
+                if (dashMatch) {
+                  subject = dashMatch[1].trim();
+                  teacher = (dashMatch[2] + " " + dashMatch[3]).trim();
+                }
+              }
+            }
+            let type = "KBM";
+            const sNorm = normalizeText(subject);
+            if (/tahfidz|tahfiz|hafalan|ziyadah|muroja|tasmi|tilawah|quran/.test(sNorm)) {
+              type = "Hafalan";
+            } else if (/sholat|solat|subuh|maghrib|isya|dzuhur|ashar|kajian|muhadharah|apel|makan|kebersihan|puasa/.test(sNorm)) {
+              type = "Kegiatan";
+            }
+            return { subject, teacher, type };
+          };
+
+          const headersKeywords = {
+            hari: ["hari", "day", "haripelaksanaan"],
+            jam: ["jam", "waktu", "pukul", "time", "jammulai", "jamke"],
+            mapel: ["mapel", "matapelajaran", "pelajaran", "kegiatan", "subject", "materi", "kitab"],
+            kelas: ["kelas", "rombel", "class", "group", "kelompok", "tingkat"],
+            guru: ["guru", "ustadz", "ustaz", "pengampu", "pengajar", "teacher", "musyrif", "namaguru"],
+          };
+
+          let bestHeader = { rowIndex: -1, score: 0, cols: {} };
+          for (let r = 0; r < Math.min(matrix.length, 15); r++) {
+            const row = matrix[r] || [];
+            const cols = {};
+            let score = 0;
+            row.forEach((cell, c) => {
+              const norm = normalizeText(cell);
+              if (!norm) return;
+              for (const [key, aliases] of Object.entries(headersKeywords)) {
+                if (aliases.some((a) => norm.includes(a))) {
+                  if (cols[key] === undefined || (key === "jam" && (norm.includes("waktu") || norm.includes("pukul")))) {
+                    cols[key] = c;
+                    score += 2;
+                  }
+                }
+              }
+            });
+            if (score > bestHeader.score) {
+              bestHeader = { rowIndex: r, score, cols };
+            }
+          }
+
+          if (bestHeader.rowIndex === -1 || bestHeader.score < 2) return [];
+
+          const headerRow = matrix[bestHeader.rowIndex];
+          const { cols } = bestHeader;
+          const isTabular = cols.mapel !== undefined;
+          const results = [];
+          let lastSeenDay = "Senin";
+          let lastSeenTime = { start: "07:30", end: "08:30" };
+
+          if (isTabular) {
+            for (let r = bestHeader.rowIndex + 1; r < matrix.length; r++) {
+              const row = matrix[r];
+              if (!row || !row.some((c) => String(c || "").trim())) continue;
+              const rawDay = cols.hari !== undefined ? row[cols.hari] : "";
+              const parsedDay = parseDay(rawDay);
+              if (parsedDay) lastSeenDay = parsedDay;
+
+              const rawTime = cols.jam !== undefined ? row[cols.jam] : "";
+              if (rawTime) lastSeenTime = parseTime(rawTime, lastSeenTime.start, lastSeenTime.end);
+
+              const rawSubject = row[cols.mapel];
+              if (!String(rawSubject || "").trim()) continue;
+
+              const rawTeacher = cols.guru !== undefined ? row[cols.guru] : "";
+              const rawClass = cols.kelas !== undefined ? row[cols.kelas] : "";
+              const { subject, teacher, type } = parseItem(rawSubject, rawTeacher);
+              const className = String(rawClass || "").trim() || defaultClass;
+
+              results.push({
+                DayOfWeek: lastSeenDay,
+                StartTime: lastSeenTime.start,
+                EndTime: lastSeenTime.end,
+                SubjectOrActivityName: subject,
+                TeacherName: teacher,
+                ClassOrGroupName: className,
+                Type: type,
+                IsActive: true,
+              });
+            }
+          } else {
+            const classCols = [];
+            headerRow.forEach((cell, c) => {
+              const cellStr = String(cell || "").trim();
+              const norm = normalizeText(cellStr);
+              if (!norm) return;
+              if (/^(hari|day|jam|waktu|pukul|time|no|nomor|keterangan|durasi)$/i.test(norm)) return;
+              if (/^jam(ke)?\d*$/i.test(norm)) return;
+              if (c === cols.hari || c === cols.jam) return;
+              if (cellStr.length <= 40) {
+                classCols.push({ colIndex: c, className: cellStr });
+              }
+            });
+
+            for (let r = bestHeader.rowIndex + 1; r < matrix.length; r++) {
+              const row = matrix[r];
+              if (!row || !row.some((c) => String(c || "").trim())) continue;
+
+              const rawDay = cols.hari !== undefined ? row[cols.hari] : "";
+              const parsedDay = parseDay(rawDay);
+              if (parsedDay) lastSeenDay = parsedDay;
+
+              const rawTime = cols.jam !== undefined ? row[cols.jam] : "";
+              if (rawTime) lastSeenTime = parseTime(rawTime, lastSeenTime.start, lastSeenTime.end);
+
+              classCols.forEach(({ colIndex, className }) => {
+                const cellVal = row[colIndex];
+                if (!cellVal || !String(cellVal).trim()) return;
+
+                const { subject, teacher, type } = parseItem(cellVal, "");
+                if (!subject) return;
+
+                results.push({
+                  DayOfWeek: lastSeenDay,
+                  StartTime: lastSeenTime.start,
+                  EndTime: lastSeenTime.end,
+                  SubjectOrActivityName: subject,
+                  TeacherName: teacher,
+                  ClassOrGroupName: className,
+                  Type: type,
+                  IsActive: true,
+                });
+              });
+            }
+          }
+          return results;
+        };
+
+        const processResults = (schedules) => {
+          this.smartScheduleParsing = false;
+          if (event.target) event.target.value = "";
+          if (!schedules || schedules.length === 0) {
+            this.showToast("Tidak ada jadwal yang dapat dibaca dari file ini. Periksa format kolomnya.", "error");
+            return;
+          }
+          const uniqueClasses = Array.from(new Set(schedules.map((s) => s.ClassOrGroupName).filter(Boolean)));
+          const uniqueTeachers = Array.from(new Set(schedules.map((s) => s.TeacherName).filter(Boolean)));
+          const typesCount = schedules.reduce((acc, s) => {
+            acc[s.Type] = (acc[s.Type] || 0) + 1;
+            return acc;
+          }, {});
+
+          this.smartSchedulePreview = {
+            fileName,
+            items: schedules,
+            total: schedules.length,
+            classes: uniqueClasses,
+            teachers: uniqueTeachers,
+            types: typesCount,
+          };
+
+          this.showToast(
+            `Cerdas: ${schedules.length} jadwal terdeteksi dari ${uniqueClasses.length} kelas dan ${uniqueTeachers.length} ustadz/guru!`,
+            "success"
+          );
+        };
+
+        if (isExcel) {
+          if (typeof XLSX === "undefined") {
+            this.smartScheduleParsing = false;
+            this.showToast("Library pembaca Excel sedang dimuat. Coba beberapa saat lagi.", "error");
+            return;
+          }
+          reader.onload = () => {
+            try {
+              const workbook = XLSX.read(reader.result, { type: "array" });
+              let chosenSheet = workbook.SheetNames[0];
+              const scheduleSheetName = workbook.SheetNames.find((s) => /jadwal|schedule|kbm|roster|diniyah/i.test(s));
+              if (scheduleSheetName) chosenSheet = scheduleSheetName;
+
+              const matrix = XLSX.utils.sheet_to_json(workbook.Sheets[chosenSheet], { header: 1, defval: "" });
+              const schedules = parseMatrix(matrix);
+              processResults(schedules);
+            } catch (err) {
+              this.smartScheduleParsing = false;
+              if (event.target) event.target.value = "";
+              this.showToast("Gagal membaca file Excel: " + err.message, "error");
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        } else {
+          reader.onload = () => {
+            try {
+              const text = String(reader.result || "");
+              const lines = text.split(/\r?\n/).filter(Boolean);
+              const delimiter = lines[0] && lines[0].includes(";") ? ";" : lines[0] && lines[0].includes("\t") ? "\t" : ",";
+              const matrix = lines.map((l) => l.split(delimiter).map((c) => c.replace(/^["']|["']$/g, "").trim()));
+              const schedules = parseMatrix(matrix);
+              processResults(schedules);
+            } catch (err) {
+              this.smartScheduleParsing = false;
+              if (event.target) event.target.value = "";
+              this.showToast("Gagal membaca file CSV: " + err.message, "error");
+            }
+          };
+          reader.readAsText(file);
+        }
+      },
+
+      applySmartSchedulesAction() {
+        if (!this.smartSchedulePreview || !this.smartSchedulePreview.items || !this.smartSchedulePreview.items.length) {
+          this.showToast("Belum ada data jadwal yang dibaca.", "error");
+          return;
+        }
+        this.smartScheduleApplying = true;
+        callGoogleScript("applySmartSchedules", { schedules: this.smartSchedulePreview.items }, this.user).onSuccess((err, data) => {
+          this.smartScheduleApplying = false;
+          if (err) {
+            this.showToast(err.message || "Gagal menerapkan jadwal.", "error");
+            return;
+          }
+          const totalSaved = data?.count || this.smartSchedulePreview.items.length;
+          const ustadzCreated = data?.ustadzCreated || 0;
+          this.smartSchedulePreview = null;
+          this.setupWizardStep = "akademik";
+          try {
+            if (typeof localStorage !== "undefined") {
+              localStorage.setItem("santri_setup_wizard_step", "akademik");
+            }
+          } catch (e) {}
+          this.showToast(
+            `${totalSaved} Jadwal berhasil diterapkan!` + (ustadzCreated > 0 ? ` & ${ustadzCreated} akun Ustadz baru dibuat otomatis.` : "") + " Lanjut ke Langkah 5 (Akademik).",
+            "success"
+          );
+          this.loadProductReadiness();
+          this.loadSchedules();
+        });
+      },
+
+      cancelSmartSchedulePreview() {
+        this.smartSchedulePreview = null;
+      },
+
+      quickAddSetupScheduleAction() {
+        if (!this.quickScheduleForm.SubjectOrActivityName || !this.quickScheduleForm.ClassOrGroupName) {
+          this.showToast("Nama Mapel/Kegiatan dan Kelas wajib diisi.", "error");
+          return;
+        }
+        this.productSaving = true;
+        callGoogleScript("quickAddSetupSchedule", this.quickScheduleForm, this.user).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            const errMsg = err.message || "Gagal menambahkan jadwal.";
+            this.showToast(errMsg, "error");
+            this.recordSetupErrorSilently("jadwal", errMsg);
+            return;
+          }
+          if (data?.wizardStatus) {
+            this.productReadiness.wizardStatus = data.wizardStatus;
+          }
+          this.quickScheduleForm.SubjectOrActivityName = "";
+          this.setupWizardStep = "akademik";
+          try {
+            if (typeof localStorage !== "undefined") {
+              localStorage.setItem("santri_setup_wizard_step", "akademik");
+            }
+          } catch (e) {}
+          this.showToast("Jadwal berhasil disimpan! Lanjut ke Langkah 5 (Akademik).", "success");
+          this.loadProductReadiness();
+        });
+      },
+
+      quickSetupWizardAcademicAction() {
+        this.productSaving = true;
+        callGoogleScript(
+          "quickSetupWizardAcademic",
+          {
+            AcademicYear: this.tenantProfileForm.AcademicYear || "2026/2027",
+            Semester: this.tenantProfileForm.Semester || "Ganjil",
+          },
+          this.user
+        ).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            const errMsg = err.message || "Gagal menyiapkan akademik & item ujian.";
+            this.showToast(errMsg, "error");
+            this.recordSetupErrorSilently("akademik", errMsg);
+            return;
+          }
+          if (data?.wizardStatus) {
+            this.productReadiness.wizardStatus = data.wizardStatus;
+          }
+          this.setupWizardStep = "demo";
+          try {
+            if (typeof localStorage !== "undefined") {
+              localStorage.setItem("santri_setup_wizard_step", "demo");
+            }
+          } catch (e) {}
+          this.showToast(
+            "Periode Akademik & Item Ujian berhasil disiapkan otomatis! Lanjut ke Langkah 6 (Demo).",
+            "success"
+          );
+          this.loadProductReadiness();
+        });
+      },
+
+      normalizeWizardStepId(stepValue) {
+        const raw = String(stepValue || "").trim().toLowerCase();
+        const found = this.setupWizardSteps.find(
+          (item) => item.id === raw || item.label.toLowerCase() === raw
+        );
+        return found ? found.id : "profil";
+      },
+
+      resetSetupWorkspaceForm() {
+        this.setupWorkspaceForm = {
+          WorkspaceID: "",
+          PondokName: "",
+          OwnerEmail: "",
+          DatabaseSpreadsheetID: "",
+          AppScriptProjectID: "",
+          DeploymentUrl: "",
+          ReportTemplateID: "",
+          Status: "Proses",
+          CurrentStep: "Profil",
+          Notes: "",
+          TenantID: "",
+          ContactPerson: "",
+          ContactPhone: "",
+          City: "",
+          SetupProgress: 15,
+          LastError: "",
+          PackageName: this.productSettingsForm.PRODUCT_PACKAGE_NAME || "Standar",
+          ServiceType: "Web App + APK Android",
+          ActiveModules: "Tahfidz, Perilaku, Absensi, Akademik, Raport, Wali",
+          MaxStudents: this.productSettingsForm.PRODUCT_MAX_STUDENTS || "",
+          BillingCycle: "Tahunan",
+          PriceAmount: "",
+          PaidAmount: "",
+          PaymentStatus: "Belum Bayar",
+          PaymentMethod: "",
+          LastPaymentDate: "",
+          StartDate: "",
+          ExpiryDate: "",
+        };
+        this.setupWorkspaceMode = "create";
+      },
+
+      startNewSetupWorkspace() {
+        this.resetSetupWorkspaceForm();
+        this.setupWorkspaceMode = "create";
+        this.productSection = "workspace";
+      },
+
+      loadActiveSetupWorkspace() {
+        if (this.activeSetupWorkspace) {
+          this.resetSetupWorkspaceForm();
+          this.setupWorkspaceForm = {
+            ...this.setupWorkspaceForm,
+            ...this.activeSetupWorkspace,
+          };
+          this.setupWorkspaceMode = "active";
+        } else {
+          this.resetSetupWorkspaceForm();
+        }
+        this.productSection = "workspace";
+      },
+
+      setSetupWizardStep(step, syncBackend = true) {
+        const normalizedStep = this.normalizeWizardStepId(step);
+        if (!this.setupWizardSteps.some((item) => item.id === normalizedStep)) return;
+        this.setupWizardStep = normalizedStep;
+        try {
+          localStorage.setItem("santri_setup_wizard_step", normalizedStep);
+        } catch (e) {}
         this.productSection = "wizard";
+        if (syncBackend && ["Mudir", "Admin"].includes(this.user?.Role)) {
+          callGoogleScript(
+            "saveSetupProgress",
+            {
+              WorkspaceID: this.activeSetupWorkspace?.WorkspaceID || "",
+              CurrentStep: normalizedStep,
+              Status: "Proses",
+            },
+            this.user
+          ).onSuccess((err, data) => {
+            if (!err && data) {
+              this.productReadiness = {
+                ...this.productReadiness,
+                workspaces: data.workspaces || this.productReadiness.workspaces,
+                activeWorkspaceId: data.activeWorkspaceId || this.productReadiness.activeWorkspaceId,
+                activeWorkspace: data.workspace || this.productReadiness.activeWorkspace,
+                savedWizardStep: data.savedWizardStep || normalizedStep,
+              };
+            }
+          });
+        }
+      },
+
+      saveSetupProgressAction(customNote = "") {
+        if (!["Mudir", "Admin"].includes(this.user?.Role)) return;
+        this.productSaving = true;
+        callGoogleScript(
+          "saveSetupProgress",
+          {
+            WorkspaceID: this.activeSetupWorkspace?.WorkspaceID || "",
+            PondokName: this.tenantProfileForm.PondokName || this.activeSetupWorkspace?.PondokName || "",
+            CurrentStep: this.setupWizardStep,
+            Status: "Proses",
+            Notes: customNote || this.activeSetupWorkspace?.Notes || "",
+          },
+          this.user
+        ).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Gagal menyimpan progres setup.", "error");
+            return;
+          }
+          if (data) {
+            this.productReadiness = {
+              ...this.productReadiness,
+              workspaces: data.workspaces || this.productReadiness.workspaces,
+              activeWorkspaceId: data.activeWorkspaceId || this.productReadiness.activeWorkspaceId,
+              activeWorkspace: data.workspace || this.productReadiness.activeWorkspace,
+              savedWizardStep: data.savedWizardStep || this.setupWizardStep,
+            };
+          }
+          this.showToast("Progres langkah setup berhasil disimpan.", "success");
+        });
+      },
+
+      clearSetupWorkspaceErrorAction() {
+        if (!this.activeSetupWorkspace) return;
+        this.productSaving = true;
+        callGoogleScript(
+          "saveSetupProgress",
+          {
+            WorkspaceID: this.activeSetupWorkspace.WorkspaceID,
+            CurrentStep: this.setupWizardStep,
+            Status: "Proses",
+            clearError: true,
+          },
+          this.user
+        ).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (!err && data) {
+            this.productReadiness = {
+              ...this.productReadiness,
+              workspaces: data.workspaces || this.productReadiness.workspaces,
+              activeWorkspaceId: data.activeWorkspaceId || this.productReadiness.activeWorkspaceId,
+              activeWorkspace: data.workspace || this.productReadiness.activeWorkspace,
+            };
+            this.showToast("Catatan kendala ditandai teratasi.", "success");
+          }
+        });
+      },
+
+      recordSetupErrorSilently(stepId, errorMessage) {
+        if (!["Mudir", "Admin"].includes(this.user?.Role) || !errorMessage) return;
+        callGoogleScript(
+          "saveSetupProgress",
+          {
+            WorkspaceID: this.activeSetupWorkspace?.WorkspaceID || "",
+            CurrentStep: stepId || this.setupWizardStep,
+            Status: "Terkendala",
+            LastError: String(errorMessage),
+          },
+          this.user
+        ).onSuccess((err, data) => {
+          if (!err && data) {
+            this.productReadiness = {
+              ...this.productReadiness,
+              workspaces: data.workspaces || this.productReadiness.workspaces,
+              activeWorkspaceId: data.activeWorkspaceId || this.productReadiness.activeWorkspaceId,
+              activeWorkspace: data.workspace || this.productReadiness.activeWorkspace,
+            };
+          }
+        });
       },
 
       nextSetupWizardStep() {
@@ -1966,15 +2675,52 @@
             return;
           }
           this.productReadiness = data || this.productReadiness;
-          this.installationForm = {
-            ...this.installationForm,
-            tenantId: this.productReadiness.installation?.tenantId || "",
-            ownerEmail: this.productReadiness.installation?.ownerEmail || "",
-            supportEmail: this.productReadiness.installation?.supportEmail || "",
-          };
+          if (!this.setupWizardStepRestored) {
+            const backendStep =
+              this.productReadiness.savedWizardStep ||
+              this.productReadiness.activeWorkspace?.CurrentStep ||
+              (typeof localStorage !== "undefined" && localStorage.getItem("santri_setup_wizard_step")) ||
+              "profil";
+            this.setupWizardStep = this.normalizeWizardStepId(backendStep);
+            try {
+              if (typeof localStorage !== "undefined") {
+                localStorage.setItem("santri_setup_wizard_step", this.setupWizardStep);
+              }
+            } catch (e) {}
+            this.setupWizardStepRestored = true;
+          }
           this.tenantProfileForm = {
             ...this.tenantProfileForm,
+            AcademicYear: this.productReadiness.profile?.AcademicYear || "2026/2027",
+            Semester: this.productReadiness.profile?.Semester || "Ganjil",
             ...(this.productReadiness.profile || {}),
+          };
+          if (!this.tenantProfileForm.AcademicYear) this.tenantProfileForm.AcademicYear = "2026/2027";
+          if (!this.tenantProfileForm.Semester) this.tenantProfileForm.Semester = "Ganjil";
+          this.installationForm = {
+            ...this.installationForm,
+            spreadsheetId:
+              this.productReadiness.installation?.spreadsheetId ||
+              this.productReadiness.activeWorkspace?.DatabaseSpreadsheetID ||
+              this.installationForm.spreadsheetId ||
+              "",
+            reportTemplateId:
+              this.productReadiness.installation?.reportTemplateId ||
+              this.productReadiness.activeWorkspace?.ReportTemplateID ||
+              this.installationForm.reportTemplateId ||
+              "",
+            tenantId: this.productReadiness.installation?.tenantId || "",
+            ownerEmail:
+              this.productReadiness.installation?.ownerEmail ||
+              this.tenantProfileForm.ContactEmail ||
+              this.installationForm.ownerEmail ||
+              "",
+            supportEmail:
+              this.productReadiness.installation?.supportEmail ||
+              this.productReadiness.installation?.ownerEmail ||
+              this.tenantProfileForm.ContactEmail ||
+              this.installationForm.supportEmail ||
+              "",
           };
           this.productSettingsForm = {
             ...this.productSettingsForm,
@@ -1989,29 +2735,142 @@
             CORE_LIBRARY_ENABLED: sharedCore.enabled ? "on" : "off",
             CORE_LIBRARY_IDENTIFIER: sharedCore.identifier || this.coreSettingsForm.CORE_LIBRARY_IDENTIFIER,
           };
+          if (
+            this.productReadiness.activeWorkspace &&
+            (!this.setupWorkspaceForm.WorkspaceID ||
+              this.setupWorkspaceForm.WorkspaceID === this.productReadiness.activeWorkspaceId ||
+              this.setupWorkspaceMode === "active")
+          ) {
+            this.setupWorkspaceForm = {
+              ...this.setupWorkspaceForm,
+              ...this.productReadiness.activeWorkspace,
+            };
+            this.setupWorkspaceMode = "active";
+          }
           this.loadAppEntitlements();
         });
       },
 
       editSetupWorkspace(workspace) {
+        this.resetSetupWorkspaceForm();
         this.setupWorkspaceForm = { ...this.setupWorkspaceForm, ...(workspace || {}) };
+        this.setupWorkspaceMode =
+          workspace && workspace.WorkspaceID === this.productReadiness.activeWorkspaceId
+            ? "active"
+            : "edit";
         this.productSection = "workspace";
       },
 
-      saveSetupWorkspaceAction() {
+      saveSetupWorkspaceAction(andResume = false) {
         if (!this.setupWorkspaceForm.PondokName) {
           this.showToast("Nama pondok wajib diisi.", "error");
           return;
         }
         this.productSaving = true;
-        callGoogleScript("saveSetupWorkspace", this.setupWorkspaceForm, this.user).onSuccess((err) => {
+        callGoogleScript("saveSetupWorkspace", this.setupWorkspaceForm, this.user).onSuccess((err, data) => {
           this.productSaving = false;
           if (err) {
-            this.showToast(err.message || "Catatan setup gagal disimpan.", "error");
+            this.showToast(err.message || "Data pondok gagal disimpan.", "error");
             return;
           }
-          this.showToast("Catatan setup pondok tersimpan.", "success");
-          this.setupWorkspaceForm = { ...this.setupWorkspaceForm, WorkspaceID: "" };
+          this.showToast("Data & layanan pondok berhasil disimpan.", "success");
+          const savedWorkspace = data?.workspace || null;
+          if (andResume && savedWorkspace) {
+            this.resumeSetupWorkspaceAction(savedWorkspace);
+            return;
+          }
+          if (savedWorkspace) {
+            this.setupWorkspaceForm = {
+              ...this.setupWorkspaceForm,
+              ...savedWorkspace,
+            };
+            this.setupWorkspaceMode =
+              savedWorkspace.WorkspaceID === this.productReadiness.activeWorkspaceId
+                ? "active"
+                : "edit";
+          }
+          this.loadProductReadiness();
+        });
+      },
+
+      resumeSetupWorkspaceAction(workspace) {
+        if (!workspace || !workspace.WorkspaceID) return;
+        this.productSaving = true;
+        callGoogleScript(
+          "resumeSetupWorkspace",
+          { WorkspaceID: workspace.WorkspaceID },
+          this.user
+        ).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Gagal melanjutkan riwayat setup.", "error");
+            return;
+          }
+          const targetStep = this.normalizeWizardStepId(
+            data?.savedWizardStep || workspace.CurrentStep || "profil"
+          );
+          this.setupWizardStep = targetStep;
+          this.setupWizardStepRestored = true;
+          try {
+            localStorage.setItem("santri_setup_wizard_step", targetStep);
+          } catch (e) {}
+          if (data?.workspace) {
+            this.tenantProfileForm = {
+              ...this.tenantProfileForm,
+              PondokName: data.workspace.PondokName || this.tenantProfileForm.PondokName,
+              ContactPhone: data.workspace.ContactPhone || this.tenantProfileForm.ContactPhone,
+              ContactEmail: data.workspace.OwnerEmail || this.tenantProfileForm.ContactEmail,
+            };
+          }
+          this.productSection = "wizard";
+          this.showToast(
+            "Melanjutkan setup " +
+              (workspace.PondokName || "pondok") +
+              " pada langkah " +
+              (workspace.CurrentStep || "Profil") +
+              ".",
+            "success"
+          );
+          this.loadProductReadiness();
+        });
+      },
+
+      deleteSetupWorkspaceAction(workspace) {
+        if (!workspace || !workspace.WorkspaceID) return;
+        if (
+          !confirm(
+            "Hapus riwayat setup & catatan pondok '" +
+              (workspace.PondokName || workspace.WorkspaceID) +
+              "'? Data utama santri di Spreadsheet tidak akan terhapus."
+          )
+        ) {
+          return;
+        }
+        this.productSaving = true;
+        callGoogleScript(
+          "deleteSetupWorkspace",
+          { WorkspaceID: workspace.WorkspaceID },
+          this.user
+        ).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Gagal menghapus riwayat setup.", "error");
+            return;
+          }
+          if (this.setupWorkspaceForm.WorkspaceID === workspace.WorkspaceID) {
+            this.resetSetupWorkspaceForm();
+          }
+          if (data) {
+            this.productReadiness = {
+              ...this.productReadiness,
+              workspaces: data.workspaces || [],
+              activeWorkspaceId: data.activeWorkspaceId || "",
+              activeWorkspace:
+                (data.workspaces || []).find((w) => w.WorkspaceID === data.activeWorkspaceId) ||
+                null,
+            };
+          }
+          this.showToast("Riwayat setup pondok berhasil dihapus.", "success");
           this.loadProductReadiness();
         });
       },
@@ -2185,13 +3044,14 @@
             };
             const classifySheet = (sheetName, matrix) => {
               const sheetHint = normalize(sheetName);
+              if (/^(petunjuk|contoh|panduan|instruksi|readme)/.test(sheetHint)) return null;
               let best = null;
               Object.entries(definitions).forEach(([kind, definition]) => {
                 const header = findHeader(matrix, definition);
                 const hint = definition.label === "Santri"
-                  ? (sheetHint.includes("santri") || sheetHint.includes("student"))
+                  ? (sheetHint.includes("santri") || sheetHint.includes("student") || sheetHint.includes("siswa"))
                   : definition.label === "User"
-                    ? (sheetHint.includes("user") || sheetHint.includes("akun") || sheetHint.includes("guru"))
+                    ? (sheetHint.includes("user") || sheetHint.includes("akun") || sheetHint.includes("guru") || sheetHint.includes("ustadz") || sheetHint.includes("wali"))
                     : (sheetHint.includes("jadwal") || sheetHint.includes("schedule"));
                 const score = header.score + (hint ? 2 : 0);
                 if (header.index >= 0 && (!best || score > best.score)) best = { kind, score, header };
@@ -2239,7 +3099,9 @@
             });
             const problems = csvFiles.filter((item) => item.error || !item.csv.trim());
             if (problems.length) {
-              this.showToast("Excel belum dapat disesuaikan: " + problems.map((item) => item.error).join(" "), "error");
+              const errMsg = "Excel belum dapat disesuaikan: " + problems.map((item) => item.error).join(" ");
+              this.showToast(errMsg, "error");
+              this.recordSetupErrorSilently("data", errMsg);
               event.target.value = "";
               return;
             }
@@ -2254,6 +3116,7 @@
                 this.productSaving = false;
                 event.target.value = "";
                 this.showToast("Excel berhasil dibaca. Klik Preview sebelum Proses Import.", "success");
+                this.loadProductReadiness();
                 return;
               }
               const item = csvFiles[index];
@@ -2270,7 +3133,9 @@
                   if (err) {
                     this.productSaving = false;
                     event.target.value = "";
-                    this.showToast(err.message || "Sheet Excel gagal dimuat.", "error");
+                    const errMsg = err.message || "Sheet Excel gagal dimuat.";
+                    this.showToast(errMsg, "error");
+                    this.recordSetupErrorSilently("data", errMsg);
                     return;
                   }
                   uploadNext(index + 1);
@@ -2280,12 +3145,14 @@
                 this.productSaving = false;
                 event.target.value = "";
                 this.showToast("Sheet Excel tidak dapat dibaca.", "error");
+                this.recordSetupErrorSilently("data", "Sheet Excel tidak dapat dibaca.");
               };
               csvReader.readAsDataURL(csvBlob);
             };
             uploadNext(0);
           } catch (error) {
             this.showToast("File Excel tidak dapat dibaca. Gunakan template resmi.", "error");
+            this.recordSetupErrorSilently("data", "File Excel tidak dapat dibaca.");
             event.target.value = "";
           }
         };
@@ -2316,10 +3183,13 @@
             this.productSaving = false;
             event.target.value = "";
             if (err) {
-              this.showToast(err.message || "File gagal dimuat.", "error");
+              const errMsg = err.message || "File gagal dimuat.";
+              this.showToast(errMsg, "error");
+              this.recordSetupErrorSilently("data", errMsg);
               return;
             }
             this.showToast((data && data.message) || "File berhasil dimuat. Lanjutkan Preview.", "success");
+            this.loadProductReadiness();
           });
         };
         reader.onerror = () => this.showToast("File tidak dapat dibaca dari perangkat.", "error");
@@ -2333,10 +3203,12 @@
           if (err) {
             this.setupWizardPreview = data || null;
             this.showToast(err.message || "Preview import gagal.", "error");
+            this.loadProductReadiness();
             return;
           }
           this.setupWizardPreview = data || null;
           this.showToast("Preview import selesai.", "success");
+          this.loadProductReadiness();
         });
       },
 
@@ -2348,13 +3220,65 @@
           if (err) {
             this.setupWizardPreview = data || this.setupWizardPreview;
             this.showToast(err.message || "Import gagal.", "error");
+            this.loadProductReadiness();
             return;
           }
           this.showToast("Import setup selesai.", "success");
           this.setupWizardPreview = null;
+          this.setupWizardStep = "jadwal";
+          try {
+            localStorage.setItem("santri_setup_wizard_step", "jadwal");
+          } catch (e) {}
           this.loadProductReadiness();
           this.refreshData();
         });
+      },
+
+      autoCompleteSetupPrerequisitesAction() {
+        this.setupWizardCompleting = true;
+        callGoogleScript("autoCompleteSetupPrerequisites", this.user).onSuccess((err, data) => {
+          this.setupWizardCompleting = false;
+          if (err) {
+            this.showToast(err.message || "Gagal melengkapi otomatis.", "error");
+            return;
+          }
+          if (data?.wizardStatus) {
+            this.productReadiness.wizardStatus = data.wizardStatus;
+          }
+          this.showToast("Semua kebutuhan setup berhasil dilengkapi otomatis!", "success");
+          this.loadProductReadiness();
+          this.refreshData();
+        });
+      },
+
+      quickAddUstadzAction() {
+        this.productSaving = true;
+        callGoogleScript("addUser", {
+          Name: "Ustadz Pembina",
+          Username: "ustadz",
+          Password: "password123",
+          Role: "Ustadz",
+          TeacherSourceID: "GURU-01",
+          Status: "Active",
+        }, this.user).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Gagal membuat akun ustadz.", "error");
+            return;
+          }
+          this.showToast("Akun Ustadz ('ustadz' / 'password123') berhasil dibuat!", "success");
+          this.loadProductReadiness();
+          this.refreshData();
+        });
+      },
+
+      quickFixProfileAction() {
+        this.tenantProfileForm.AcademicYear = "2026/2027";
+        this.tenantProfileForm.Semester = "Ganjil";
+        if (!this.tenantProfileForm.PondokName) {
+          this.tenantProfileForm.PondokName = this.activeSetupWorkspace?.PondokName || "Raudhatul Ulum";
+        }
+        this.saveTenantProfileAction();
       },
 
       completeSetupWizardAction() {
@@ -2366,6 +3290,7 @@
               this.productReadiness.wizardStatus = data.status;
             }
             this.showToast(err.message || "Setup belum siap.", "error");
+            this.loadProductReadiness();
             return;
           }
           this.showToast("Setup pondok sudah siap dipakai.", "success");
@@ -2374,14 +3299,35 @@
       },
 
       saveTenantProfileAction() {
+        const hasPendingSpreadsheet =
+          this.currentTab === "setup_pondok" &&
+          this.productSection === "wizard" &&
+          String(this.installationForm.spreadsheetId || "").trim() &&
+          (String(this.installationForm.spreadsheetId || "").trim() !==
+            String(this.productReadiness.installation?.spreadsheetId || "").trim() ||
+            String(this.installationForm.reportTemplateId || "").trim() !==
+              String(this.productReadiness.installation?.reportTemplateId || "").trim());
+        if (hasPendingSpreadsheet) {
+          this.configureTenantInstallationAction(true);
+          return;
+        }
         this.productSaving = true;
         callGoogleScript("saveTenantProfile", this.tenantProfileForm, this.user).onSuccess((err) => {
           this.productSaving = false;
           if (err) {
             this.showToast(err.message || "Profil pondok gagal disimpan.", "error");
+            this.recordSetupErrorSilently("profil", err.message || "Profil pondok gagal disimpan.");
             return;
           }
           this.showToast("Profil pondok tersimpan.", "success");
+          if (this.productSection === "wizard" && this.setupWizardStep === "profil") {
+            this.setupWizardStep = "paket";
+            try {
+              if (typeof localStorage !== "undefined") {
+                localStorage.setItem("santri_setup_wizard_step", "paket");
+              }
+            } catch (e) {}
+          }
           this.loadProductReadiness();
         });
       },
@@ -2431,32 +3377,77 @@
         reader.readAsDataURL(file);
       },
 
-      configureTenantInstallationAction() {
-        const spreadsheetId = String(this.installationForm.spreadsheetId || "").trim();
-        if (!spreadsheetId) {
+      configureTenantInstallationAction(skipConfirm = false) {
+        const cleanId = (val) =>
+          String(val || "")
+            .trim()
+            .replace(/\u00d7/g, "x")
+            .replace(/[\u200B-\u200D\uFEFF]/g, "");
+        this.installationForm.spreadsheetId = cleanId(this.installationForm.spreadsheetId);
+        this.installationForm.reportTemplateId = cleanId(this.installationForm.reportTemplateId);
+        if (!this.installationForm.ownerEmail && this.tenantProfileForm.ContactEmail) {
+          this.installationForm.ownerEmail = String(this.tenantProfileForm.ContactEmail || "").trim();
+        }
+        if (!this.installationForm.supportEmail && this.installationForm.ownerEmail) {
+          this.installationForm.supportEmail = this.installationForm.ownerEmail;
+        }
+        if (!this.installationForm.spreadsheetId) {
           this.showToast("Masukkan ID atau URL Spreadsheet milik pondok.", "error");
           return;
         }
-        if (!confirm("Hubungkan aplikasi ke Spreadsheet ini? Setelah disimpan, semua data aplikasi akan memakai Spreadsheet tujuan.")) return;
+        const isSameSpreadsheet =
+          String(this.installationForm.spreadsheetId) ===
+          String(this.productReadiness.installation?.spreadsheetId || "");
+        if (
+          !skipConfirm &&
+          !isSameSpreadsheet &&
+          !confirm(
+            "Simpan identitas pondok dan hubungkan aplikasi ke Spreadsheet ini? Sistem akan menyiapkan seluruh sheet otomatis tanpa mengeluarkan sesi login Anda."
+          )
+        ) {
+          return;
+        }
         this.productSaving = true;
-        callGoogleScript("configureTenantInstallation", this.installationForm, this.user).onSuccess((err, data) => {
+        callGoogleScript(
+          "configureTenantInstallation",
+          {
+            ...this.installationForm,
+            profile: this.tenantProfileForm,
+          },
+          this.user
+        ).onSuccess((err, data) => {
           this.productSaving = false;
           if (err) {
-            this.showToast(err.message || "Aplikasi belum berhasil dihubungkan.", "error");
+            const errMsg = err.message || "Aplikasi belum berhasil dihubungkan.";
+            this.showToast(errMsg, "error");
+            this.recordSetupErrorSilently("profil", errMsg);
             return;
           }
-          if (data?.data) {
-            this.productReadiness.installation = data.data;
+          const manifest = data?.data || data;
+          if (manifest) {
+            this.productReadiness.installation = manifest;
             this.installationForm = {
               ...this.installationForm,
-              spreadsheetId: "",
-              tenantId: data.data.tenantId || this.installationForm.tenantId,
+              spreadsheetId: manifest.spreadsheetId || this.installationForm.spreadsheetId,
+              reportTemplateId: manifest.reportTemplateId || this.installationForm.reportTemplateId,
+              tenantId: manifest.tenantId || this.installationForm.tenantId,
+              ownerEmail: manifest.ownerEmail || this.installationForm.ownerEmail,
+              supportEmail: manifest.supportEmail || this.installationForm.supportEmail,
             };
           }
-          this.showToast("Aplikasi sudah terhubung. Halaman akan dimuat ulang; login kembali memakai akun dari Spreadsheet pondok.", "success");
-          localStorage.removeItem("user");
-          sessionStorage.removeItem("user");
-          setTimeout(() => window.location.reload(), 900);
+          this.setupWizardStep = "paket";
+          this.setupWizardStepRestored = true;
+          try {
+            if (typeof localStorage !== "undefined") {
+              localStorage.setItem("santri_setup_wizard_step", "paket");
+            }
+          } catch (e) {}
+          this.showToast(
+            "Identitas & Database Pondok berhasil dihubungkan! Lanjut ke Langkah 2 (Paket Modul).",
+            "success"
+          );
+          this.loadProductReadiness();
+          this.refreshData();
         });
       },
 
@@ -2530,12 +3521,45 @@
         callGoogleScript("saveDemoAccount", this.demoAccountForm, this.user).onSuccess((err) => {
           this.productSaving = false;
           if (err) {
-            this.showToast(err.message || "Akun demo gagal disimpan.", "error");
+            const errMsg = err.message || "Akun demo gagal disimpan.";
+            this.showToast(errMsg, "error");
+            this.recordSetupErrorSilently("demo", errMsg);
             return;
           }
-          this.showToast("Akun demo tersimpan.", "success");
+          if (this.productSection === "wizard" && this.setupWizardStep === "demo") {
+            this.setupWizardStep = "cek";
+            try {
+              if (typeof localStorage !== "undefined") {
+                localStorage.setItem("santri_setup_wizard_step", "cek");
+              }
+            } catch (e) {}
+          }
+          this.showToast("Akun demo tersimpan & siap digunakan! Lanjut ke Langkah 7 (Cek Kesiapan).", "success");
           this.resetDemoAccountForm();
           this.loadProductReadiness();
+        });
+      },
+
+      syncWaliStudentsLinkAction() {
+        this.productSaving = true;
+        callGoogleScript("syncWaliStudentsLink", this.user).onSuccess((err, data) => {
+          this.productSaving = false;
+          if (err) {
+            this.showToast(err.message || "Gagal menyinkronkan akun Wali & Santri.", "error");
+            return;
+          }
+          const linked = Number(data?.linked || 0);
+          const created = Number(data?.created || 0);
+          this.showToast(
+            "Sinkronisasi Wali selesai: " +
+              linked +
+              " akun Wali ditautkan ke StudentID santri asli, " +
+              created +
+              " akun Wali baru dibuat.",
+            "success"
+          );
+          this.loadProductReadiness();
+          this.refreshData();
         });
       },
 

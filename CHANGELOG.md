@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-11-02 - Versi Production @212: Integrasi Product Readiness, Smart Schedule Parser & Multi-Pondok
+
+- **Smart Schedule Parser**:
+  - Deteksi cerdas file jadwal (.xlsx, .xls, .csv), mendukung format tabular biasa maupun matriks roster KBM (kolom kelas/hari, jam berderet, format titik `07.30 - 08.30`, jam ke-1 s/d 8).
+  - Pendaftaran otomatis akun Ustadz baru (T001 - T013) dalam satu kali proses import jadwal tanpa input manual.
+  - Whitelist backend action `applySmartSchedules` dan `autoCompleteSetupPrerequisites` di `isExternalActionAllowed_`.
+- **Penyederhanaan Antarmuka Setup Pondok**:
+  - Menggabungkan 7 tab membingungkan menjadi 2 Menu Utama yang bersih dan fokus:
+    1. `🚀 1. Wizard Setup (Pondok Aktif)`: Alur berurutan 7 langkah untuk menyelesaikan persiapan pondok sampai siap pakai.
+    2. `📋 2. Riwayat Setup & Kontrol Pelanggan`: Pusat rekap riwayat setup, status pembayaran, paket lisensi, dan masa aktif seluruh pondok.
+  - Sub-tabel teknis dipisah ke tombol dropdown/toggle `⚙️ Modul & Teknis`.
+- **Perbaikan Form & Status Pondok Aktif**:
+  - Form tidak lagi kosong saat dibuka; langsung menampilkan data pondok yang sedang dikerjakan dengan banner hijau penjelas `Pondok Aktif Saat Ini`.
+  - Auto-seeding active workspace sehingga data riwayat setup tidak pernah hilang atau null.
+  - Penambahan badge `★ PONDOK AKTIF` dan tombol `🚀 Buka di Wizard`.
+- **Akademik & Akun Wali Cerdas**:
+  - Jalur Cepat 1x Klik untuk membuat Periode Akademik (default `2026/2027 Ganjil`) dan sinkronisasi otomatis seluruh Item Ujian Kurikulum dari Jadwal aktif.
+  - Sinkronisasi otomatis Santri asli ke akun Wali berdasarkan No. HP Wali, Username, NIS, atau Nama Santri tanpa perlu mengetik StudentID manual.
+- **Rollout ke Aplikasi Utama**:
+  - Berhasil dideploy ke Production Deployment ID `AKfycbxP3xqiB3va56ipHb-aVyS4nIN1oBdgWsTsSmDnc0L24TBpV2tE4PexMMmj0Uwgu0YVsQ` pada versi `@212`.
+  - Database pondok utama tetap terlindungi secara aman di Spreadsheet pondok sendiri tanpa terganggu database staging.
+
 ## 2026-10-25 - Pondasi instalasi aman per pondok
 
 - Menambahkan pengaturan koneksi aplikasi ke Spreadsheet milik pondok.

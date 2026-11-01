@@ -158,6 +158,7 @@ function PRODUCT_isWrapperOnlyAction_(action) {
     "getInstallationManifest",
     "getAppReleaseStatus",
     "saveSharedCoreSettings",
+    "runHealthCheck",
   ].includes(String(action || ""));
 }
 
@@ -289,11 +290,19 @@ function isExternalActionAllowed_(action) {
     "getAppEntitlements",
     "getProductReadiness",
     "saveSetupWorkspace",
+    "saveSetupProgress",
+    "resumeSetupWorkspace",
+    "deleteSetupWorkspace",
     "createSetupImportTemplates",
     "seedSetupDummyData",
     "importSetupCsv",
     "previewSetupWizardImports",
     "applySetupWizardImports",
+    "syncWaliStudentsLink",
+    "quickAddSetupSchedule",
+    "applySmartSchedules",
+    "autoCompleteSetupPrerequisites",
+    "quickSetupWizardAcademic",
     "completeSetupWizard",
     "getInstallationManifest",
     "configureTenantInstallation",

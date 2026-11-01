@@ -88,7 +88,7 @@ function addUser(userData, currentUser) {
     const importedSalt = String(userData.Salt || "").trim();
     const hasImportedHash = !!(importedHash && importedSalt);
     if (!hasImportedHash && (!userData.Password || String(userData.Password).length < 6)) {
-      return { ok: false, message: "Password minimal 6 karakter, atau sertakan Salt dan PasswordHash dari export aplikasi." };
+      return { ok: false, message: "Password awal minimal 6 karakter." };
     }
 
     // Check if username already exists

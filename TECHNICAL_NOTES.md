@@ -649,3 +649,11 @@ of tabs, attendance filters, dates, and active sessions.
 
 The production deployment containing this fix is version `201` at deployment
 ID `AKfycbxP3xqiB3va56ipHb-aVyS4nIN1oBdgWsTsSmDnc0L24TBpV2tE4PexMMmj0Uwgu0YVsQ`.
+
+### 2026-11-02 Production Release (@212)
+- Added Smart Schedule Parser supporting tabular and timetable grid rosters (`.xlsx`, `.xls`, `.csv`).
+- Batch auto-registration of teacher accounts during schedule import.
+- Auto-linked real wali accounts to students using phone numbers/NIS/names.
+- Consolidated Setup Pondok into 2 high-clarity main modes: Wizard Setup (Active Pondok) and Riwayat Setup & Kontrol Pelanggan.
+- Auto-seeding active setup workspace to prevent blank forms and preserve history across reloads.
+- Deployed to production deployment ID `AKfycbxP3xqiB3va56ipHb-aVyS4nIN1oBdgWsTsSmDnc0L24TBpV2tE4PexMMmj0Uwgu0YVsQ` version `@212`.

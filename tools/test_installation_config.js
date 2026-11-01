@@ -42,6 +42,8 @@ assert.strictEqual(context.getConfiguredReportTemplateId_(), "template-uji");
 const manifest = context.PRODUCT_readInstallationManifest_();
 assert.strictEqual(manifest.mode, "tenant");
 assert.strictEqual(manifest.tenantId, "pondok-uji");
+assert.strictEqual(manifest.spreadsheetId, "spreadsheet-uji");
+assert.strictEqual(manifest.reportTemplateId, "template-uji");
 assert.strictEqual(manifest.ready, false);
 assert.strictEqual(
   context.INSTALL_normalizeDriveId_("https://docs.google.com/spreadsheets/d/abc_123/edit"),
@@ -50,6 +52,10 @@ assert.strictEqual(
 assert.strictEqual(
   context.INSTALL_normalizeDriveId_("https://docs.google.com/document/d/doc-123/edit"),
   "doc-123",
+);
+assert.strictEqual(
+  context.INSTALL_normalizeDriveId_("1OXuGi-oNIKT-7tQ8\u00d72QnBk11Hjw7MUCs7yQ7NBQc8NQ"),
+  "1OXuGi-oNIKT-7tQ8x2QnBk11Hjw7MUCs7yQ7NBQc8NQ",
 );
 
 console.log("Installation config guard OK.");

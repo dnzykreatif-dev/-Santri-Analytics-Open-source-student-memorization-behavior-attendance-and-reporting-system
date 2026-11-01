@@ -1,6 +1,8 @@
 tools/**
 **/tools/**
 core-library/**
+.current_staging/**
+.template_sync/**
 *.md
 README.txt
 BAHAN PROMOSI/**

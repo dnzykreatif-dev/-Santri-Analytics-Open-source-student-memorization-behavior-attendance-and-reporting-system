@@ -93,5 +93,19 @@ const release = context.PRODUCT_readReleaseStatus_();
 assert.strictEqual(release.sharedCore.version, "2");
 assert.strictEqual(release.sharedCore.channel, "canary");
 assert.strictEqual(release.sharedCore.enabled, true);
+assert.strictEqual(context.isTenantInstallation_(), true);
+assert.strictEqual(context.isReportV2EnabledFor_({ Role: "Admin", Username: "admin" }), false);
+
+context.SANTRI_CORE_CONTEXT.properties.REPORT_V2_ROLLOUT = "canary";
+context.SANTRI_CORE_CONTEXT.properties.REPORT_V2_CANARY_USERS = "ustadz1";
+assert.strictEqual(context.isReportV2EnabledFor_({ Role: "Admin", Username: "admin" }), true);
+assert.strictEqual(context.isReportV2EnabledFor_({ Role: "Ustadz", Username: "ustadz1" }), true);
+assert.strictEqual(context.isReportV2EnabledFor_({ Role: "Ustadz", Username: "ustadz2" }), false);
+
+const wrapperHealthResult = context.runAppAction({
+  action: "runHealthCheck",
+  args: [{ Role: "Admin" }],
+});
+assert.strictEqual(wrapperHealthResult.ok, false);
 
 console.log("Shared core bridge OK.");

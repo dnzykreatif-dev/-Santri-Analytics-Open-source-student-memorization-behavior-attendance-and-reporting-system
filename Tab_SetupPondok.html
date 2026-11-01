@@ -62,46 +62,346 @@
       </div>
     </div>
 
-    <div class="flex flex-wrap gap-2">
-      <button type="button" class="app-btn" :class="productSection === 'wizard' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'wizard'">Wizard Setup</button>
-      <button type="button" class="app-btn" :class="productSection === 'ringkasan' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'ringkasan'">Ringkasan</button>
-      <button type="button" class="app-btn" :class="productSection === 'profil' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'profil'">Profil</button>
-      <button type="button" class="app-btn" :class="productSection === 'modul' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'modul'">Paket Modul</button>
-      <button type="button" class="app-btn" :class="productSection === 'checklist' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'checklist'">Checklist</button>
-      <button type="button" class="app-btn" :class="productSection === 'demo' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'demo'">Demo</button>
-      <button type="button" class="app-btn" :class="productSection === 'workspace' ? 'app-btn-primary' : 'app-btn-soft'" @click="productSection = 'workspace'">Daftar Pondok</button>
+    <!-- Tab Navigasi Setup Pondok: 2 Mode Utama yang Jelas -->
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="app-btn flex items-center gap-2 py-2 px-4"
+          :class="productSection === 'wizard' ? 'app-btn-primary shadow-sm' : 'app-btn-soft'"
+          @click="productSection = 'wizard'">
+          <span class="font-bold">🚀 1. Wizard Setup (Pondok Aktif)</span>
+          <span class="rounded-full bg-emerald-800/20 px-2 py-0.5 text-xs font-semibold"
+            x-text="(productReadiness.summary.checklistDone || 0) + '/' + (productReadiness.summary.checklistTotal || 0) + ' Selesai'"></span>
+        </button>
+
+        <button type="button" class="app-btn flex items-center gap-2 py-2 px-4"
+          :class="productSection === 'workspace' ? 'app-btn-primary shadow-sm' : 'app-btn-soft'"
+          @click="loadActiveSetupWorkspace()">
+          <span class="font-bold">📋 2. Riwayat Setup & Kontrol Pelanggan</span>
+          <span class="rounded-full bg-blue-800/20 px-2 py-0.5 text-xs font-semibold"
+            x-text="(productReadiness.workspaces || []).length + ' Pondok'"></span>
+        </button>
+      </div>
+
+      <!-- Mode Detail / Lanjutan (Opsional) -->
+      <div class="flex items-center gap-1.5 self-end sm:self-auto">
+        <span class="text-xs text-gray-400 font-medium">Tabel Detail:</span>
+        <button type="button" class="text-xs px-2.5 py-1.5 rounded-md border font-semibold transition"
+          :class="['modul', 'checklist', 'demo'].includes(productSection) ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+          @click="productSection = ['modul', 'checklist', 'demo'].includes(productSection) ? 'wizard' : 'modul'"
+          title="Tabel teknis modul, checklist, dan akun demo">
+          ⚙️ Modul & Teknis
+        </button>
+      </div>
     </div>
 
     <section x-show="productSection === 'workspace'" class="space-y-5">
       <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
-        <h3 class="text-lg font-bold text-emerald-950">Daftar Pondok yang Sedang Disiapkan</h3>
-        <p class="mt-1 text-sm text-emerald-900">Catatan ini menyimpan progres dan link setiap instalasi. Data santri tiap pondok tetap berada di Spreadsheet masing-masing.</p>
-      </div>
-      <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm lg:col-span-1">
-          <h3 class="text-lg font-bold text-gray-900">Tambah / Ubah Catatan</h3>
-          <div class="mt-4 space-y-3">
-            <label class="block"><span class="app-label">Nama Pondok</span><input class="app-input" x-model="setupWorkspaceForm.PondokName" placeholder="Pondok baru"></label>
-            <label class="block"><span class="app-label">Email Pemilik</span><input class="app-input" x-model="setupWorkspaceForm.OwnerEmail" placeholder="admin@pondok.sch.id"></label>
-            <label class="block"><span class="app-label">ID Spreadsheet Database</span><input class="app-input" x-model="setupWorkspaceForm.DatabaseSpreadsheetID" placeholder="ID dari link Spreadsheet"></label>
-            <label class="block"><span class="app-label">Link Aplikasi / Deployment</span><input class="app-input" x-model="setupWorkspaceForm.DeploymentUrl" placeholder="https://script.google.com/macros/s/.../exec"></label>
-            <label class="block"><span class="app-label">Langkah Terakhir</span><select class="app-input" x-model="setupWorkspaceForm.CurrentStep"><option>Profil</option><option>Paket</option><option>Data</option><option>Jadwal</option><option>Akademik</option><option>Demo</option><option>Cek</option></select></label>
-            <label class="block"><span class="app-label">Status</span><select class="app-input" x-model="setupWorkspaceForm.Status"><option>Draft</option><option>Proses</option><option>Menunggu Data</option><option>Siap</option><option>Aktif</option></select></label>
-            <label class="block"><span class="app-label">Catatan</span><textarea class="app-input min-h-[75px]" x-model="setupWorkspaceForm.Notes" placeholder="Catatan pekerjaan terakhir"></textarea></label>
-            <button type="button" class="app-btn app-btn-primary w-full" @click="saveSetupWorkspaceAction()" :disabled="productSaving">Simpan Catatan Pondok</button>
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-emerald-950">Riwayat Setup & Kontrol Pelanggan Pondok</h3>
+            <p class="mt-1 text-sm text-emerald-900">Semua progres setup tercatat otomatis di sini. Jika terjadi kendala di tengah jalan, Anda bisa langsung memilih <strong>Lanjutkan Setup</strong> dari langkah terakhir atau <strong>Hapus</strong> riwayat. Saat aplikasi dijual, kelola data paket, layanan, pembayaran, dan masa aktif seluruh pondok dari satu panel ini.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="app-btn app-btn-soft" @click="startNewSetupWorkspace()">+ Setup Pondok Baru</button>
+            <button type="button" class="app-btn app-btn-primary" @click="productSection = 'wizard'">Buka Wizard Setup</button>
           </div>
         </div>
-        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
-          <div class="flex items-center justify-between gap-3"><h3 class="text-lg font-bold text-gray-900">Riwayat Setup</h3><span class="text-xs text-gray-500" x-text="(productReadiness.workspaces || []).length + ' pondok'"></span></div>
-          <div class="mt-4 space-y-3">
-            <template x-if="!(productReadiness.workspaces || []).length"><p class="rounded-lg border border-dashed p-5 text-sm text-gray-500">Belum ada catatan pondok. Tambahkan satu agar bisa dilanjutkan kapan saja.</p></template>
-            <template x-for="workspace in (productReadiness.workspaces || [])" :key="workspace.WorkspaceID">
-              <div class="rounded-lg border border-gray-200 p-4">
-                <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div><p class="font-bold text-gray-900" x-text="workspace.PondokName"></p><p class="text-xs text-gray-500" x-text="workspace.OwnerEmail || 'Email pemilik belum diisi'"></p><p class="mt-1 text-xs text-gray-500" x-text="'Terakhir: ' + (workspace.CurrentStep || '-') + ' · ' + (workspace.LastUpdated || '-')"></p></div>
-                  <div class="flex flex-wrap gap-2"><span class="rounded-full bg-amber-100 px-2 py-1 text-xs font-bold text-amber-800" x-text="workspace.Status"></span><button type="button" class="app-btn app-btn-soft" @click="editSetupWorkspace(workspace)">Ubah</button><button type="button" class="app-btn app-btn-primary" @click="openSetupWorkspace(workspace)">Lanjutkan</button></div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <p class="text-xs font-bold uppercase text-gray-500">Total Pondok Tercatat</p>
+          <p class="mt-2 text-3xl font-bold text-gray-900" x-text="workspaceStats.total"></p>
+          <p class="mt-1 text-xs text-emerald-700" x-text="workspaceStats.active + ' aktif / siap pakai'"></p>
+        </div>
+        <div class="rounded-lg border border-amber-200 bg-white p-4 shadow-sm">
+          <p class="text-xs font-bold uppercase text-gray-500">Proses & Terkendala</p>
+          <p class="mt-2 text-3xl font-bold text-amber-700" x-text="workspaceStats.inProgress"></p>
+          <p class="mt-1 text-xs text-red-600" x-text="workspaceStats.blocked + ' butuh tindak lanjut kendala'"></p>
+        </div>
+        <div class="rounded-lg border border-blue-200 bg-white p-4 shadow-sm">
+          <p class="text-xs font-bold uppercase text-gray-500">Status Pembayaran</p>
+          <p class="mt-2 text-3xl font-bold text-blue-700" x-text="workspaceStats.paid + ' Lunas'"></p>
+          <p class="mt-1 text-xs text-gray-500" x-text="workspaceStats.unpaid + ' belum lunas / DP'"></p>
+        </div>
+        <div class="rounded-lg border border-purple-200 bg-white p-4 shadow-sm">
+          <p class="text-xs font-bold uppercase text-gray-500">Total Pembayaran Masuk</p>
+          <p class="mt-2 text-xl font-bold text-purple-700" x-text="formatRupiah(workspaceStats.totalPaid)"></p>
+          <p class="mt-1 text-xs text-gray-500" x-text="'Dari tagihan ' + formatRupiah(workspaceStats.totalPrice)"></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-5 lg:grid-cols-12">
+        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm lg:col-span-5">
+          <!-- Status Banner Menjelaskan Data yang Ditampilkan -->
+          <template x-if="setupWorkspaceForm.WorkspaceID && setupWorkspaceForm.WorkspaceID === productReadiness.activeWorkspaceId">
+            <div class="mb-4 rounded-lg border border-emerald-300 bg-emerald-50/90 p-3.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="inline-block h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-900">Pondok Aktif Saat Ini</span>
+                  </div>
+                  <p class="mt-1 text-sm font-bold text-emerald-950" x-text="setupWorkspaceForm.PondokName || 'Pondok Sedang Dikerjakan'"></p>
+                  <p class="mt-0.5 text-xs text-emerald-800">Data di bawah ini adalah pondok yang sedang dikerjakan pada Wizard Setup. Perubahan paket, PIC, harga, dan pembayaran langsung tersimpan di sini.</p>
                 </div>
-                <p class="mt-2 text-xs text-gray-600" x-text="workspace.Notes || 'Belum ada catatan.'"></p>
+                <button type="button" class="app-btn app-btn-soft shrink-0 text-xs py-1.5 px-3" @click="startNewSetupWorkspace()">
+                  + Pondok Baru
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <template x-if="setupWorkspaceForm.WorkspaceID && setupWorkspaceForm.WorkspaceID !== productReadiness.activeWorkspaceId">
+            <div class="mb-4 rounded-lg border border-blue-300 bg-blue-50/90 p-3.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="text-xs font-bold uppercase tracking-wider text-blue-900">Mengedit Pondok Pelanggan Lain</span>
+                  <p class="mt-1 text-sm font-bold text-blue-950" x-text="setupWorkspaceForm.PondokName"></p>
+                  <p class="mt-0.5 text-xs text-blue-800">Menampilkan rekaman pondok lain dalam katalog penjualan multi-pondok.</p>
+                </div>
+                <button type="button" class="app-btn app-btn-soft shrink-0 text-xs py-1.5 px-3" @click="loadActiveSetupWorkspace()">
+                  Kembali ke Pondok Aktif
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <template x-if="!setupWorkspaceForm.WorkspaceID">
+            <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50/90 p-3.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="text-xs font-bold uppercase tracking-wider text-amber-900">Form Tambah Pondok / Pelanggan Baru</span>
+                  <p class="mt-1 text-xs text-amber-800">Gunakan form ini jika ingin mendaftarkan pondok baru ke dalam katalog penjualan multi-pondok.</p>
+                </div>
+                <button type="button" class="app-btn app-btn-soft shrink-0 text-xs py-1.5 px-3" @click="loadActiveSetupWorkspace()">
+                  Batal & Kembali ke Pondok Aktif
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <div class="flex items-center justify-between gap-2 border-b border-gray-100 pb-3">
+            <h3 class="text-base font-bold text-gray-900" x-text="setupWorkspaceForm.WorkspaceID ? (setupWorkspaceForm.WorkspaceID === productReadiness.activeWorkspaceId ? 'Ubah Data Pondok Aktif' : 'Ubah Data Pondok Pelanggan') : 'Form Tambah Pondok Baru'"></h3>
+            <button type="button" class="text-xs font-bold text-emerald-700 hover:underline" @click="resetSetupWorkspaceForm()">Reset Form Kosong</button>
+          </div>
+
+          <div class="mt-4 space-y-4">
+            <div class="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-3">
+              <p class="text-xs font-bold uppercase tracking-wide text-gray-600">1. Identitas & Kontak PIC Pondok</p>
+              <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label class="block md:col-span-2"><span class="app-label">Nama Pondok *</span><input class="app-input" x-model="setupWorkspaceForm.PondokName" placeholder="Contoh: PP Darul Ulum"></label>
+                <label class="block"><span class="app-label">Kota / Kabupaten</span><input class="app-input" x-model="setupWorkspaceForm.City" placeholder="Contoh: Pontianak"></label>
+                <label class="block"><span class="app-label">Tenant ID</span><input class="app-input" x-model="setupWorkspaceForm.TenantID" placeholder="Otomatis jika kosong"></label>
+                <label class="block"><span class="app-label">Nama PIC / Penanggung Jawab</span><input class="app-input" x-model="setupWorkspaceForm.ContactPerson" placeholder="Ust. Ahmad"></label>
+                <label class="block"><span class="app-label">No. WhatsApp PIC</span><input class="app-input" x-model="setupWorkspaceForm.ContactPhone" placeholder="0812..."></label>
+                <label class="block md:col-span-2"><span class="app-label">Email Pemilik / Admin Pondok</span><input class="app-input" type="email" x-model="setupWorkspaceForm.OwnerEmail" placeholder="admin@pondok.sch.id"></label>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-blue-100 bg-blue-50/50 p-3 space-y-3">
+              <p class="text-xs font-bold uppercase tracking-wide text-blue-800">2. Paket & Layanan Penjualan</p>
+              <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label class="block">
+                  <span class="app-label">Paket Produk</span>
+                  <select class="app-input" x-model="setupWorkspaceForm.PackageName">
+                    <option value="Starter">Starter</option>
+                    <option value="Standar">Standar</option>
+                    <option value="Pro Lengkap">Pro Lengkap</option>
+                    <option value="Enterprise">Enterprise</option>
+                    <option value="Internal">Internal</option>
+                  </select>
+                </label>
+                <label class="block">
+                  <span class="app-label">Jenis Layanan</span>
+                  <select class="app-input" x-model="setupWorkspaceForm.ServiceType">
+                    <option value="Web App">Web App</option>
+                    <option value="Web App + APK Android">Web App + APK Android</option>
+                    <option value="Terima Beres + Import Data">Terima Beres + Import Data</option>
+                    <option value="Custom / Dedicated">Custom / Dedicated</option>
+                  </select>
+                </label>
+                <label class="block"><span class="app-label">Kuota Maksimal Santri</span><input class="app-input" x-model="setupWorkspaceForm.MaxStudents" placeholder="Contoh: 300 (kosong = bebas)"></label>
+                <label class="block"><span class="app-label">Modul Aktif</span><input class="app-input" x-model="setupWorkspaceForm.ActiveModules" placeholder="Tahfidz, Akademik, Raport, Absensi"></label>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-purple-100 bg-purple-50/50 p-3 space-y-3">
+              <p class="text-xs font-bold uppercase tracking-wide text-purple-800">3. Pembayaran & Masa Aktif</p>
+              <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label class="block">
+                  <span class="app-label">Siklus Tagihan</span>
+                  <select class="app-input" x-model="setupWorkspaceForm.BillingCycle">
+                    <option value="Tahunan">Tahunan</option>
+                    <option value="Semesteran">Semesteran</option>
+                    <option value="Bulanan">Bulanan</option>
+                    <option value="Lisensi Putus">Lisensi Putus (Sekali Bayar)</option>
+                  </select>
+                </label>
+                <label class="block">
+                  <span class="app-label">Status Pembayaran</span>
+                  <select class="app-input" x-model="setupWorkspaceForm.PaymentStatus">
+                    <option value="Belum Bayar">Belum Bayar</option>
+                    <option value="DP / Cicilan">DP / Cicilan</option>
+                    <option value="Lunas">Lunas</option>
+                    <option value="Perpanjangan">Perpanjangan</option>
+                    <option value="Menunggak">Menunggak</option>
+                  </select>
+                </label>
+                <label class="block"><span class="app-label">Harga Paket (Rp)</span><input class="app-input" type="number" x-model="setupWorkspaceForm.PriceAmount" placeholder="1500000"></label>
+                <label class="block"><span class="app-label">Nominal Dibayar (Rp)</span><input class="app-input" type="number" x-model="setupWorkspaceForm.PaidAmount" placeholder="1500000"></label>
+                <label class="block"><span class="app-label">Metode Pembayaran</span><input class="app-input" x-model="setupWorkspaceForm.PaymentMethod" placeholder="Transfer BSI / QRIS / Tunai"></label>
+                <label class="block"><span class="app-label">Tanggal Bayar Terakhir</span><input class="app-input" type="date" x-model="setupWorkspaceForm.LastPaymentDate"></label>
+                <label class="block"><span class="app-label">Mulai Aktif</span><input class="app-input" type="date" x-model="setupWorkspaceForm.StartDate"></label>
+                <label class="block"><span class="app-label">Berakhir / Jatuh Tempo</span><input class="app-input" type="date" x-model="setupWorkspaceForm.ExpiryDate"></label>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-amber-100 bg-amber-50/50 p-3 space-y-3">
+              <p class="text-xs font-bold uppercase tracking-wide text-amber-900">4. Progres Setup & Link Teknis</p>
+              <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label class="block">
+                  <span class="app-label">Langkah Setup Terakhir</span>
+                  <select class="app-input" x-model="setupWorkspaceForm.CurrentStep">
+                    <option value="Profil">1. Profil</option>
+                    <option value="Paket">2. Paket</option>
+                    <option value="Data">3. Data</option>
+                    <option value="Jadwal">4. Jadwal</option>
+                    <option value="Akademik">5. Akademik</option>
+                    <option value="Demo">6. Demo</option>
+                    <option value="Cek">7. Cek</option>
+                  </select>
+                </label>
+                <label class="block">
+                  <span class="app-label">Status Pondok</span>
+                  <select class="app-input" x-model="setupWorkspaceForm.Status">
+                    <option value="Draft">Draft</option>
+                    <option value="Proses">Proses Setup</option>
+                    <option value="Terkendala">Terkendala</option>
+                    <option value="Menunggu Data">Menunggu Data</option>
+                    <option value="Siap">Siap Pakai</option>
+                    <option value="Aktif">Aktif (Terjual)</option>
+                    <option value="Masa Tenggang">Masa Tenggang</option>
+                    <option value="Nonaktif">Nonaktif</option>
+                  </select>
+                </label>
+                <label class="block md:col-span-2"><span class="app-label">ID Spreadsheet Database</span><input class="app-input" x-model="setupWorkspaceForm.DatabaseSpreadsheetID" placeholder="ID dari link Google Spreadsheet pondok"></label>
+                <label class="block md:col-span-2"><span class="app-label">ID Template Raport</span><input class="app-input" x-model="setupWorkspaceForm.ReportTemplateID" placeholder="ID Google Docs template raport (opsional)"></label>
+                <label class="block md:col-span-2"><span class="app-label">Link Aplikasi / Web App / APK</span><input class="app-input" x-model="setupWorkspaceForm.DeploymentUrl" placeholder="https://script.google.com/macros/s/.../exec"></label>
+                <label class="block md:col-span-2"><span class="app-label">Kendala Terakhir (Kosongkan jika sudah teratasi)</span><input class="app-input" x-model="setupWorkspaceForm.LastError" placeholder="Catatan error/kendala saat setup"></label>
+                <label class="block md:col-span-2"><span class="app-label">Catatan Admin</span><textarea class="app-input min-h-[70px]" x-model="setupWorkspaceForm.Notes" placeholder="Catatan kesepakatan paket, request khusus, atau progres setup"></textarea></label>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-2 sm:flex-row">
+              <button type="button" class="app-btn app-btn-primary flex-1" @click="saveSetupWorkspaceAction(false)" :disabled="productSaving">Simpan Data Pondok</button>
+              <button type="button" class="app-btn app-btn-soft flex-1" @click="saveSetupWorkspaceAction(true)" :disabled="productSaving">Simpan & Lanjutkan Setup</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm lg:col-span-7">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 class="text-lg font-bold text-gray-900">Daftar Riwayat Setup & Pelanggan Pondok</h3>
+              <p class="text-xs text-gray-500">Pilih <strong>Lanjutkan Setup</strong> untuk meneruskan dari langkah terakhir, atau <strong>Hapus</strong> jika batal.</p>
+            </div>
+            <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800" x-text="filteredSetupWorkspaces.length + ' dari ' + (productReadiness.workspaces || []).length + ' pondok'"></span>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <input class="app-input" x-model="workspaceSearchQuery" placeholder="Cari nama pondok, kota, PIC, paket...">
+            <select class="app-input" x-model="workspaceFilterStatus">
+              <option value="">Semua Status Setup</option>
+              <option value="Draft">Draft</option>
+              <option value="Proses">Proses Setup</option>
+              <option value="Terkendala">Terkendala</option>
+              <option value="Menunggu Data">Menunggu Data</option>
+              <option value="Siap">Siap Pakai</option>
+              <option value="Aktif">Aktif (Terjual)</option>
+              <option value="Masa Tenggang">Masa Tenggang</option>
+              <option value="Nonaktif">Nonaktif</option>
+            </select>
+            <select class="app-input" x-model="workspaceFilterPayment">
+              <option value="">Semua Status Bayar</option>
+              <option value="Belum Bayar">Belum Bayar</option>
+              <option value="DP / Cicilan">DP / Cicilan</option>
+              <option value="Lunas">Lunas</option>
+              <option value="Perpanjangan">Perpanjangan</option>
+              <option value="Menunggak">Menunggak</option>
+            </select>
+          </div>
+
+          <div class="mt-4 space-y-4">
+            <template x-if="!filteredSetupWorkspaces.length">
+              <p class="rounded-lg border border-dashed p-6 text-center text-sm text-gray-500">Belum ada riwayat pondok yang sesuai filter. Setiap langkah setup akan otomatis tercatat di sini.</p>
+            </template>
+
+            <template x-for="workspace in filteredSetupWorkspaces" :key="workspace.WorkspaceID">
+              <div class="rounded-lg border p-4 transition" :class="productReadiness.activeWorkspaceId === workspace.WorkspaceID ? 'border-2 border-emerald-500 bg-emerald-50/40 shadow-sm ring-1 ring-emerald-400' : 'border-gray-200 bg-white'">
+                <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="text-base font-bold text-gray-900" x-text="workspace.PondokName || 'Pondok Tanpa Nama'"></p>
+                      <template x-if="productReadiness.activeWorkspaceId === workspace.WorkspaceID">
+                        <span class="rounded-full bg-emerald-700 px-2.5 py-0.5 text-[11px] font-extrabold text-white">★ PONDOK AKTIF</span>
+                      </template>
+                      <span class="rounded-full px-2.5 py-0.5 text-xs font-bold"
+                        :class="workspace.Status === 'Aktif' || workspace.Status === 'Siap' ? 'bg-emerald-100 text-emerald-800' : workspace.Status === 'Terkendala' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'"
+                        x-text="workspace.Status || 'Proses'"></span>
+                      <span class="rounded-full px-2.5 py-0.5 text-xs font-bold"
+                        :class="workspace.PaymentStatus === 'Lunas' ? 'bg-blue-100 text-blue-800' : workspace.PaymentStatus === 'DP / Cicilan' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-700'"
+                        x-text="workspace.PaymentStatus || 'Belum Bayar'"></span>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-600" x-text="(workspace.City ? workspace.City + ' · ' : '') + 'PIC: ' + (workspace.ContactPerson || '-') + (workspace.ContactPhone ? ' (' + workspace.ContactPhone + ')' : '') + (workspace.OwnerEmail ? ' · ' + workspace.OwnerEmail : '')"></p>
+                    <p class="mt-0.5 text-xs text-gray-500" x-text="'Langkah Terakhir: ' + (workspace.CurrentStep || 'Profil') + ' (' + (workspace.SetupProgress || 0) + '%) · Diperbarui: ' + (workspace.LastUpdated || '-')"></p>
+                  </div>
+
+                  <div class="flex flex-wrap gap-1.5">
+                    <button type="button" class="app-btn app-btn-primary text-xs" @click="resumeSetupWorkspaceAction(workspace)" :disabled="productSaving" x-text="productReadiness.activeWorkspaceId === workspace.WorkspaceID ? '🚀 Buka di Wizard' : 'Jadikan Aktif & Buka Wizard'"></button>
+                    <button type="button" class="app-btn app-btn-soft text-xs" @click="editSetupWorkspace(workspace)">Edit Form</button>
+                    <template x-if="workspace.DeploymentUrl">
+                      <button type="button" class="app-btn app-btn-soft text-xs" @click="openSetupWorkspace(workspace)">Buka App</button>
+                    </template>
+                    <button type="button" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100" @click="deleteSetupWorkspaceAction(workspace)" :disabled="productSaving">Hapus</button>
+                  </div>
+                </div>
+
+                <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                  <div class="h-full rounded-full transition-all"
+                    :class="workspace.Status === 'Terkendala' ? 'bg-red-500' : 'bg-emerald-600'"
+                    :style="'width: ' + Math.min(100, Math.max(8, Number(workspace.SetupProgress || 15))) + '%'"></div>
+                </div>
+
+                <template x-if="workspace.LastError">
+                  <div class="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                    <p class="font-bold">Kendala Terakhir Tercatat:</p>
+                    <p class="mt-0.5" x-text="workspace.LastError"></p>
+                  </div>
+                </template>
+
+                <div class="mt-3 grid grid-cols-1 gap-2 rounded-lg bg-gray-50 p-3 text-xs text-gray-700 md:grid-cols-3">
+                  <div>
+                    <p class="font-bold text-gray-500 uppercase text-[10px]">Paket & Layanan</p>
+                    <p class="mt-0.5 font-semibold text-gray-900" x-text="(workspace.PackageName || 'Internal') + ' · ' + (workspace.ServiceType || 'Web App')"></p>
+                    <p class="text-gray-500" x-text="'Maks Santri: ' + (workspace.MaxStudents || 'Bebas')"></p>
+                  </div>
+                  <div>
+                    <p class="font-bold text-gray-500 uppercase text-[10px]">Pembayaran (<span x-text="workspace.BillingCycle || 'Tahunan'"></span>)</p>
+                    <p class="mt-0.5 font-semibold text-gray-900" x-text="'Dibayar: ' + formatRupiah(workspace.PaidAmount) + ' / ' + formatRupiah(workspace.PriceAmount)"></p>
+                    <p :class="workspaceRemainingPayment(workspace) > 0 ? 'text-amber-700 font-semibold' : 'text-emerald-700'"
+                      x-text="workspaceRemainingPayment(workspace) > 0 ? 'Sisa Tagihan: ' + formatRupiah(workspaceRemainingPayment(workspace)) : 'Tagihan Lunas'"></p>
+                  </div>
+                  <div>
+                    <p class="font-bold text-gray-500 uppercase text-[10px]">Masa Aktif & Teknis</p>
+                    <p class="mt-0.5 font-semibold text-gray-900" x-text="(workspace.StartDate || '-') + ' s/d ' + (workspace.ExpiryDate || '-')"></p>
+                    <p class="truncate text-gray-500" x-text="workspace.DatabaseSpreadsheetID ? 'DB: ' + workspace.DatabaseSpreadsheetID : 'DB belum ditautkan'"></p>
+                  </div>
+                </div>
+
+                <template x-if="workspace.Notes">
+                  <p class="mt-2 text-xs text-gray-600" x-text="'Catatan: ' + workspace.Notes"></p>
+                </template>
               </div>
             </template>
           </div>
@@ -110,20 +410,55 @@
     </section>
 
     <section x-show="productSection === 'wizard'" class="space-y-5">
+      <div class="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded-full bg-emerald-700 px-2.5 py-0.5 text-xs font-bold text-white">Riwayat Setup Otomatis Aktif</span>
+              <span class="text-sm font-bold text-emerald-950" x-text="activeSetupWorkspace?.PondokName || tenantProfileForm.PondokName || 'Pondok sedang disiapkan'"></span>
+              <span class="text-xs text-emerald-800" x-text="'· Langkah tercatat: ' + (activeSetupWorkspace?.CurrentStep || currentSetupWizardStep.label) + ' (' + (activeSetupWorkspace?.SetupProgress || productSetupPercent || 15) + '%)'"></span>
+            </div>
+            <p class="mt-1 text-xs text-emerald-900">
+              Progres langkah dan kendala disimpan otomatis. Jika proses berhenti di tengah jalan, Anda dapat kembali ke halaman ini atau menu <strong>Daftar Pondok & Layanan</strong> untuk langsung melanjutkan tanpa mengulang dari awal.
+            </p>
+            <template x-if="activeSetupWorkspace?.LastUpdated">
+              <p class="mt-0.5 text-[11px] text-emerald-700" x-text="'Terakhir disimpan: ' + activeSetupWorkspace.LastUpdated + (activeSetupWorkspace.UpdatedBy ? ' oleh ' + activeSetupWorkspace.UpdatedBy : '')"></p>
+            </template>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="app-btn app-btn-soft text-xs" @click="saveSetupProgressAction()" :disabled="productSaving">Simpan Progres Langkah Ini</button>
+            <button type="button" class="app-btn app-btn-soft text-xs" @click="productSection = 'workspace'">Riwayat & Kontrol Pondok (<span x-text="(productReadiness.workspaces || []).length"></span>)</button>
+          </div>
+        </div>
+
+        <template x-if="activeSetupWorkspace?.LastError">
+          <div class="mt-3 flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p class="font-bold">Kendala Terakhir pada Setup Ini:</p>
+              <p class="mt-0.5" x-text="activeSetupWorkspace.LastError"></p>
+            </div>
+            <button type="button" class="app-btn app-btn-soft text-xs shrink-0" @click="clearSetupWorkspaceErrorAction()">Tandai Kendala Teratasi</button>
+          </div>
+        </template>
+      </div>
+
       <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h3 class="text-lg font-bold text-gray-900">Wizard Setup Pondok</h3>
-            <p class="mt-1 text-sm text-gray-600">Ikuti langkah ini dari kiri ke kanan sampai status siap dipakai.</p>
+            <p class="mt-1 text-sm text-gray-600">Ikuti langkah ini dari kiri ke kanan sampai status siap dipakai. Langkah Anda tersimpan otomatis saat berpindah.</p>
           </div>
           <button type="button" class="app-btn app-btn-soft" @click="loadProductReadiness()" :disabled="productLoading">Cek Ulang</button>
         </div>
         <div class="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
           <template x-for="(step, index) in setupWizardSteps" :key="step.id">
             <button type="button" class="rounded-lg border px-3 py-3 text-left transition hover:bg-gray-50"
-              :class="setupWizardStep === step.id ? 'border-emerald-600 bg-emerald-50 text-emerald-900' : 'border-gray-200 bg-white text-gray-700'"
+              :class="setupWizardStep === step.id ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-600' : isWizardStepDone(step) ? 'border-emerald-200 bg-emerald-50/40 text-emerald-900' : 'border-gray-200 bg-white text-gray-700'"
               @click="setSetupWizardStep(step.id)">
-              <span class="block text-xs font-bold uppercase" x-text="'Langkah ' + (index + 1)"></span>
+              <div class="flex items-center justify-between">
+                <span class="block text-xs font-bold uppercase" x-text="'Langkah ' + (index + 1)"></span>
+                <span class="text-[11px] font-bold" :class="isWizardStepDone(step) ? 'text-emerald-700' : 'text-gray-400'" x-text="isWizardStepDone(step) ? 'Selesai' : ''"></span>
+              </div>
               <span class="mt-1 block text-sm font-bold" x-text="step.label"></span>
             </button>
           </template>
@@ -155,18 +490,26 @@
         <div class="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
           <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <p class="font-bold text-amber-900">Hubungkan Database Pondok</p>
-              <p class="mt-1 text-sm text-amber-800">Setelah Spreadsheet template disalin ke Drive pondok, masukkan link atau ID salinannya di sini. Ini cukup dilakukan sekali.</p>
+              <p class="font-bold text-amber-900">Hubungkan Database Pondok (Sekali Jalan)</p>
+              <p class="mt-1 text-sm text-amber-800">Masukkan link atau ID Spreadsheet dan Template Raport pondok. Saat tombol ditekan, sistem otomatis menyimpan profil di atas, menyiapkan semua sheet di Spreadsheet tujuan, mempertahankan sesi login Anda, dan langsung lanjut ke Langkah 2.</p>
+              <template x-if="productReadiness.installation?.spreadsheetId">
+                <p class="mt-1 text-xs font-semibold text-emerald-800" x-text="'Database aktif saat ini: ' + productReadiness.installation.spreadsheetId"></p>
+              </template>
             </div>
-            <span class="rounded-full bg-white px-3 py-1 text-xs font-bold text-amber-800" x-text="productReadiness.installation?.mode === 'tenant' ? 'Sudah terhubung' : 'Belum terhubung'"></span>
+            <span class="rounded-full px-3 py-1 text-xs font-bold shrink-0"
+              :class="productReadiness.installation?.mode === 'tenant' ? 'bg-emerald-100 text-emerald-800' : 'bg-white text-amber-800'"
+              x-text="productReadiness.installation?.mode === 'tenant' ? 'Sudah terhubung' : 'Belum terhubung'"></span>
           </div>
           <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <label class="block md:col-span-2"><span class="app-label">Link atau ID Spreadsheet pondok</span><input class="app-input" x-model="installationForm.spreadsheetId" placeholder="https://docs.google.com/spreadsheets/d/..."></label>
-            <label class="block md:col-span-2"><span class="app-label">Link atau ID Template Raport pondok</span><input class="app-input" x-model="installationForm.reportTemplateId" placeholder="https://docs.google.com/document/d/..."></label>
+            <label class="block md:col-span-2"><span class="app-label">Link atau ID Spreadsheet pondok</span><input class="app-input" x-model="installationForm.spreadsheetId" placeholder="https://docs.google.com/spreadsheets/d/... atau ID Spreadsheet"></label>
+            <label class="block md:col-span-2"><span class="app-label">Link atau ID Template Raport pondok</span><input class="app-input" x-model="installationForm.reportTemplateId" placeholder="https://docs.google.com/document/d/... atau ID Google Docs"></label>
             <label class="block"><span class="app-label">Email pemilik pondok</span><input class="app-input" type="email" x-model="installationForm.ownerEmail" placeholder="admin@pondok.sch.id"></label>
             <label class="block"><span class="app-label">Email bantuan teknis (opsional)</span><input class="app-input" type="email" x-model="installationForm.supportEmail" placeholder="support@... (opsional)"></label>
           </div>
-          <button type="button" class="app-btn app-btn-primary mt-4" @click="configureTenantInstallationAction()" :disabled="productSaving">Hubungkan Spreadsheet Pondok</button>
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button type="button" class="app-btn app-btn-primary" @click="configureTenantInstallationAction()" :disabled="productSaving" x-text="productSaving ? 'Menghubungkan & Menyiapkan Sheet...' : 'Simpan Profil & Hubungkan Spreadsheet Pondok'"></button>
+            <span class="text-xs text-amber-800">Tidak perlu login ulang setelah dihubungkan.</span>
+          </div>
           <p class="mt-2 text-xs text-amber-800">Jangan masukkan Spreadsheet template utama atau database pondok lain.</p>
         </div>
       </div>
@@ -224,10 +567,11 @@
             <button type="button" class="app-btn app-btn-soft" @click="seedSetupDummyDataAction()" :disabled="productSaving">Isi Data Contoh</button>
             <button type="button" class="app-btn app-btn-soft" @click="previewSetupImportsAction()" :disabled="productSaving">Preview</button>
             <button type="button" class="app-btn app-btn-primary" @click="applySetupImportsAction()" :disabled="productSaving">Proses Import</button>
+            <button type="button" class="app-btn app-btn-soft" @click="syncWaliStudentsLinkAction()" :disabled="productSaving">Pasangkan Wali ↔ Santri Asli</button>
           </div>
         </div>
         <div class="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-700">
-          Isi sheet <strong>SetupImportStudents</strong> untuk santri dan <strong>SetupImportUsers</strong> untuk Mudir/Admin/Ustadz/Wali. Untuk user cukup isi Nama, Username, Password awal, dan Role. Sistem otomatis mengamankan password; kolom keamanan tidak perlu diisi. Baris yang sudah ada akan dilewati agar tidak dobel.
+          Isi sheet <strong>SetupImportStudents</strong> untuk santri dan <strong>SetupImportUsers</strong> untuk Mudir/Admin/Ustadz/Wali. Untuk <strong>Wali Santri Asli</strong>, Anda tidak perlu menghafal <code>StudentID</code>: cukup samakan <strong>No. HP Wali (ParentContact)</strong> atau <strong>WaliUsername</strong>, atau isi kolom StudentID dengan <strong>NIS / Nama Santri</strong>—sistem otomatis memasangkan akun Wali ke <code>StudentID</code> santri aslinya saat Proses Import.
         </div>
         <div class="mt-4 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
           <p class="text-sm font-bold text-emerald-900">Import dari Excel</p>
@@ -259,37 +603,259 @@
         </template>
       </div>
 
-      <div x-show="setupWizardStep === 'jadwal'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 class="text-lg font-bold text-gray-900">4. Jadwal</h3>
-        <p class="mt-1 text-sm text-gray-600">Jadwal bisa diimport lewat template <strong>SetupImportSchedules</strong>, atau diatur dari menu Manajemen Jadwal.</p>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <button type="button" class="app-btn app-btn-soft" @click="createSetupImportTemplatesAction()" :disabled="productSaving">Siapkan Sheet Jadwal</button>
-          <button type="button" class="app-btn app-btn-primary" @click="setCurrentTab('jadwal_admin')">Buka Manajemen Jadwal</button>
-        </div>
-      </div>
-
-      <div x-show="setupWizardStep === 'akademik'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 class="text-lg font-bold text-gray-900">5. Akademik dan Item Ujian</h3>
-        <p class="mt-1 text-sm text-gray-600">Buat periode akademik, lalu siapkan item ujian dari jadwal agar raport seluruh kurikulum bisa berjalan.</p>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <button type="button" class="app-btn app-btn-primary" @click="setCurrentTab('akademik'); academicSection = 'setup'; loadAcademicSetup()">Buka Setup Akademik</button>
-          <button type="button" class="app-btn app-btn-soft" @click="setCurrentTab('akademik'); academicSection = 'kurikulum'; loadAcademicSetup(); loadCurriculumExamSetup()">Buka Kurikulum Ujian</button>
-        </div>
-      </div>
-
-      <div x-show="setupWizardStep === 'demo'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <div x-show="setupWizardStep === 'jadwal'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm space-y-5">
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h3 class="text-lg font-bold text-gray-900">6. Akun Demo</h3>
-            <p class="text-sm text-gray-600">Catat akun demo yang akan diberikan kepada calon pembeli.</p>
+            <h3 class="text-lg font-bold text-gray-900">4. Jadwal KBM & Kegiatan Pondok</h3>
+            <p class="mt-1 text-sm text-gray-600">Jadwal menjadi dasar untuk Absensi Ustadz dan Item Ujian Raport di Langkah 5. Upload file jadwal milik pondok atau input cepat di bawah ini:</p>
           </div>
-          <button type="button" class="app-btn app-btn-primary" @click="saveDemoAccountAction()" :disabled="productSaving">Simpan Akun Demo</button>
+          <span class="rounded-full px-3 py-1 text-xs font-bold shrink-0"
+            :class="(productWizardStatus.counts?.schedules || 0) > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
+            x-text="(productWizardStatus.counts?.schedules || 0) > 0 ? 'Selesai · ' + productWizardStatus.counts.schedules + ' jadwal aktif' : 'Belum ada jadwal aktif'"></span>
         </div>
-        <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-          <select class="app-input" x-model="demoAccountForm.Role"><option>Mudir</option><option>Admin</option><option>Ustadz</option><option>Wali</option></select>
-          <input class="app-input" x-model="demoAccountForm.Username" placeholder="Username">
-          <input class="app-input" x-model="demoAccountForm.PasswordHint" placeholder="Petunjuk password">
-          <input class="app-input" x-model="demoAccountForm.StudentID" placeholder="StudentID khusus wali">
+
+        <!-- FITUR UTAMA: UPLOAD FILE JADWAL CERDAS (EXCEL & CSV) -->
+        <div class="rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/50 p-6 space-y-4">
+          <div class="flex flex-col items-center text-center space-y-2">
+            <div class="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700">
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-base font-bold text-emerald-950">Upload File Jadwal Otomatis (Cerdas Baca Excel & CSV)</p>
+              <p class="mt-1 text-xs text-emerald-800 max-w-xl mx-auto">
+                Cerdas mendeteksi format tabel biasa maupun <strong>matriks/roster KBM</strong> (kolom kelas/hari). Sistem otomatis mengenali hari, jam mulai-selesai, mata pelajaran, kelas, serta <strong>langsung mendaftarkan akun Ustadz baru</strong> jika belum ada.
+              </p>
+            </div>
+            <div class="pt-2 flex flex-wrap items-center justify-center gap-3">
+              <label class="app-btn app-btn-primary cursor-pointer px-5 py-2.5 shadow-sm text-sm font-semibold">
+                <span x-text="smartScheduleParsing ? 'Menganalisis file jadwal...' : '📁 Pilih File Jadwal (Excel / CSV)'"></span>
+                <input type="file" class="hidden" accept=".xlsx,.xls,.csv,.txt" @change="parseSmartScheduleFile($event)" :disabled="smartScheduleParsing || smartScheduleApplying">
+              </label>
+            </div>
+            <p class="text-[11px] text-gray-500">Mendukung format .xlsx, .xls, dan .csv langsung dari komputer / HP Anda.</p>
+          </div>
+
+          <!-- HASIL PREVIEW JADWAL CERDAS -->
+          <template x-if="smartSchedulePreview && smartSchedulePreview.items && smartSchedulePreview.items.length">
+            <div class="mt-4 rounded-lg border border-emerald-300 bg-white p-4 shadow-sm space-y-4">
+              <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b pb-3">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                    <p class="font-bold text-gray-900" x-text="'File: ' + smartSchedulePreview.fileName"></p>
+                  </div>
+                  <p class="mt-1 text-xs text-gray-600">
+                    Terdeteksi <strong class="text-emerald-800" x-text="smartSchedulePreview.total + ' jadwal'"></strong> · 
+                    <span x-text="smartSchedulePreview.classes.length + ' Kelas: ' + smartSchedulePreview.classes.join(', ')"></span> · 
+                    <span x-text="smartSchedulePreview.teachers.length + ' Ustadz/Guru pengampu'"></span>
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button type="button" class="app-btn app-btn-soft text-xs" @click="cancelSmartSchedulePreview()" :disabled="smartScheduleApplying">
+                    Batal
+                  </button>
+                  <button type="button" class="app-btn app-btn-primary text-xs px-4 py-2 font-bold" @click="applySmartSchedulesAction()" :disabled="smartScheduleApplying">
+                    <span x-text="smartScheduleApplying ? 'Menerapkan...' : '✓ Terapkan ' + smartSchedulePreview.total + ' Jadwal & Lanjut'"></span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Tabel Cuplikan Jadwal -->
+              <div class="overflow-x-auto max-h-64 border rounded">
+                <table class="min-w-full divide-y divide-gray-200 text-xs">
+                  <thead class="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th class="px-3 py-2 text-left font-semibold text-gray-600">Hari</th>
+                      <th class="px-3 py-2 text-left font-semibold text-gray-600">Waktu</th>
+                      <th class="px-3 py-2 text-left font-semibold text-gray-600">Mapel / Kegiatan</th>
+                      <th class="px-3 py-2 text-left font-semibold text-gray-600">Kelas</th>
+                      <th class="px-3 py-2 text-left font-semibold text-gray-600">Ustadz Pengampu</th>
+                      <th class="px-3 py-2 text-left font-semibold text-gray-600">Tipe</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200 bg-white">
+                    <template x-for="(item, idx) in smartSchedulePreview.items.slice(0, 15)" :key="idx">
+                      <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-2 font-medium text-gray-900" x-text="item.DayOfWeek"></td>
+                        <td class="px-3 py-2 text-gray-600" x-text="item.StartTime + ' - ' + item.EndTime"></td>
+                        <td class="px-3 py-2 font-medium text-emerald-950" x-text="item.SubjectOrActivityName"></td>
+                        <td class="px-3 py-2 text-gray-700" x-text="item.ClassOrGroupName"></td>
+                        <td class="px-3 py-2 text-gray-700" x-text="item.TeacherName || '(Default)'"></td>
+                        <td class="px-3 py-2">
+                          <span class="rounded px-1.5 py-0.5 text-[10px] font-bold"
+                            :class="item.Type === 'Hafalan' ? 'bg-indigo-100 text-indigo-800' : item.Type === 'Kegiatan' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'"
+                            x-text="item.Type"></span>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+              <template x-if="smartSchedulePreview.items.length > 15">
+                <p class="text-[11px] text-gray-500 text-center" x-text="'Menampilkan 15 dari ' + smartSchedulePreview.total + ' jadwal yang berhasil dibaca.'"></p>
+              </template>
+            </div>
+          </template>
+        </div>
+
+        <!-- JALUR ALTERNATIF: INPUT CEPAT MANUAL ATAU MANAJEMEN PENUH -->
+        <div class="rounded-lg border border-gray-200 bg-gray-50/70 p-4 space-y-3">
+          <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p class="text-sm font-bold text-gray-900">Jalur Alternatif — Tambah 1 Jadwal Cepat (Manual)</p>
+              <p class="text-xs text-gray-600">Jika hanya ingin menambahkan 1 jadwal secara manual tanpa upload file.</p>
+            </div>
+            <button type="button" class="app-btn app-btn-soft text-xs shrink-0" @click="quickAddSetupScheduleAction()" :disabled="productSaving">
+              + Simpan Jadwal Manual & Lanjut
+            </button>
+          </div>
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <label class="block">
+              <span class="app-label">Jenis Jadwal</span>
+              <select class="app-input" x-model="quickScheduleForm.Type">
+                <option value="KBM">KBM</option>
+                <option value="Hafalan">Hafalan</option>
+                <option value="Pondok">Pondok</option>
+                <option value="Kegiatan">Kegiatan</option>
+                <option value="Doa">Doa</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="app-label">Nama Mapel / Kegiatan *</span>
+              <input class="app-input" x-model="quickScheduleForm.SubjectOrActivityName" placeholder="Contoh: Tahfidz & Aqidah">
+            </label>
+            <label class="block">
+              <span class="app-label">Kelas / Rombel *</span>
+              <input class="app-input" x-model="quickScheduleForm.ClassOrGroupName" placeholder="Contoh: KELAS 1">
+            </label>
+            <label class="block">
+              <span class="app-label">Username Ustadz Pengampu</span>
+              <input class="app-input" x-model="quickScheduleForm.TeacherID" placeholder="Kosong = ustadz aktif">
+            </label>
+            <label class="block">
+              <span class="app-label">Hari</span>
+              <select class="app-input" x-model="quickScheduleForm.DayOfWeek">
+                <option value="Senin">Senin</option>
+                <option value="Selasa">Selasa</option>
+                <option value="Rabu">Rabu</option>
+                <option value="Kamis">Kamis</option>
+                <option value="Jumat">Jumat</option>
+                <option value="Sabtu">Sabtu</option>
+                <option value="Ahad">Ahad</option>
+              </select>
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="block"><span class="app-label">Mulai</span><input class="app-input" x-model="quickScheduleForm.StartTime" placeholder="07:30"></label>
+              <label class="block"><span class="app-label">Selesai</span><input class="app-input" x-model="quickScheduleForm.EndTime" placeholder="08:30"></label>
+            </div>
+          </div>
+          <div class="pt-2 flex items-center justify-between border-t border-gray-200">
+            <span class="text-xs text-gray-500">Ingin mengatur jadwal harian secara detail?</span>
+            <button type="button" class="app-btn app-btn-soft text-xs" @click="setCurrentTab('jadwal_admin')">Buka Manajemen Jadwal Penuh</button>
+          </div>
+        </div>
+      </div>
+
+      <div x-show="setupWizardStep === 'akademik'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm space-y-5">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">5. Akademik dan Item Ujian Raport</h3>
+            <p class="mt-1 text-sm text-gray-600">Agar Langkah 5 berstatus <strong>Selesai</strong>, sistem memerlukan <strong>Periode Akademik</strong> dan <strong>Item Ujian Kurikulum</strong> (yang ditarik otomatis dari Jadwal).</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="rounded-full px-3 py-1 text-xs font-bold"
+              :class="(productWizardStatus.counts?.periods || 0) > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
+              x-text="'Periode: ' + (productWizardStatus.counts?.periods || 0)"></span>
+            <span class="rounded-full px-3 py-1 text-xs font-bold"
+              :class="(productWizardStatus.counts?.curriculumItems || 0) > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
+              x-text="'Item Ujian: ' + (productWizardStatus.counts?.curriculumItems || 0)"></span>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4 space-y-3">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p class="text-sm font-bold text-emerald-950">Jalur Cepat (1x Klik Otomatis — Direkomendasikan)</p>
+              <p class="mt-0.5 text-xs text-emerald-900">Klik tombol di samping untuk otomatis membuat <strong>Periode Akademik</strong> sesuai profil pondok, menyinkronkan seluruh <strong>Item Ujian Kurikulum</strong> dari Jadwal aktif, dan langsung lanjut ke Langkah 6.</p>
+            </div>
+            <button type="button" class="app-btn app-btn-primary shrink-0" @click="quickSetupWizardAcademicAction()" :disabled="productSaving" x-text="productSaving ? 'Menyiapkan Akademik...' : 'Siapkan Periode & Item Ujian Otomatis (1x Klik)'"></button>
+          </div>
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label class="block">
+              <span class="app-label">Tahun Ajaran Periode</span>
+              <input class="app-input" x-model="tenantProfileForm.AcademicYear" placeholder="2026/2027">
+            </label>
+            <label class="block">
+              <span class="app-label">Semester</span>
+              <input class="app-input" x-model="tenantProfileForm.Semester" placeholder="Ganjil">
+            </label>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p class="text-sm font-bold text-gray-900">Jalur Manual — Pengaturan Detail Akademik & Rubrik Ujian</p>
+          <p class="mt-1 text-xs text-gray-600">Gunakan menu di bawah ini jika ingin mengatur bobot komponen nilai, KKM per mata pelajaran, atau rubrik penilaian secara manual di halaman Akademik.</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button type="button" class="app-btn app-btn-soft text-xs" @click="setCurrentTab('akademik'); academicSection = 'setup'; loadAcademicSetup()">Buka Setup Akademik</button>
+            <button type="button" class="app-btn app-btn-soft text-xs" @click="setCurrentTab('akademik'); academicSection = 'kurikulum'; loadAcademicSetup(); loadCurriculumExamSetup()">Buka Kurikulum Ujian</button>
+          </div>
+        </div>
+      </div>
+
+      <div x-show="setupWizardStep === 'demo'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm space-y-5">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900">6. Akun Wali Asli & Akun Demo</h3>
+            <p class="text-sm text-gray-600">Pastikan akun Wali santri asli sudah tertaut ke santrinya, dan siapkan minimal 1 akun demo untuk uji coba.</p>
+          </div>
+          <span class="rounded-full px-3 py-1 text-xs font-bold shrink-0"
+            :class="(productReadiness.demoAccounts || []).length > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
+            x-text="(productReadiness.demoAccounts || []).length > 0 ? 'Selesai · ' + (productReadiness.demoAccounts || []).length + ' akun demo' : 'Belum ada akun demo'"></span>
+        </div>
+
+        <div class="rounded-lg border border-blue-200 bg-blue-50/60 p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-sm font-bold text-blue-950">Tautkan Akun Wali Santri Asli ke Santri Asli (Otomatis)</p>
+            <p class="mt-0.5 text-xs text-blue-900">Untuk Wali Santri asli, Anda <strong>tidak perlu mengetik StudentID satu per satu</strong>. Klik tombol di samping untuk otomatis memasangkan setiap akun Wali ke <code>StudentID</code> anaknya berdasarkan <strong>No. HP Wali, Username Wali, NIS, atau Nama Santri</strong> (serta membuat akun Wali otomatis bagi santri yang sudah memiliki No. HP Wali).</p>
+          </div>
+          <button type="button" class="app-btn app-btn-soft shrink-0 text-xs" @click="syncWaliStudentsLinkAction()" :disabled="productSaving">
+            Sinkronkan Wali ↔ Santri Asli
+          </button>
+        </div>
+
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 space-y-3">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p class="text-sm font-bold text-emerald-950">Simpan Akun Demo (Bisa Pilih Santri Asli dari Daftar)</p>
+              <p class="text-xs text-emerald-900">Pilih santri dari dropdown di bawah (atau biarkan otomatis memilih santri pertama). Saat klik <strong>Simpan Akun Demo</strong>, login akun langsung aktif dan lanjut ke Langkah 7.</p>
+            </div>
+            <button type="button" class="app-btn app-btn-primary shrink-0" @click="saveDemoAccountAction()" :disabled="productSaving">Simpan Akun Demo & Lanjut</button>
+          </div>
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label class="block">
+              <span class="app-label">Peran (Role) Demo</span>
+              <select class="app-input" x-model="demoAccountForm.Role"><option>Mudir</option><option>Admin</option><option>Ustadz</option><option>Wali</option></select>
+            </label>
+            <label class="block">
+              <span class="app-label">Username Login Demo</span>
+              <input class="app-input" x-model="demoAccountForm.Username" placeholder="Contoh: wali_demo">
+            </label>
+            <label class="block">
+              <span class="app-label">Password Login Demo (min. 6 karakter)</span>
+              <input class="app-input" x-model="demoAccountForm.PasswordHint" placeholder="Contoh: wali123">
+            </label>
+            <label class="block">
+              <span class="app-label">Pilih Santri untuk Wali (Otomatis isi StudentID)</span>
+              <select class="app-input" x-model="demoAccountForm.StudentID">
+                <option value="">-- Otomatis pilih santri pertama --</option>
+                <template x-for="stu in students" :key="stu.StudentID">
+                  <option :value="stu.StudentID" x-text="stu.Name + ' — ' + (stu['Class/Level'] || '-') + ' (' + stu.StudentID + ')'"></option>
+                </template>
+              </select>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -299,15 +865,41 @@
             <h3 class="text-lg font-bold text-gray-900">7. Cek Kesiapan</h3>
             <p class="text-sm text-gray-600">Aplikasi akan memberi status siap atau daftar yang masih kurang.</p>
           </div>
-          <button type="button" class="app-btn app-btn-primary" @click="completeSetupWizardAction()" :disabled="setupWizardCompleting">
-            Selesaikan Setup
-          </button>
+          <div class="flex flex-wrap items-center gap-2">
+            <template x-if="!productWizardStatus.ready">
+              <button type="button" class="app-btn app-btn-soft" @click="autoCompleteSetupPrerequisitesAction()" :disabled="setupWizardCompleting">
+                ⚡ Lengkapi Otomatis yang Kurang
+              </button>
+            </template>
+            <button type="button" class="app-btn app-btn-primary" @click="completeSetupWizardAction()" :disabled="setupWizardCompleting">
+              Selesaikan Setup
+            </button>
+          </div>
         </div>
         <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
           <template x-for="check in productWizardStatus.checks" :key="check.id">
-            <div class="rounded-lg border p-4" :class="check.ok ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'">
-              <p class="font-bold" :class="check.ok ? 'text-emerald-800' : 'text-amber-800'" x-text="(check.ok ? 'Siap - ' : 'Kurang - ') + check.label"></p>
-              <p class="mt-1 text-sm text-gray-700" x-text="check.detail"></p>
+            <div class="rounded-lg border p-4 flex flex-col justify-between" :class="check.ok ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'">
+              <div>
+                <p class="font-bold" :class="check.ok ? 'text-emerald-800' : 'text-amber-800'" x-text="(check.ok ? 'Siap - ' : 'Kurang - ') + check.label"></p>
+                <p class="mt-1 text-sm text-gray-700" x-text="check.detail"></p>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-2" x-show="!check.ok">
+                <template x-if="check.id === 'profile'">
+                  <button type="button" class="app-btn app-btn-soft text-xs py-1 px-2.5" @click="quickFixProfileAction()">+ Pasang Profil & TA Default</button>
+                </template>
+                <template x-if="check.id === 'users'">
+                  <button type="button" class="app-btn app-btn-soft text-xs py-1 px-2.5" @click="quickAddUstadzAction()">+ Buat Akun Ustadz Cepat</button>
+                </template>
+                <template x-if="check.id === 'schedules'">
+                  <button type="button" class="app-btn app-btn-soft text-xs py-1 px-2.5" @click="setSetupWizardStep('jadwal')">→ Atur di Langkah Jadwal</button>
+                </template>
+                <template x-if="check.id === 'periods' || check.id === 'curriculum'">
+                  <button type="button" class="app-btn app-btn-soft text-xs py-1 px-2.5" @click="quickSetupWizardAcademicAction()">+ Siapkan Akademik Otomatis</button>
+                </template>
+                <template x-if="check.id === 'demo'">
+                  <button type="button" class="app-btn app-btn-soft text-xs py-1 px-2.5" @click="setSetupWizardStep('demo')">→ Buat Akun Demo</button>
+                </template>
+              </div>
             </div>
           </template>
         </div>
@@ -318,6 +910,16 @@
         <button type="button" class="app-btn app-btn-primary" @click="nextSetupWizardStep()" :disabled="currentSetupWizardIndex >= setupWizardSteps.length - 1">Berikutnya</button>
       </div>
     </section>
+
+    <div x-show="['modul', 'checklist', 'demo', 'profil', 'ringkasan'].includes(productSection)" class="rounded-lg border border-slate-200 bg-slate-50 p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Tabel Detail Lanjutan:</span>
+        <button type="button" class="px-3 py-1.5 rounded-md text-xs font-bold transition" :class="productSection === 'modul' ? 'bg-slate-800 text-white' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'" @click="productSection = 'modul'">Paket & Lisensi Modul</button>
+        <button type="button" class="px-3 py-1.5 rounded-md text-xs font-bold transition" :class="productSection === 'checklist' ? 'bg-slate-800 text-white' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'" @click="productSection = 'checklist'">Checklist Kesiapan</button>
+        <button type="button" class="px-3 py-1.5 rounded-md text-xs font-bold transition" :class="productSection === 'demo' ? 'bg-slate-800 text-white' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'" @click="productSection = 'demo'">Paket Akun Demo</button>
+      </div>
+      <button type="button" class="app-btn app-btn-soft text-xs py-1.5 px-3" @click="productSection = 'wizard'">← Kembali ke Wizard Setup</button>
+    </div>
 
     <section x-show="productSection === 'ringkasan'" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <h3 class="text-lg font-bold text-gray-900">Urutan aman sebelum dijual</h3>
@@ -500,7 +1102,12 @@
           </select>
           <input class="app-input" x-model="demoAccountForm.Username" placeholder="Username">
           <input class="app-input" x-model="demoAccountForm.PasswordHint" placeholder="Petunjuk password">
-          <input class="app-input" x-model="demoAccountForm.StudentID" placeholder="StudentID khusus wali">
+          <select class="app-input" x-model="demoAccountForm.StudentID">
+            <option value="">-- Pilih Santri untuk Wali (Otomatis santri pertama) --</option>
+            <template x-for="stu in students" :key="stu.StudentID">
+              <option :value="stu.StudentID" x-text="stu.Name + ' — ' + (stu['Class/Level'] || '-') + ' (' + stu.StudentID + ')'"></option>
+            </template>
+          </select>
           <label class="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" x-model="demoAccountForm.IsActive"> Aktif</label>
           <label class="flex items-center gap-2 text-sm font-semibold text-gray-700"><input type="checkbox" x-model="demoAccountForm.IsReadOnly"> Read-only</label>
           <textarea class="app-input min-h-[90px]" x-model="demoAccountForm.Notes" placeholder="Catatan demo"></textarea>
