@@ -952,6 +952,9 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
     const tenantProfile = SI_getTenantProfile_();
 
     // 4. Baca Seluruh Sheet Data Riil Sekaligus (Batch Read untuk Performa Cepat)
+    const allSchedules = typeof SCHEDULE_readSchedules_ === "function"
+      ? SCHEDULE_readSchedules_()
+      : (typeof REPORT_getRows_ === "function" ? REPORT_getRows_("Schedules") : []);
     const allSubjects = typeof AC_getSubjects_ === "function" ? AC_getSubjects_() : [];
     const allScores = typeof AC_getScores_ === "function" ? AC_getScores_() : [];
     const allMemos = typeof REPORT_getRows_ === "function" ? REPORT_getRows_("MemorizationLogs") : [];
@@ -1047,28 +1050,58 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
       }
 
       // --- B. PELAJARAN KITAB KUNING & MATA PELAJARAN RIIL ---
-      const applicableSubjects = allSubjects.filter(sub => {
-        if (!sub.IsActive || String(sub.IsActive).toLowerCase() === "false") return false;
-        const classes = SI_text_(sub.Classes);
-        if (!classes || classes.toLowerCase() === "semua") return true;
-        return classes.toLowerCase().includes(studentClass.toLowerCase());
+      // SUMBER UTAMA: DIAMBIL LANGSUNG DARI JADWAL PELAJARAN LENGKAP YANG SUDAH ADA (Schedules)!
+      const classSchedules = allSchedules.filter(sch => {
+        if (sch.IsActive === false || String(sch.IsActive).toLowerCase() === "false") return false;
+        const sClass = SI_text_(sch.ClassOrGroupName).toLowerCase();
+        if (!sClass) return false;
+        return sClass === studentClass.toLowerCase() || (targetClassKey && sClass === targetClassKey);
       });
 
-      let subjectsToProcess = applicableSubjects;
+      let scheduleSubjects = [];
+      const seenScheduleMapel = new Set();
+      classSchedules.forEach(sch => {
+        const mapelName = SI_text_(sch.SubjectOrActivityName || sch.ActivityName);
+        if (!mapelName || seenScheduleMapel.has(mapelName.toLowerCase())) return;
+        seenScheduleMapel.add(mapelName.toLowerCase());
+        scheduleSubjects.push({
+          SubjectID: sch.ScheduleID || ("SCH-" + mapelName.replace(/\s+/g, "_")),
+          Name: mapelName,
+          TeacherID: sch.TeacherID,
+          ClassOrGroupName: sch.ClassOrGroupName
+        });
+      });
+
+      // Jika dari Schedules ada mata pelajaran untuk kelas ini, gunakan mata pelajaran dari jadwal lengkap!
+      let subjectsToProcess = [];
       let isDefaultSubjectsTemplate = false;
-      if (!subjectsToProcess || subjectsToProcess.length === 0) {
-        isDefaultSubjectsTemplate = true;
-        subjectsToProcess = [
-          { SubjectID: "DEF-1", Name: "Tafsir", KitabName: "Tafsir Jalalain", DefaultKKM: 60 },
-          { SubjectID: "DEF-2", Name: "Hadits", KitabName: "Riyadhus Shalihin", DefaultKKM: 60 },
-          { SubjectID: "DEF-3", Name: "Mushthalah Hadits", KitabName: "Al-Baiquniyah", DefaultKKM: 60 },
-          { SubjectID: "DEF-4", Name: "Tauhid", KitabName: "Jauharatut Tauhid", DefaultKKM: 60 },
-          { SubjectID: "DEF-5", Name: "Fiqih", KitabName: "Fathul Mu'in", DefaultKKM: 60 },
-          { SubjectID: "DEF-6", Name: "Ushul Fiqih", KitabName: "Al-Waraqat", DefaultKKM: 60 },
-          { SubjectID: "DEF-7", Name: "Nahwu", KitabName: "Alfiyah Ibnu Malik", DefaultKKM: 60 },
-          { SubjectID: "DEF-8", Name: "Balaghah", KitabName: "Jauharul Maknun", DefaultKKM: 60 },
-          { SubjectID: "DEF-9", Name: "Tasawuf", KitabName: "Bidayatul Hidayah", DefaultKKM: 60 }
-        ];
+
+      if (scheduleSubjects.length > 0) {
+        subjectsToProcess = scheduleSubjects;
+      } else {
+        const applicableSubjects = allSubjects.filter(sub => {
+          if (!sub.IsActive || String(sub.IsActive).toLowerCase() === "false") return false;
+          const classes = SI_text_(sub.Classes);
+          if (!classes || classes.toLowerCase() === "semua") return true;
+          return classes.toLowerCase().includes(studentClass.toLowerCase());
+        });
+
+        if (applicableSubjects.length > 0) {
+          subjectsToProcess = applicableSubjects;
+        } else {
+          isDefaultSubjectsTemplate = true;
+          subjectsToProcess = [
+            { SubjectID: "DEF-1", Name: "Tafsir", KitabName: "Tafsir Jalalain", DefaultKKM: 60 },
+            { SubjectID: "DEF-2", Name: "Hadits", KitabName: "Riyadhus Shalihin", DefaultKKM: 60 },
+            { SubjectID: "DEF-3", Name: "Mushthalah Hadits", KitabName: "Al-Baiquniyah", DefaultKKM: 60 },
+            { SubjectID: "DEF-4", Name: "Tauhid", KitabName: "Jauharatut Tauhid", DefaultKKM: 60 },
+            { SubjectID: "DEF-5", Name: "Fiqih", KitabName: "Fathul Mu'in", DefaultKKM: 60 },
+            { SubjectID: "DEF-6", Name: "Ushul Fiqih", KitabName: "Al-Waraqat", DefaultKKM: 60 },
+            { SubjectID: "DEF-7", Name: "Nahwu", KitabName: "Alfiyah Ibnu Malik", DefaultKKM: 60 },
+            { SubjectID: "DEF-8", Name: "Balaghah", KitabName: "Jauharul Maknun", DefaultKKM: 60 },
+            { SubjectID: "DEF-9", Name: "Tasawuf", KitabName: "Bidayatul Hidayah", DefaultKKM: 60 }
+          ];
+        }
       }
 
       let finalSubjects = [];
@@ -1083,15 +1116,34 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
 
         let scoreValue = null;
         if (!isDefaultSubjectsTemplate) {
+          // Cari nilai santri dari allScores (berdasarkan SubjectID atau kecocokan nama)
           const studentScores = allScores.filter(sc => 
             SI_text_(sc.StudentID) === studentId && 
-            SI_text_(sc.SubjectID) === SI_text_(sub.SubjectID) &&
-            (!activePeriod.PeriodID || SI_text_(sc.PeriodID) === SI_text_(activePeriod.PeriodID))
+            (!activePeriod.PeriodID || SI_text_(sc.PeriodID) === SI_text_(activePeriod.PeriodID)) &&
+            (SI_text_(sc.SubjectID) === SI_text_(sub.SubjectID) || SI_text_(sc.SubjectID).toLowerCase() === sub.Name.toLowerCase())
           );
           if (studentScores.length > 0) {
             const vals = studentScores.map(s => Number(s.Score)).filter(v => !isNaN(v) && v !== null && SI_text_(s.Score) !== "");
             if (vals.length > 0) {
               scoreValue = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+            }
+          }
+
+          // Jika belum ada di allScores, cari di allCurriculumScores
+          if (scoreValue === null) {
+            const matchedCurriculum = allCurriculumScores.filter(cs => {
+              if (SI_text_(cs.StudentID) !== studentId) return false;
+              if (activePeriod.PeriodID && SI_text_(cs.PeriodID) !== SI_text_(activePeriod.PeriodID)) return false;
+              const matchedItem = allCurriculumItems.find(ci => SI_text_(ci.ItemID) === SI_text_(cs.ItemID));
+              if (!matchedItem) return false;
+              return SI_text_(matchedItem.Name).toLowerCase() === sub.Name.toLowerCase() ||
+                     SI_text_(matchedItem.SourceScheduleID) === SI_text_(sub.SubjectID);
+            });
+            if (matchedCurriculum.length > 0) {
+              const cVals = matchedCurriculum.map(c => Number(c.Score)).filter(v => !isNaN(v) && v !== null && SI_text_(c.Score) !== "");
+              if (cVals.length > 0) {
+                scoreValue = Math.round(cVals.reduce((a, b) => a + b, 0) / cVals.length);
+              }
             }
           }
         }
