@@ -98,6 +98,13 @@
           Catatan Perilaku
         </button>
         <button
+          @click="openStudent360Analytics(selectedStudent)"
+          class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black whitespace-nowrap transition-all bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-sm hover:from-amber-600 hover:to-amber-700"
+        >
+          <span>🧠</span>
+          <span>Analisis 360° (PRO)</span>
+        </button>
+        <button
           @click="studentDetailTab = 'grafik'; renderCharts();"
           :class="studentDetailTab === 'grafik' ? 'bg-[#0f5f4a] text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'"
           class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-all"

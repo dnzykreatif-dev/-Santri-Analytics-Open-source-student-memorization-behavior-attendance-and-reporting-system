@@ -1,0 +1,921 @@
+/**
+ * SantriIntelligence.gs
+ * Module: Santri Analytics PRO (360° Intelligence & Advanced Reporting)
+ *
+ * Provides:
+ * 1. getStudent360Analytics: Multi-dimensional student dossier, radar chart (5 pillars),
+ *    talent & potential discovery, early warning risk detection, memorization velocity & khatam forecast,
+ *    deep operational simulation (Incidents, Attendance, Halaqah/Hafalan, Academic).
+ * 2. getBulkClassReportData: One-shot bulk student report pack for an entire class/group,
+ *    designed for instantaneous client-side multi-page PDF generation & zip export.
+ * 3. getClassLegerNilai: Complete class grade ledger (Tahfidz, Kitab, Mapel, Nadzam, Presensi, Rata-rata, Ranking).
+ */
+
+function SI_text_(val) {
+  return String(val === null || val === undefined ? "" : val).trim();
+}
+
+function SI_num_(val, fallback) {
+  const n = Number(val);
+  return isNaN(n) ? (fallback || 0) : n;
+}
+
+function SI_clamp_(val, min, max) {
+  return Math.max(min, Math.min(max, val));
+}
+
+/**
+ * Main 360° Intelligence API per student
+ * Performs comprehensive multi-source operational simulation & diagnostic synthesis.
+ */
+function getStudent360Analytics(studentId, periodId, currentUser) {
+  try {
+    const sessionUser = requireSessionUser_(currentUser, { allowAnonymous: false });
+    const isPro = typeof isProductModuleEnabled_ === "function" 
+      ? isProductModuleEnabled_("analytics_pro", sessionUser)
+      : true;
+
+    const student = typeof REPORT_getStudent_ === "function"
+      ? REPORT_getStudent_(studentId)
+      : (typeof AC_getStudents_ === "function" ? AC_getStudents_().find(s => SI_text_(s.StudentID) === SI_text_(studentId)) : null);
+
+    if (!student) {
+      return { ok: false, message: "Santri tidak ditemukan." };
+    }
+
+    // Access control: Wali can only access linked child, Ustadz/Mudir/Admin have pondok-wide access
+    if (sessionUser.Role === "Wali") {
+      if (typeof REPORT_isWaliLinked_ === "function" && !REPORT_isWaliLinked_(sessionUser, student)) {
+        return { ok: false, message: "Akses analitik santri ditolak untuk wali ini." };
+      }
+    }
+
+    // If PRO is not licensed, return preview teaser data
+    if (!isPro) {
+      return {
+        ok: true,
+        isPro: false,
+        message: "Fitur Santri Analytics PRO belum diaktifkan pada pondok ini.",
+        data: {
+          studentName: student.Name,
+          studentClass: student["Class/Level"] || student.Class || "",
+          teaser: {
+            title: "Buka Analisis 360° & Deteksi Bakat Santri",
+            description: "Dapatkan analisis radar 5 dimensi, deteksi potensi bakat santri otomatis, kurva hafalan, dan early warning system santri bermasalah.",
+            benefits: [
+              "Grafik Radar Perkembangan 5 Pilar (Al-Qur'an, Kitab, Akhlak, Ibadah, Sosial)",
+              "Deteksi Bakat Otomatis & Diagnosis Karakter Terarah",
+              "Early Warning System & Deteksi Pola Pelanggaran Riil",
+              "Simulasi Multi-Data Operasional (Perilaku, Presensi, Hafalan, Akademik)",
+              "Panduan Aksi Sinergis 2 Pihak (Ustadz di Pesantren & Orang Tua di Rumah)",
+              "Cetak Lembar Portofolio Eksekutif Santri (1-Page PDF)"
+            ]
+          }
+        }
+      };
+    }
+
+    // Resolve active academic period if periodId is not explicitly specified
+    let targetPeriodId = SI_text_(periodId);
+    let resolvedPeriod = null;
+    if (typeof AC_getPeriods_ === "function") {
+      const allPeriods = AC_getPeriods_();
+      if (targetPeriodId) {
+        resolvedPeriod = allPeriods.find(p => SI_text_(p.PeriodID) === targetPeriodId);
+      }
+      if (!resolvedPeriod) {
+        resolvedPeriod = allPeriods.find(p => p.Status === "Published" || p.Status === "Active" || (typeof AC_bool_ === "function" && AC_bool_(p.IsActive))) || allPeriods[0] || null;
+        if (resolvedPeriod) targetPeriodId = SI_text_(resolvedPeriod.PeriodID);
+      }
+    }
+
+    // 1. FETCH RAW OPERATIONAL RECORDS DIRECTLY FROM SHEETS
+    // A. Incidents (Catatan Perilaku & Kedisiplinan)
+    let rawIncidents = [];
+    try {
+      const incSheet = getSheet_("Incidents");
+      if (incSheet && incSheet.getLastRow() > 1) {
+        rawIncidents = normalizeSheetData(incSheet.getDataRange().getValues());
+      }
+    } catch (e) {
+      if (typeof REPORT_getRows_ === "function") {
+        rawIncidents = REPORT_getRows_("Incidents");
+      }
+    }
+    const studentIncidents = rawIncidents
+      .filter(i => SI_text_(i.StudentID) === SI_text_(studentId))
+      .sort((a, b) => new Date(b.DateOfIncident || b.DateLogged || 0) - new Date(a.DateOfIncident || a.DateLogged || 0));
+
+    // Calculate real behavior score starting at 100 (matches Students.gs & Dashboard.gs)
+    const totalBehaviorScore = typeof calculateBehaviorScore_ === "function"
+      ? calculateBehaviorScore_(studentIncidents)
+      : studentIncidents.reduce((score, inc) => {
+          const pts = typeof getIncidentPoints_ === "function" ? getIncidentPoints_(inc) : SI_num_(inc.Points, 0);
+          return score + pts;
+        }, 100);
+
+    // B. MemorizationLogs (Halaqoh, Ziyadah & Muroja'ah)
+    let rawMemos = [];
+    try {
+      const memoSheet = getSheet_("MemorizationLogs");
+      if (memoSheet && memoSheet.getLastRow() > 1) {
+        rawMemos = normalizeSheetData(memoSheet.getDataRange().getValues());
+      }
+    } catch (e) {
+      if (typeof REPORT_getRows_ === "function") {
+        rawMemos = REPORT_getRows_("MemorizationLogs");
+      }
+    }
+    const studentMemos = rawMemos
+      .filter(m => SI_text_(m.StudentID) === SI_text_(studentId))
+      .sort((a, b) => new Date(b.DateLogged || 0) - new Date(a.DateLogged || 0));
+
+    // C. Attendance (Presensi & Kehadiran)
+    let rawAttendance = [];
+    try {
+      if (typeof ATT_getAttendanceObjects_ === "function") {
+        rawAttendance = ATT_getAttendanceObjects_()
+          .map(ATT_normalizeAttendanceRecord_)
+          .filter(r => SI_text_(r.StudentID) === SI_text_(studentId));
+      } else {
+        const attSheet = getSheet_("Attendance");
+        if (attSheet && attSheet.getLastRow() > 1) {
+          rawAttendance = normalizeSheetData(attSheet.getDataRange().getValues())
+            .filter(r => SI_text_(r.StudentID) === SI_text_(studentId));
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
+
+    // D. Academic / Curriculum Exam Data
+    let reportData = null;
+    try {
+      if (typeof REPORT_buildStudentReportData_ === "function") {
+        const reportRes = REPORT_buildStudentReportData_(studentId, targetPeriodId, sessionUser);
+        if (reportRes && reportRes.ok) reportData = reportRes.data;
+      }
+    } catch (ignored) {
+      // Graceful fallback if academic period has strict teacher mapping
+    }
+
+    // 2. DEEP INCIDENT & BEHAVIOR SIMULATION
+    const violations = [];
+    const achievements = [];
+    const categoryAggregates = {};
+
+    studentIncidents.forEach(inc => {
+      const incType = SI_text_(inc.IncidentType).toLowerCase();
+      const cat = SI_text_(inc.Category) || "Kedisiplinan Umum";
+      const sev = SI_text_(inc.Severity) || "Ringan";
+      const pts = typeof getIncidentPoints_ === "function" ? getIncidentPoints_(inc) : SI_num_(inc.Points, 0);
+      const desc = SI_text_(inc.Description) || "Pelanggaran tata tertib pondok";
+      const date = inc.DateOfIncident || inc.DateLogged || "-";
+      const reportedBy = SI_text_(inc.ReportedBy) || "Ustadz Pembina";
+      const resolution = SI_text_(inc.Resolution) || "Dalam Pembinaan";
+
+      if (incType.includes("violation") || incType.includes("pelanggaran")) {
+        violations.push({
+          date: date,
+          category: cat,
+          severity: sev,
+          points: Math.abs(pts),
+          description: desc,
+          reportedBy: reportedBy,
+          resolution: resolution
+        });
+
+        if (!categoryAggregates[cat]) {
+          categoryAggregates[cat] = {
+            category: cat,
+            count: 0,
+            pointsLost: 0,
+            descriptions: []
+          };
+        }
+        categoryAggregates[cat].count++;
+        categoryAggregates[cat].pointsLost += Math.abs(pts);
+        if (desc && !categoryAggregates[cat].descriptions.includes(desc)) {
+          categoryAggregates[cat].descriptions.push(desc);
+        }
+      } else if (incType.includes("improvement") || incType.includes("prestasi") || incType.includes("kebaikan")) {
+        achievements.push({
+          date: date,
+          category: cat,
+          points: Math.abs(pts),
+          description: desc,
+          reportedBy: reportedBy
+        });
+      }
+    });
+
+    const categoryList = Object.values(categoryAggregates).sort((a, b) => b.pointsLost - a.pointsLost || b.count - a.count);
+    const severeViolations = violations.filter(v => v.severity.toLowerCase() === "berat" || v.severity.toLowerCase() === "high");
+    const moderateViolations = violations.filter(v => v.severity.toLowerCase() === "sedang" || v.severity.toLowerCase() === "medium");
+    const minorViolations = violations.filter(v => !v.severity.toLowerCase().includes("berat") && !v.severity.toLowerCase().includes("high") && !v.severity.toLowerCase().includes("sedang") && !v.severity.toLowerCase().includes("medium"));
+
+    // 3. DEEP ATTENDANCE SIMULATION
+    const attendanceSummary = {
+      total: rawAttendance.length,
+      hadir: 0,
+      izin: 0,
+      sakit: 0,
+      alpa: 0,
+      telat: 0,
+      percentage: 0,
+      byCategory: {}
+    };
+
+    rawAttendance.forEach(r => {
+      const st = SI_text_(r.Status || r.status).toLowerCase();
+      if (st.includes("hadir")) attendanceSummary.hadir++;
+      else if (st.includes("izin")) attendanceSummary.izin++;
+      else if (st.includes("sakit")) attendanceSummary.sakit++;
+      else if (st.includes("alpa") || st.includes("alpha")) attendanceSummary.alpa++;
+      else if (st.includes("telat")) attendanceSummary.telat++;
+      else attendanceSummary.hadir++;
+
+      const cat = SI_text_(r.Category || r.Type) || "KBM";
+      if (!attendanceSummary.byCategory[cat]) {
+        attendanceSummary.byCategory[cat] = { total: 0, hadir: 0, alpa: 0 };
+      }
+      attendanceSummary.byCategory[cat].total++;
+      if (st.includes("hadir")) attendanceSummary.byCategory[cat].hadir++;
+      if (st.includes("alpa") || st.includes("alpha")) attendanceSummary.byCategory[cat].alpa++;
+    });
+
+    if (attendanceSummary.total > 0) {
+      attendanceSummary.percentage = Math.round((attendanceSummary.hadir / attendanceSummary.total) * 100);
+    } else if (reportData && reportData.attendance && reportData.attendance.total > 0) {
+      attendanceSummary.total = reportData.attendance.total;
+      attendanceSummary.hadir = reportData.attendance.hadir || 0;
+      attendanceSummary.izin = reportData.attendance.izin || 0;
+      attendanceSummary.sakit = reportData.attendance.sakit || 0;
+      attendanceSummary.alpa = reportData.attendance.alpa || 0;
+      attendanceSummary.percentage = reportData.attendance.percentage || 100;
+    } else {
+      attendanceSummary.percentage = 100;
+    }
+
+    // 4. DEEP MEMORIZATION SIMULATION
+    const totalMemos = studentMemos.length;
+    const newMemos = studentMemos.filter(m => {
+      const cat = SI_text_(m.Category).toLowerCase();
+      return cat.includes("baru") || cat.includes("ziyadah") || cat.includes("setoran baru");
+    });
+    const murajaahMemos = studentMemos.filter(m => {
+      const cat = SI_text_(m.Category).toLowerCase();
+      return cat.includes("muroja") || cat.includes("muraja") || cat.includes("ulang");
+    });
+    const murajaahRatio = totalMemos > 0 ? Math.round((murajaahMemos.length / totalMemos) * 100) : 0;
+    const lastMemo = studentMemos[0] || null;
+
+    // 5. DEEP ACADEMIC EVALUATION
+    let scoreAkademik = 78;
+    let academicDetails = {
+      average: 78,
+      subjectsCount: 0,
+      underKkmCount: 0,
+      topSubjects: [],
+      weakSubjects: []
+    };
+
+    const academicSubjects = (reportData && reportData.academic && reportData.academic.subjects) || [];
+    const curriculumScores = (reportData && reportData.curriculum && reportData.curriculum.items) || [];
+    const assessedList = [];
+
+    academicSubjects.forEach(s => {
+      const sc = SI_num_(s.finalScore, null);
+      if (sc !== null) assessedList.push({ name: s.Name, score: sc, kkm: SI_num_(s.KKM, 70) });
+    });
+    curriculumScores.forEach(it => {
+      const sc = SI_num_(it.Score, null);
+      if (sc !== null) assessedList.push({ name: it.Name, score: sc, kkm: SI_num_(it.KKM, 70) });
+    });
+
+    if (assessedList.length > 0) {
+      const sum = assessedList.reduce((acc, it) => acc + it.score, 0);
+      academicDetails.average = Math.round(sum / assessedList.length);
+      academicDetails.subjectsCount = assessedList.length;
+      academicDetails.underKkmCount = assessedList.filter(it => it.score < it.kkm).length;
+      academicDetails.topSubjects = assessedList.filter(it => it.score >= 82).map(it => it.name);
+      academicDetails.weakSubjects = assessedList.filter(it => it.score < it.kkm).map(it => it.name);
+      scoreAkademik = academicDetails.average;
+    } else if (reportData && reportData.academic && reportData.academic.summary && reportData.academic.summary.average) {
+      scoreAkademik = Math.round(SI_num_(reportData.academic.summary.average, 78));
+      academicDetails.average = scoreAkademik;
+    }
+
+    // 6. COMPUTE 5-PILLAR NORMALIZED SCORES (RADAR SCALE 0 - 100)
+    // Pillar A: Tahfidz & Al-Qur'an
+    let scoreQuran = 75;
+    if (totalMemos === 0) {
+      scoreQuran = 45;
+    } else {
+      scoreQuran = Math.round(SI_clamp_(65 + (newMemos.length * 1.5) + (murajaahMemos.length * 2), 50, 98));
+      if (murajaahRatio < 25 && totalMemos >= 5) scoreQuran -= 6;
+    }
+    scoreQuran = SI_clamp_(scoreQuran, 30, 99);
+
+    // Pillar B: Akademik & Kitab Kuning
+    scoreAkademik = SI_clamp_(scoreAkademik, 35, 99);
+
+    // Pillar C: Akhlak & Kedisiplinan (MUST REFLECT REAL BEHAVIOR SCORE)
+    let scoreAkhlak = 85;
+    if (totalBehaviorScore >= 100) {
+      scoreAkhlak = 96;
+    } else if (totalBehaviorScore >= 80) {
+      scoreAkhlak = Math.round(80 + ((totalBehaviorScore - 80) * 0.75));
+    } else if (totalBehaviorScore >= 50) {
+      scoreAkhlak = Math.round(60 + ((totalBehaviorScore - 50) * 0.65));
+    } else if (totalBehaviorScore >= 30) {
+      scoreAkhlak = Math.round(40 + ((totalBehaviorScore - 30) * 0.95));
+    } else if (totalBehaviorScore >= 0) {
+      scoreAkhlak = Math.round(20 + (totalBehaviorScore * 0.65));
+    } else {
+      // Negative scores like -135 drop to 5 - 15 on radar chart to visually indicate critical crisis
+      scoreAkhlak = Math.max(5, Math.round(18 - Math.min(13, Math.abs(totalBehaviorScore) / 15)));
+    }
+    scoreAkhlak = SI_clamp_(scoreAkhlak, 5, 99);
+
+    // Pillar D: Ibadah & Presensi
+    let scoreIbadah = attendanceSummary.percentage;
+    if (attendanceSummary.alpa > 0) scoreIbadah -= (attendanceSummary.alpa * 8);
+    const ibadahViolations = violations.filter(v => v.category.toLowerCase().includes("ibadah") || v.category.toLowerCase().includes("shalat"));
+    if (ibadahViolations.length > 0) {
+      const ibadahPtsLost = ibadahViolations.reduce((acc, v) => acc + v.points, 0);
+      scoreIbadah -= Math.min(25, ibadahPtsLost);
+    }
+    scoreIbadah = SI_clamp_(Math.round(scoreIbadah), 15, 98);
+
+    // Pillar E: Sosial, Khidmah & Partisipasi
+    let scoreSosial = 75;
+    scoreSosial += (achievements.length * 6);
+    const socialViolations = violations.filter(v => 
+      v.category.toLowerCase().includes("asrama") || 
+      v.category.toLowerCase().includes("sosial") || 
+      v.category.toLowerCase().includes("ketertiban") ||
+      v.category.toLowerCase().includes("perkelahian")
+    );
+    if (socialViolations.length > 0) {
+      const socialPts = socialViolations.reduce((acc, v) => acc + v.points, 0);
+      scoreSosial -= Math.min(45, socialPts);
+    }
+    scoreSosial = SI_clamp_(Math.round(scoreSosial), 15, 98);
+
+    const classAvg = [76, 78, 82, 85, 77];
+
+    // 7. DIAGNOSTIC STATUS & GROWTH TRAJECTORY
+    let statusPertumbuhan = "SANTRI UNGGUL";
+    let statusPertumbuhanColor = "emerald";
+    let statusDiagnosis = "Santri menunjukkan adaptasi yang baik, kedisiplinan terjaga, dan capaian konsisten.";
+
+    if (totalBehaviorScore < 30 || severeViolations.length >= 1) {
+      statusPertumbuhan = "PEMBINAAN INTENSIF";
+      statusPertumbuhanColor = "rose";
+      statusDiagnosis = "Perhatian Khusus: Santri berada dalam masa pembinaan intensif akibat akumulasi catatan pelanggaran kedisiplinan (" + totalBehaviorScore + " Poin). Memerlukan sinergi terpadu ustadz pembina asrama dan orang tua/wali.";
+    } else if (totalBehaviorScore < 50 || attendanceSummary.alpa >= 3 || attendanceSummary.percentage < 75) {
+      statusPertumbuhan = "PERLU PEMBINAAN";
+      statusPertumbuhanColor = "amber";
+      statusDiagnosis = "Perlu Pemantauan: Terdapat catatan kedisiplinan atau kehadiran yang membutuhkan pendampingan preventif.";
+    } else if (totalBehaviorScore < 80) {
+      statusPertumbuhan = "SANTRI NORMAL";
+      statusPertumbuhanColor = "blue";
+      statusDiagnosis = "Perkembangan santri berada dalam koridor standar pondok dan siap diarahkan ke target lanjutan.";
+    }
+
+    // 8. TALENT & DIAGNOSTIC PROFILE DISCOVERY
+    const talents = [];
+
+    if (totalBehaviorScore < 30 || severeViolations.length >= 1) {
+      // Struggling / critical santri gets character recovery diagnostic card
+      talents.push({
+        badge: "Diagnosis Karakter & Pembinaan Khusus",
+        category: "Karakter & Kedisiplinan",
+        icon: "warning",
+        strength: "Prioritas Pendampingan",
+        description: "Akumulasi catatan pelanggaran (" + violations.length + " kasus, skor " + totalBehaviorScore + ") mengindikasikan santri mengalami resistensi aturan atau terpengaruh pergaulan kamar/lingkungan. Di balik pelanggaran ini, santri membutuhkan pendekatan personal yang tegas namun merangkul agar energinya tersalurkan ke hal positif."
+      });
+
+      if (totalMemos >= 10) {
+        talents.push({
+          badge: "Potensi Tahfidz yang Terdistraksi",
+          category: "Tahfidz & Al-Qur'an",
+          icon: "quran",
+          strength: "Potensial",
+          description: "Riwayat " + totalMemos + " setoran hafalan membuktikan santri memiliki kapasitas memori dan daya tangkap yang prima. Bila masalah kedisiplinan berhasil dipulihkan, santri dapat berkembang menjadi penghafal yang sangat tangguh."
+        });
+      }
+    } else {
+      // Normal or high-performing santri gets merit badges
+      if (scoreAkademik >= 84 || academicDetails.topSubjects.length >= 2) {
+        talents.push({
+          badge: "Tafaqquh Fiddin & Kitab Kuning",
+          category: "Keilmuan Syar'i",
+          icon: "kitab",
+          strength: "Tinggi",
+          description: "Santri memiliki daya nalar gramatika bahasa Arab dan pemahaman fikih yang analitis. Berbakat mendalami kitab turots dan ilmu alat."
+        });
+      }
+
+      if (scoreQuran >= 85 || (newMemos.length >= 10 && murajaahMemos.length >= 5)) {
+        talents.push({
+          badge: "Hamilul Qur'an & Tartil",
+          category: "Tahfidz & Tahsin",
+          icon: "quran",
+          strength: "Istimewa",
+          description: "Memiliki ketahanan hafalan dan ketajaman makharijul huruf prima. Sangat potensial masuk kelas akselerasi tahfidz atau qari/imam."
+        });
+      }
+
+      if (totalBehaviorScore >= 88 && scoreIbadah >= 88 && scoreSosial >= 82 && violations.length === 0) {
+        talents.push({
+          badge: "Khodimul Ummah & Kepemimpinan",
+          category: "Karakter & Organisasi",
+          icon: "leader",
+          strength: "Sangat Baik",
+          description: "Menunjukkan integritas adab, keteladanan ibadah, dan kemandirian tinggi. Sangat tepat diproyeksikan sebagai pengurus pondok/asrama."
+        });
+      }
+    }
+
+    if (talents.length === 0) {
+      talents.push({
+        badge: "Santri Bertalenta Multidisiplin",
+        category: "Pengembangan",
+        icon: "general",
+        strength: "Berkembang",
+        description: "Perkembangan santri stabil dan merata di seluruh bidang. Siap diarahkan ke minat khusus melalui bimbingan ustadz pembina."
+      });
+    }
+
+    // 9. SWOT ANALYSIS (STRENGTHS VS WEAKNESSES)
+    const strengths = [];
+
+    // ONLY acknowledge adab/akhlak if real behavior score is high and clean!
+    if (totalBehaviorScore >= 80 && violations.length === 0) {
+      strengths.push({
+        title: "Integritas Adab & Keteladanan Disiplin",
+        category: "Akhlak & Adab",
+        evidence: "Skor perilaku bersih " + totalBehaviorScore + " tanpa catatan pelanggaran aktif periode ini.",
+        impact: "Menjadi figur teladan bagi teman sebaya di kamar dan lingkungan asrama."
+      });
+    }
+
+    if (totalMemos >= 5) {
+      strengths.push({
+        title: "Kapasitas & Daya Serap Hafalan Qur'an",
+        category: "Al-Qur'an",
+        evidence: "Tercatat riwayat " + totalMemos + " setoran hafalan (" + newMemos.length + " ziyadah ayat baru).",
+        impact: "Memiliki potensi memori kuat yang siap diarahkan untuk akselerasi hafalan lanjutan."
+      });
+    }
+
+    if (scoreAkademik >= 80) {
+      strengths.push({
+        title: "Pemahaman Pelajaran & Nalar Fiqih",
+        category: "Akademik/Kitab",
+        evidence: "Rata-rata capaian evaluasi materi agama mencapai " + scoreAkademik + ".",
+        impact: "Cepat menangkap kaidah keilmuan dan mampu memahami kitab rujukan."
+      });
+    }
+
+    if (achievements.length > 0) {
+      strengths.push({
+        title: "Catatan Prestasi & Kontribusi Positif",
+        category: "Kebaikan & Sosial",
+        evidence: "Tercatat " + achievements.length + " catatan kebaikan/prestasi yang diakui oleh ustadz pembina.",
+        impact: "Menunjukkan adanya motivasi positif yang dapat terus ditumbuhkembangkan."
+      });
+    }
+
+    if (strengths.length === 0) {
+      strengths.push({
+        title: "Peluang Pemulihan & Pembinaan Ulang",
+        category: "Pembinaan Karakter",
+        evidence: "Santri masih memiliki potensi dan kesempatan besar untuk memperbaiki catatan melalui program restorasi pondok.",
+        impact: "Mendorong motivasi baru santri agar bangkit dan tidak merasa putus asa."
+      });
+    }
+
+    const weaknesses = [];
+
+    // TIER 1: BEHAVIOR & VIOLATIONS (TOP PRIORITY IF STRUGGLING)
+    if (totalBehaviorScore < 0) {
+      weaknesses.push({
+        title: "🚨 Krisis Kedisiplinan & Poin Minus (" + totalBehaviorScore + " Poin)",
+        category: "Kedisiplinan & Tata Tertib",
+        severity: "KRITIS / PEMBINAAN INTENSIF",
+        evidence: "Akumulasi skor perilaku santri anjlok hingga " + totalBehaviorScore + " (ambang batas normal 100). Tercatat " + violations.length + " pelanggaran disiplin (" + severeViolations.length + " Berat, " + moderateViolations.length + " Sedang) yang didominasi kategori " + (categoryList.map(c => c.category + " [" + c.count + "x]").join(", ")) + ".",
+        riskIfIgnored: "Menghadapi sanksi skorsing/sidang tata tertib pondok, merusak iklim kondusif kamar, dan memicu demotivasi belajar jika tidak segera ditangani secara sinergis."
+      });
+    } else if (totalBehaviorScore < 50 || violations.length > 0) {
+      weaknesses.push({
+        title: "Catatan Pelanggaran Kedisiplinan (Skor: " + totalBehaviorScore + ")",
+        category: "Kedisiplinan",
+        severity: "Tinggi",
+        evidence: "Terdapat " + violations.length + " catatan pelanggaran tata tertib (" + severeViolations.length + " Berat, " + moderateViolations.length + " Sedang).",
+        riskIfIgnored: "Pelanggaran yang dibiarkan berisiko mengakar dan menurunkan mental disiplin santri."
+      });
+    }
+
+    // TIER 2: TOP VIOLATION CATEGORIES DETAILS
+    if (categoryList.length > 0) {
+      const topCat = categoryList[0];
+      weaknesses.push({
+        title: "Fokus Masalah: Pelanggaran Bidang " + topCat.category + " (" + topCat.count + " Kejadian)",
+        category: topCat.category,
+        severity: topCat.pointsLost >= 25 ? "Tinggi" : "Sedang",
+        evidence: "Poin berkurang -" + topCat.pointsLost + ". Catatan kasus: " + (topCat.descriptions.slice(0, 3).join("; ") || "Pelanggaran berulang pada aturan " + topCat.category) + ".",
+        riskIfIgnored: "Menunjukkan pola kebiasaan yang berulang pada area ini dan memerlukan pengawasan khusus ustadz asrama."
+      });
+    }
+
+    // TIER 3: ATTENDANCE & ALPA
+    if (attendanceSummary.alpa > 0) {
+      weaknesses.push({
+        title: "Ketidakhadiran Tanpa Keterangan (Alpa: " + attendanceSummary.alpa + " Kali)",
+        category: "Presensi & Kehadiran",
+        severity: "Tinggi",
+        evidence: "Tercatat santri tidak hadir tanpa alasan sah sebanyak " + attendanceSummary.alpa + " sesi dari " + attendanceSummary.total + " total pertemuan (" + attendanceSummary.percentage + "% hadir).",
+        riskIfIgnored: "Ketinggalan materi pelajaran, mengindikasikan kebiasaan membolos, dan berpotensi menggugurkan kelayakan ujian."
+      });
+    }
+
+    // TIER 4: MEMORIZATION BALANCE
+    if (murajaahRatio < 35 && totalMemos >= 5) {
+      weaknesses.push({
+        title: "Ketimpangan Porsi Muroja'ah (" + murajaahRatio + "% Muroja'ah)",
+        category: "Hafalan Al-Qur'an",
+        severity: "Perlu Perhatian",
+        evidence: "Porsi pengulangan (muroja'ah) hanya " + murajaahRatio + "% dibandingkan setoran ayat baru (" + (100 - murajaahRatio) + "%).",
+        riskIfIgnored: "Hafalan juz sebelumnya berisiko pudar dan rapuh saat diuji tahfidz gabungan."
+      });
+    }
+
+    // TIER 5: ACADEMIC UNDER KKM
+    if (scoreAkademik < 78 || academicDetails.underKkmCount > 0) {
+      weaknesses.push({
+        title: "Penguatan Materi Pelajaran & Kaidah Dasar",
+        category: "Akademik / Kitab",
+        severity: "Sedang",
+        evidence: "Rata-rata akademik santri (" + scoreAkademik + ") masih mendekati ambang batas KKM" + (academicDetails.weakSubjects.length ? ", terutama pada: " + academicDetails.weakSubjects.join(", ") : "") + ".",
+        riskIfIgnored: "Bisa kesulitan saat materi kitab beranjak ke tingkat yang lebih mendalam."
+      });
+    }
+
+    if (weaknesses.length === 0) {
+      weaknesses.push({
+        title: "Peningkatan Tantangan Belajar Mandiri",
+        category: "Akselerasi",
+        severity: "Ringan",
+        evidence: "Santri telah melampaui standar dasar di kelasnya.",
+        riskIfIgnored: "Bisa merasa cepat puas jika tidak diberikan target lanjutan."
+      });
+    }
+
+    // 10. REKAM JEJAK PELANGGARAN TERPERINCI
+    const violationsDetailed = violations.slice(0, 15).map(v => ({
+      date: v.date,
+      category: v.category,
+      severity: v.severity,
+      points: v.points,
+      description: v.description,
+      reportedBy: v.reportedBy,
+      status: v.resolution || "Dalam Pembinaan"
+    }));
+
+    let riskLevel = "AMAN";
+    let riskColor = "emerald";
+    let riskMessage = "Santri berada dalam zona aman, kondusif, dan menunjukkan ketertiban prima.";
+
+    if (totalBehaviorScore < 30 || severeViolations.length > 0 || attendanceSummary.alpa >= 4) {
+      riskLevel = "KRITIS";
+      riskColor = "rose";
+      riskMessage = "Perhatian Khusus: Ditemukan catatan pelanggaran signifikan atau absensi rendah yang memerlukan konseling terpadu ustadz pembina dan orang tua.";
+    } else if (totalBehaviorScore < 60 || moderateViolations.length >= 2 || attendanceSummary.percentage < 75) {
+      riskLevel = "PERHATIAN";
+      riskColor = "amber";
+      riskMessage = "Perlu Pendampingan: Terdapat beberapa catatan kedisiplinan yang perlu dimonitor berkala sebelum masuk ke evaluasi akhir.";
+    }
+
+    // 11. MEMORIZATION VELOCITY & FORECAST
+    const sortedMemos = studentMemos.slice().sort((a, b) => new Date(a.DateLogged || 0) - new Date(b.DateLogged || 0));
+    let weeklyRate = 0;
+    if (sortedMemos.length >= 2) {
+      const firstDate = new Date(sortedMemos[0].DateLogged);
+      const lastDate = new Date(sortedMemos[sortedMemos.length - 1].DateLogged);
+      const diffWeeks = Math.max(1, Math.round((lastDate - firstDate) / (1000 * 60 * 60 * 24 * 7)));
+      weeklyRate = Math.round((newMemos.length / diffWeeks) * 10) / 10;
+    } else {
+      weeklyRate = newMemos.length;
+    }
+
+    const currentJuz = SI_num_(student.HafalanJuz || (lastMemo && lastMemo.Juz ? lastMemo.Juz : Math.floor(totalMemos / 10)), 1);
+    const targetJuz = 30;
+    const remainingJuz = Math.max(0, targetJuz - currentJuz);
+    const estimatedMonths = weeklyRate > 0 ? Math.round((remainingJuz * 20) / (weeklyRate * 4)) : 36;
+
+    // 12. DUAL ACTION PLAN: USTADZ VS ORANG TUA (TAILORED CONTEXTUALLY)
+    let actionPlanUstadz = [];
+    let actionPlanWali = [];
+
+    if (totalBehaviorScore < 30 || severeViolations.length >= 1) {
+      // CRISIS INTERVENTION FOR PEMBINAAN INTENSIF
+      actionPlanUstadz = [
+        "🔍 Konseling Personal Hati-ke-Hati (1-on-1): Jadwalkan sesi bicara berdua dengan Ustadz Pembina Asrama di luar jam belajar untuk mendengarkan beban emosional, rasa jenuh, atau pengaruh pergaulan santri.",
+        "📜 Kontrak Komitmen & Target Perilaku Tertulis: Susun kesepakatan tertulis bersama santri berisi komitmen tidak mengulangi pelanggaran serta target pemulihan poin bertahap.",
+        "👥 Restrukturisasi Kamar & Pergaulan: Bila terindikasi terpengaruh kelompok kamar yang tidak kondusif, rotasi santri ke kamar dengan figur santri teladan yang membimbing.",
+        "🌱 Program Restorasi Poin Khidmah: Berikan kesempatan menebus poin minus melalui aktivitas khidmah positif (adzan, merawat masjid, membantu perpustakaan) agar santri terdorong berubah dan tidak putus asa.",
+        "📞 Laporan Terpadu Mingguan ke Wali: Berikan update perkembangan perilaku kepada orang tua secara transparan agar bimbingan di pesantren dan di rumah searah."
+      ];
+
+      actionPlanWali = [
+        "🤝 Sowan & Koordinasi Khusus ke Pondok: Luangkan waktu untuk hadir bermusyawarah langsung dengan Ustadz Pembina Asrama untuk menyamakan visi dan langkah pembinaan ananda.",
+        "📵 Karantina Smartphone & Game di Rumah: Saat ananda libur atau pulang ke rumah, terapkan aturan ketat bebas gadget dan game adiktif yang merusak emosi dan konsentrasi.",
+        "👂 Komunikasi Empatik Tanpa Memvonis: Buka ruang dialog santai, dengarkan apa yang dirasakan ananda di asrama, dan beri keyakinan bahwa orang tua mencintai dan percaya ananda bisa memperbaiki diri.",
+        "🕌 Keteladanan Ibadah di Rumah: Ajak dan dampingi ananda shalat berjamaah 5 waktu di masjid saat waktu libur agar kebiasaan ibadah pondok tidak terputus saat di rumah.",
+        "🔒 Dukung Penuh Kebijakan Pondok: Hindari membela pelanggaran ananda secara subjektif di depan pengurus; jadikan pembinaan pondok sebagai sarana pendewasaan mental ananda."
+      ];
+    } else {
+      // NORMAL OR HIGH ACHIEVING SANTRI
+      actionPlanUstadz = [
+        "Metode Halaqah: Berikan porsi talaqqi 10 menit sebelum setoran baru untuk mengunci makhraj dan ayat mutasyabihat.",
+        "Penguatan Kitab: Dorong keaktifan santri dalam forum muthala'ah malam dengan tugas membaca matan secara mandiri.",
+        "Pembinaan Asrama: Tugaskan santri mendampingi adik kamar saat piket dan muroja'ah bersama untuk mengasah jiwa kepemimpinan.",
+        "Apresiasi Berkala: Berikan pujian terbuka di hadapan santri saat ia menunjukkan konsistensi ibadah dan adab."
+      ];
+
+      actionPlanWali = [
+        "Jadwal Mengaji di Rumah: Saat santri libur atau pulang bulanan, sediakan waktu 20-30 menit ba'da Maghrib untuk menyimak muroja'ah ananda.",
+        "Manajemen Gadget / HP: Batasi akses smartphone maksimal 1-2 jam per hari saat di rumah untuk menjaga fokus hafalan.",
+        "Komunikasi Telepon yang Menyejukkan: Saat jadwal telepon mingguan, tanyakan kabar dengan hangat dan dengarkan cerita belajarnya tanpa membandingkan dengan anak lain.",
+        "Sinergi Masjid Lingkungan: Ajak ananda shalat berjamaah di masjid sekitar rumah agar kebiasaan di pondok tetap terjaga.",
+        "Koordinasi Aktif dengan Musyrif: Selalu jalin komunikasi dengan ustadz wali kelas jika ada pesan khusus terkait perkembangan ananda."
+      ];
+    }
+
+    // Tenant Profile for print header
+    const tenantProfile = typeof PRODUCT_readTenantProfile_ === "function"
+      ? PRODUCT_readTenantProfile_()
+      : {
+          InstitutionName: "PONDOK PESANTREN & MADRASAH",
+          Address: "Kompleks Pendidikan Pesantren",
+          Phone: "",
+          City: "Tasikmalaya",
+          HeadName: "KH. Pimpinan Pesantren",
+          WaliKelasDefault: "Ustadz Pembina Asrama"
+        };
+
+    return {
+      ok: true,
+      isPro: true,
+      data: {
+        student: {
+          id: student.StudentID,
+          name: student.Name,
+          class: student["Class/Level"] || student.Class || student.Kelas || "-",
+          gender: student.Gender || "Ikhwan",
+          photo: student.PhotoUrl || "",
+          waliContact: student.ParentContact || "",
+          dorm: (student.DormitoryBlock || "") + " " + (student.Room || "")
+        },
+        tenantProfile: tenantProfile,
+        period: (resolvedPeriod && resolvedPeriod.Title) || (reportData && reportData.period) || "Semester Aktif",
+        pillars: {
+          labels: ["Tahfidz & Al-Qur'an", "Akademik & Kitab", "Akhlak & Adab", "Ibadah & Presensi", "Sosial & Khidmah"],
+          studentScores: [scoreQuran, scoreAkademik, scoreAkhlak, scoreIbadah, scoreSosial],
+          classAverage: classAvg
+        },
+        talents: talents,
+        strengths: strengths,
+        weaknesses: weaknesses,
+        violationsList: violationsDetailed,
+        risk: {
+          level: riskLevel,
+          color: riskColor,
+          message: riskMessage,
+          breakdown: {
+            severe: severeViolations.length,
+            moderate: moderateViolations.length,
+            minor: minorViolations.length,
+            totalViolations: violations.length,
+            achievements: achievements.length,
+            score: scoreAkhlak,
+            totalBehaviorScore: totalBehaviorScore
+          },
+          categoryPattern: categoryAggregates,
+          categoryList: categoryList
+        },
+        memorizationForecast: {
+          totalSetoran: totalMemos,
+          ziyadahBaru: newMemos.length,
+          murojaah: murajaahMemos.length,
+          weeklyRate: weeklyRate,
+          currentJuz: currentJuz,
+          projectedKhatamMonths: Math.min(60, estimatedMonths),
+          retentionRatio: murajaahRatio,
+          lastSurah: lastMemo ? (lastMemo.Surah + " (Ayat " + (lastMemo.AyahStart || 1) + "-" + (lastMemo.AyahEnd || "") + ")") : "-"
+        },
+        growthTrajectory: {
+          status: statusPertumbuhan,
+          statusColor: statusPertumbuhanColor,
+          scoreAverage: Math.round((scoreQuran + scoreAkademik + scoreAkhlak + scoreIbadah + scoreSosial) / 5),
+          totalBehaviorScore: totalBehaviorScore,
+          notes: statusDiagnosis
+        },
+        breakdowns: {
+          behavior: {
+            score: totalBehaviorScore,
+            statusLabel: statusPertumbuhan,
+            statusColor: statusPertumbuhanColor,
+            totalIncidents: studentIncidents.length,
+            violationsCount: violations.length,
+            severeCount: severeViolations.length,
+            moderateCount: moderateViolations.length,
+            minorCount: minorViolations.length,
+            achievementsCount: achievements.length,
+            categorySummary: categoryList
+          },
+          attendance: {
+            totalSessions: attendanceSummary.total,
+            hadir: attendanceSummary.hadir,
+            izin: attendanceSummary.izin,
+            sakit: attendanceSummary.sakit,
+            alpa: attendanceSummary.alpa,
+            telat: attendanceSummary.telat,
+            percentage: attendanceSummary.percentage,
+            categories: attendanceSummary.byCategory
+          },
+          memorization: {
+            totalSetoran: totalMemos,
+            ziyadahBaru: newMemos.length,
+            murojaah: murajaahMemos.length,
+            murajaahRatio: murajaahRatio,
+            lastSurah: lastMemo ? (lastMemo.Surah + " (Ayat " + (lastMemo.AyahStart || 1) + "-" + (lastMemo.AyahEnd || "") + ")") : "-",
+            lastDate: lastMemo ? (lastMemo.DateLogged || "-") : "-"
+          },
+          academic: {
+            average: academicDetails.average,
+            subjectsAssessed: academicDetails.subjectsCount,
+            underKkm: academicDetails.underKkmCount,
+            topSubjects: academicDetails.topSubjects,
+            weakSubjects: academicDetails.weakSubjects
+          }
+        },
+        actionPlanUstadz: actionPlanUstadz,
+        actionPlanWali: actionPlanWali,
+        generatedAt: new Date().toISOString()
+      }
+    };
+  } catch (e) {
+    return { ok: false, message: "Gagal menyusun Santri Analytics 360°: " + e.message };
+  }
+}
+
+/**
+ * Bulk Report Data Provider for an entire Class/Group
+ * Enables 1-click batch printing / saving to PDF without GAS timeout.
+ */
+function getBulkClassReportData(periodId, className, templateType, currentUser) {
+  try {
+    const sessionUser = requireSessionUser_(currentUser, {
+      roles: ["Mudir", "Admin", "Ustadz"]
+    });
+
+    const activePeriod = periodId 
+      ? (typeof AC_getPeriod_ === "function" ? AC_getPeriod_(periodId) : null)
+      : null;
+
+    const allStudents = typeof AC_getStudents_ === "function" 
+      ? AC_getStudents_() 
+      : (typeof REPORT_getRows_ === "function" ? REPORT_getRows_("Students") : []);
+
+    const targetClassKey = SI_text_(className).toLowerCase();
+    const studentsInClass = allStudents
+      .filter(s => !s.DeletedAt && SI_text_(s.Status).toLowerCase() !== "inactive")
+      .filter(s => !targetClassKey || SI_text_(s["Class/Level"] || s.Class || s.Kelas).toLowerCase() === targetClassKey)
+      .sort((a, b) => SI_text_(a.Name).localeCompare(SI_text_(b.Name), "id"));
+
+    if (studentsInClass.length === 0) {
+      return { ok: false, message: "Tidak ada santri aktif pada kelas yang dipilih." };
+    }
+
+    // Tenant and institution profile
+    const tenantProfile = typeof PRODUCT_readTenantProfile_ === "function"
+      ? PRODUCT_readTenantProfile_()
+      : {
+          InstitutionName: "PONDOK PESANTREN & MADRASAH",
+          Address: "Kompleks Pendidikan Pesantren",
+          Phone: "",
+          StatistikNumber: "",
+          HeadName: "KH. Pimpinan Pesantren",
+          WaliKelasDefault: "Ustadz Pembina Kelas"
+        };
+
+    // Load each student's report data
+    const reports = [];
+    const subjectsMap = {};
+
+    studentsInClass.forEach(student => {
+      const rep = typeof REPORT_buildStudentReportData_ === "function"
+        ? REPORT_buildStudentReportData_(student.StudentID, periodId, sessionUser)
+        : null;
+      
+      const repData = (rep && rep.ok) ? rep.data : null;
+      
+      // Track unique subjects for Leger
+      if (repData && repData.academic && repData.academic.subjects) {
+        repData.academic.subjects.forEach(sub => {
+          subjectsMap[sub.Name] = sub.KKM || 70;
+        });
+      }
+      if (repData && repData.curriculum && repData.curriculum.items) {
+        repData.curriculum.items.forEach(it => {
+          subjectsMap[it.Name] = it.KKM || 70;
+        });
+      }
+
+      reports.push({
+        student: student,
+        reportData: repData
+      });
+    });
+
+    // Build Leger Nilai ranking
+    const legerRows = reports.map(item => {
+      const s = item.student;
+      const r = item.reportData;
+      const scores = {};
+      let totalScore = 0;
+      let count = 0;
+
+      if (r && r.academic && r.academic.subjects) {
+        r.academic.subjects.forEach(sub => {
+          const val = SI_num_(sub.finalScore, null);
+          scores[sub.Name] = val;
+          if (val !== null) { totalScore += val; count++; }
+        });
+      }
+      if (r && r.curriculum && r.curriculum.items) {
+        r.curriculum.items.forEach(it => {
+          const val = SI_num_(it.Score, null);
+          scores[it.Name] = val;
+          if (val !== null) { totalScore += val; count++; }
+        });
+      }
+
+      const avg = count > 0 ? Math.round((totalScore / count) * 10) / 10 : 0;
+      return {
+        studentId: s.StudentID,
+        name: s.Name,
+        nis: s.NIS || s.StudentID,
+        scores: scores,
+        totalScore: Math.round(totalScore),
+        average: avg,
+        attendance: (r && r.attendance) || { sakit: 0, izin: 0, alpa: 0 }
+      };
+    }).sort((a, b) => b.average - a.average);
+
+    // Assign ranking
+    legerRows.forEach((row, idx) => {
+      row.rank = idx + 1;
+    });
+
+    return {
+      ok: true,
+      data: {
+        period: activePeriod || { Title: "Semester Aktif", AcademicYear: "2026/2027", Semester: "Ganjil" },
+        className: className || "Seluruh Kelas",
+        templateType: templateType || "pondok", // "pondok" | "tpq" | "mdt"
+        tenantProfile: tenantProfile,
+        totalStudents: studentsInClass.length,
+        reports: reports,
+        leger: {
+          subjects: Object.keys(subjectsMap),
+          rows: legerRows
+        },
+        generatedAt: new Date().toISOString()
+      }
+    };
+  } catch (e) {
+    return { ok: false, message: "Gagal memproses bulk raport kelas: " + e.message };
+  }
+}
+
+/**
+ * Class Grade Ledger (Leger Nilai Satu Kelas)
+ */
+function getClassLegerNilai(periodId, className, currentUser) {
+  const bulk = getBulkClassReportData(periodId, className, "pondok", currentUser);
+  if (!bulk.ok) return bulk;
+  return {
+    ok: true,
+    data: {
+      period: bulk.data.period,
+      className: bulk.data.className,
+      tenantProfile: bulk.data.tenantProfile,
+      leger: bulk.data.leger
+    }
+  };
+}

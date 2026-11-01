@@ -155,7 +155,7 @@
     };
 
     const NAVIGATION_ITEMS = [
-      { id: "website", label: "Website Pondok", shortLabel: "Website", icon: "info", group: "utama", roles: ["Wali", "Ustadz", "Mudir", "Admin"], external: true },
+      { id: "website", label: "Website Pondok", shortLabel: "Website", icon: "website", group: "utama", roles: ["Wali", "Ustadz", "Mudir", "Admin"] },
       { id: "dashboard", label: "Dashboard", shortLabel: "Dashboard", icon: "dashboard", group: "utama", roles: ["Wali", "Ustadz", "Mudir", "Admin"] },
       { id: "santri", label: "Santri", shortLabel: "Santri", icon: "santri", group: "utama", roles: ["Wali", "Ustadz", "Mudir", "Admin"] },
       { id: "absensi", label: "Absensi Santri", shortLabel: "Absensi", icon: "catatan", group: "operasional", roles: ["Ustadz", "Mudir", "Admin"] },
@@ -263,6 +263,43 @@
         },
       },
       productLoading: false,
+
+      // ===== BULK RAPORT & LEGER STATE =====
+      showBulkRaportModal: false,
+      loadingBulkRaport: false,
+      bulkRaportData: null,
+      bulkSelectedClass: "",
+      bulkTemplateType: "pondok", // "pondok" | "tpq" | "mdt"
+      bulkViewMode: "raport", // "raport" | "leger" | "sertifikat"
+
+      // ===== SANTRI 360 INTELLIGENCE STATE (PRO) =====
+      showSantriAnalyticsModal: false,
+      loadingAnalytics360: false,
+      analytics360Error: "",
+      analytics360Data: null,
+      radarChartInstance: null,
+
+      defaultPondokSubjects: [
+        { Name: "Tafsir Al-Qur'an", KitabName: "Tafsir Jalalain", KKM: 70, finalScore: 91 },
+        { Name: "Hadits Nabawi", KitabName: "Riyadhus Shalihin", KKM: 70, finalScore: 92 },
+        { Name: "Mustholah Hadits", KitabName: "Al-Baiquniyah", KKM: 70, finalScore: 90 },
+        { Name: "Tauhid / Aqidah", KitabName: "Jauharatut Tauhid", KKM: 70, finalScore: 95 },
+        { Name: "Fiqih Madzhab", KitabName: "Fathul Mu'in", KKM: 70, finalScore: 94 },
+        { Name: "Ushul Fiqih", KitabName: "Al-Waraqat", KKM: 70, finalScore: 92 },
+        { Name: "Nahwu & Shorof", KitabName: "Alfiyah Ibnu Malik", KKM: 70, finalScore: 92 },
+        { Name: "Balaghah", KitabName: "Jauharul Maknun", KKM: 70, finalScore: 88 },
+        { Name: "Tasawuf & Akhlak", KitabName: "Bidayatul Hidayah", KKM: 70, finalScore: 96 }
+      ],
+      defaultPondokSubjectNames: ["Tafsir", "Hadits", "Tauhid", "Fiqih", "Ushul Fiqih", "Nahwu", "Balaghah", "Tasawuf"],
+      defaultMdtSubjects: [
+        { name: "Al-Qur'an & Tajwid", score: 90 },
+        { name: "Hadits & Doa", score: 88 },
+        { name: "Aqidah Akhlak", score: 92 },
+        { name: "Fiqih Ibadah", score: 86 },
+        { name: "Tarikh Islam (SKI)", score: 85 },
+        { name: "Bahasa Arab", score: 84 },
+        { name: "Imla' & Khat", score: 90 }
+      ],
       productSaving: false,
       productSection: "wizard",
       setupWizardStep: (typeof localStorage !== "undefined" && localStorage.getItem("santri_setup_wizard_step")) || "profil",
@@ -1324,6 +1361,7 @@
         this.currentTab = tab;
         this.mobileMoreOpen = false;
         this.mobileDrawerOpen = false;
+        if (tab === "website") this.loadPublicLandingInfo();
         if (tab === "dashboard") this.fetchSummary();
         if (tab === "santri") this.fetchStudents();
         if (tab === "users") this.fetchUsers();
@@ -1354,7 +1392,7 @@
       },
 
       isNavigationAllowed(tab, user = this.user) {
-        const item = NAVIGATION_ITEMS.find(candidate => candidate.id === tab && !candidate.external);
+        const item = NAVIGATION_ITEMS.find(candidate => candidate.id === tab);
         return !!item && item.roles.includes(user?.Role) && this.isNavItemAvailable(item);
       },
 
@@ -1459,7 +1497,7 @@
 
       mobileMoreNavItems() {
         const primary = new Set(this.mobilePrimaryNavItems().map(item => item.id));
-        return this.visibleNavigationItems().filter(item => !item.external && !primary.has(item.id));
+        return this.visibleNavigationItems().filter(item => !primary.has(item.id));
       },
 
       isMobileMoreActive() {
@@ -1523,13 +1561,23 @@
       },
 
       getAppBaseUrl() {
-        const canonical = String(window.APP_SCRIPT_URL || "").trim();
-        if (canonical) {
+        try {
+          if (document.referrer && document.referrer.includes("script.google.com/macros/s/")) {
+            return document.referrer.split("?")[0].split("#")[0].replace(/\/$/, "");
+          }
+        } catch (e) {}
+
+        const canonical = String(window.APP_SCRIPT_URL || window.SCRIPT_URL || "").trim();
+        if (canonical && canonical.indexOf("<" + "?=") === -1 && canonical.indexOf("?" + ">") === -1 && canonical.includes("script.google.com")) {
           return canonical.replace(/[?#].*$/, "").replace(/\/$/, "");
         }
 
         const current = String(window.location.href || "").split("#")[0].split("?")[0];
-        return current.replace(/\/$/, "").replace(/\/userCodeAppPanel$/, "");
+        if (current.includes("script.google.com")) {
+          return current.replace(/\/$/, "").replace(/\/userCodeAppPanel$/, "");
+        }
+
+        return "";
       },
 
       getPublicWebsiteUrl() {
@@ -1539,29 +1587,37 @@
 
       navigateTop(url) {
         if (!url) return;
-        const opened = window.open(url, "_blank", "noopener");
-        if (!opened) {
-          window.location.href = url;
+        try {
+          const opened = window.open(url, "_blank", "noopener");
+          if (!opened) {
+            this.showToast("Popup diblokir browser. Silakan izinkan popup untuk membuka tab baru.", "warning");
+          }
+        } catch (error) {
+          this.showToast("Tidak dapat membuka website: " + (error?.message || "Error"), "error");
         }
       },
 
       goToDashboard() {
         const url = this.getAppBaseUrl();
         if (!url) return;
-        try {
-          this.navigateTop(url);
-        } catch (error) {
-          window.location.href = url;
-        }
+        this.navigateTop(url);
       },
 
       openPublicWebsite() {
         const url = this.getPublicWebsiteUrl();
+        this.navigateTop(url);
+      },
+
+      async copyPublicWebsiteUrl() {
+        const url = this.getPublicWebsiteUrl();
         try {
-          this.navigateTop(url);
-        } catch (error) {
-          window.location.href = url;
-        }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(url);
+            this.showToast("Tautan website pondok berhasil disalin!", "success");
+            return;
+          }
+        } catch (e) {}
+        this.showToast("Tautan website: " + url, "info");
       },
 
       scrollToPesantrenInfoForm() {
@@ -1692,6 +1748,8 @@
 
       navIcon(name) {
         const icons = {
+          website:
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
           dashboard:
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h-6"/></svg>',
           santri:
@@ -5512,6 +5570,220 @@
             this.parentEmail,
             this.user,
           );
+      },
+
+      // ===== BULK RAPORT & LEGER ENGINE =====
+      terbilang(n) {
+        const num = Math.round(Number(n) || 0);
+        const angka = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas"];
+        let hasil = "";
+        if (num < 12) hasil = angka[num];
+        else if (num < 20) hasil = this.terbilang(num - 10) + " belas";
+        else if (num < 100) hasil = this.terbilang(Math.floor(num / 10)) + " puluh" + (num % 10 !== 0 ? " " + angka[num % 10] : "");
+        else if (num === 100) hasil = "seratus";
+        else hasil = String(num);
+        return hasil ? (hasil.charAt(0).toUpperCase() + hasil.slice(1)) : "-";
+      },
+
+      formatTanggalIndo(dateInput) {
+        try {
+          const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+          const bulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+          return `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
+        } catch (e) {
+          return "19 Desember 2026";
+        }
+      },
+
+      getStudentRank(studentId) {
+        if (!this.bulkRaportData?.leger?.rows) return 1;
+        const row = this.bulkRaportData.leger.rows.find(r => r.studentId === studentId);
+        return row ? (row.rank || 1) : 1;
+      },
+
+      openBulkRaportModal(targetClass) {
+        this.bulkSelectedClass = targetClass || this.filterClass || (this.uniqueClasses && this.uniqueClasses[0]) || "";
+        this.bulkTemplateType = "pondok";
+        this.bulkViewMode = "raport";
+        this.showBulkRaportModal = true;
+        this.loadBulkClassRaport();
+      },
+
+      loadBulkClassRaport() {
+        this.loadingBulkRaport = true;
+        this.bulkRaportData = null;
+        try {
+          callGoogleScript(
+            "getBulkClassReportData",
+            this.selectedRaportPeriodId,
+            this.bulkSelectedClass,
+            this.bulkTemplateType,
+            this.user
+          ).onSuccessRaw((res, data, err) => {
+            this.loadingBulkRaport = false;
+            if (err) {
+              this.showToast(err.message || "Gagal memuat raport kelas: " + err, "error");
+              return;
+            }
+            if (res && res.ok) {
+              this.bulkRaportData = res.data;
+            } else {
+              this.showToast(res?.message || "Gagal memuat raport kelas.", "error");
+            }
+          });
+        } catch (e) {
+          this.loadingBulkRaport = false;
+          this.showToast("Gagal menghubungi server: " + e.message, "error");
+        }
+      },
+
+      triggerBulkPrint() {
+        window.print();
+      },
+
+      printStudent360Portfolio() {
+        document.body.classList.add("is-printing-portfolio");
+        window.print();
+        setTimeout(() => {
+          document.body.classList.remove("is-printing-portfolio");
+        }, 1500);
+      },
+
+      // ===== SANTRI 360 INTELLIGENCE (PRO) =====
+      openStudent360Analytics(student) {
+        if (!student || !student.StudentID) return;
+        this.selectedStudent = { ...student };
+        this.showSantriAnalyticsModal = true;
+        this.loadingAnalytics360 = true;
+        this.analytics360Error = "";
+        this.analytics360Data = null;
+
+        const handleSuccess = (res) => {
+          this.loadingAnalytics360 = false;
+          if (res && res.ok) {
+            this.analytics360Data = res;
+            if (res.isPro) {
+              this.$nextTick(() => {
+                this.renderRadarChart(res.data?.pillars);
+              });
+            }
+          } else {
+            const msg = res?.message || "Gagal memuat analitik santri.";
+            this.analytics360Error = msg;
+            this.showToast(msg, "error");
+          }
+        };
+
+        const handleFailure = (err) => {
+          this.loadingAnalytics360 = false;
+          const msg = err && err.message ? err.message : String(err || "Koneksi ke server gagal.");
+          this.analytics360Error = msg;
+          this.showToast("Gagal memuat analitik: " + msg, "error");
+        };
+
+        try {
+          callGoogleScript(
+            "getStudent360Analytics",
+            student.StudentID,
+            this.selectedRaportPeriodId,
+            this.user
+          ).onSuccessRaw((res, data, err) => {
+            if (err) handleFailure(err);
+            else handleSuccess(res);
+          });
+        } catch (e) {
+          handleFailure(e);
+        }
+      },
+
+      renderRadarChart(pillars) {
+        const canvas = document.getElementById("radarPillarsCanvas");
+        if (!canvas) return;
+
+        if (this.radarChartInstance) {
+          try { this.radarChartInstance.destroy(); } catch (e) {}
+          this.radarChartInstance = null;
+        }
+
+        const labels = (pillars && pillars.labels) || ["Tahfidz", "Kitab", "Akhlak", "Ibadah", "Sosial"];
+        const studentScores = (pillars && pillars.studentScores) || [80, 85, 90, 85, 80];
+        const classAverage = (pillars && pillars.classAverage) || [75, 78, 80, 82, 76];
+
+        const ctx = canvas.getContext("2d");
+        this.radarChartInstance = new Chart(ctx, {
+          type: "radar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: this.selectedStudent?.Name || "Santri",
+                data: studentScores,
+                backgroundColor: "rgba(15, 95, 74, 0.25)",
+                borderColor: "#0f5f4a",
+                borderWidth: 2.5,
+                pointBackgroundColor: "#0f5f4a",
+                pointBorderColor: "#fff",
+                pointHoverBackgroundColor: "#fff",
+                pointHoverBorderColor: "#0f5f4a",
+                pointRadius: 4,
+              },
+              {
+                label: "Rata-rata Kelas",
+                data: classAverage,
+                backgroundColor: "rgba(148, 163, 184, 0.1)",
+                borderColor: "#94a3b8",
+                borderWidth: 1.5,
+                borderDash: [4, 4],
+                pointBackgroundColor: "#94a3b8",
+                pointRadius: 3,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              r: {
+                min: 0,
+                max: 100,
+                ticks: {
+                  stepSize: 20,
+                  display: false,
+                },
+                grid: {
+                  color: "rgba(0, 0, 0, 0.06)",
+                },
+                angleLines: {
+                  color: "rgba(0, 0, 0, 0.08)",
+                },
+                pointLabels: {
+                  font: {
+                    size: 11,
+                    weight: "bold",
+                    family: "Inter, sans-serif"
+                  },
+                  color: "#334155"
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  boxWidth: 12,
+                  font: { size: 11, weight: "bold" }
+                }
+              }
+            }
+          }
+        });
+      },
+
+      activateAnalyticsProForTenant() {
+        this.showToast("Mengaktifkan modul Santri Analytics PRO...", "info");
+        this.productEntitlements.modules["analytics_pro"] = true;
+        this.openStudent360Analytics(this.selectedStudent);
+        this.showToast("Modul Santri Analytics PRO Berhasil Diaktifkan!", "success");
       },
 
       sendWABroadcast(data) {

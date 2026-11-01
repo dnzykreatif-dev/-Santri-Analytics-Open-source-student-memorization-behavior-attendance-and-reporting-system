@@ -258,7 +258,7 @@
       const scriptUrl = String(
         window.SCRIPT_URL || window.APP_SCRIPT_URL || "",
       ).trim();
-      if (!scriptUrl || scriptUrl.includes("<?=") || scriptUrl.includes("?>")) {
+      if (!scriptUrl || scriptUrl.indexOf("<" + "?=") !== -1 || scriptUrl.indexOf("?" + ">") !== -1) {
         throw new Error("SCRIPT_URL belum dikonfigurasi.");
       }
       return scriptUrl;

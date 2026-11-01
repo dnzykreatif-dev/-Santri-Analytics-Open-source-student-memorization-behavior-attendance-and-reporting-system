@@ -58,6 +58,14 @@
       <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
         <button
           type="button"
+          @click="openBulkRaportModal()"
+          class="w-full md:w-auto bg-[#0f5f4a] text-white px-4 py-3 rounded-xl font-bold text-sm hover:bg-[#0b4939] shadow-sm flex items-center justify-center gap-2 transition-all"
+        >
+          <span>📄</span>
+          <span>Cetak Raport 1 Kelas</span>
+        </button>
+        <button
+          type="button"
           @click="exportStudentCsv()"
           x-show="user.Role === 'Mudir' || user.Role === 'Admin'"
           class="w-full md:w-auto bg-white border border-gray-200 px-4 py-3 rounded-xl font-bold text-sm hover:shadow-sm transition-all"
@@ -192,6 +200,7 @@
             </div>
           </div>
           <div class="flex flex-wrap gap-2" @click.stop>
+          <button type="button" @click="openStudent360Analytics(s)" class="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold flex items-center gap-1 shadow-sm"><span>🧠</span><span>Analisis</span></button>
           <button type="button" @click="openStudentAction(s, 'identitas')" class="px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs font-bold text-gray-700">Detail</button>
           <button type="button" x-show="canEditStudentProfile()" @click="editStudentFromList(s)" class="px-3 py-2 rounded-lg bg-[#0f5f4a] text-white text-xs font-bold">Edit</button>
           <button type="button" @click="openStudentAction(s, 'raport')" class="px-3 py-2 rounded-lg bg-[#80A1C1] text-white text-xs font-bold">Laporan</button>
@@ -249,7 +258,8 @@
               </td>
               <td class="py-4 text-right">
                 <div class="flex flex-wrap justify-end gap-2" @click.stop>
-                  <button type="button" @click="openStudentAction(s, 'identitas')" class="px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs font-bold text-gray-700">Detail</button>
+                  <button type="button" @click="openStudent360Analytics(s)" class="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold flex items-center gap-1 shadow-sm"><span>🧠</span><span>Analisis</span></button>
+          <button type="button" @click="openStudentAction(s, 'identitas')" class="px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs font-bold text-gray-700">Detail</button>
                   <button type="button" x-show="canEditStudentProfile()" @click="editStudentFromList(s)" class="px-3 py-2 rounded-lg bg-[#0f5f4a] text-white text-xs font-bold">Edit</button>
                   <button type="button" @click="openStudentAction(s, 'raport')" class="px-3 py-2 rounded-lg bg-[#80A1C1] text-white text-xs font-bold">Laporan</button>
                   <button type="button" @click="issueStudentQrFromList(s)" class="px-3 py-2 rounded-lg bg-white border border-gray-200 text-xs font-bold text-gray-700">QR</button>

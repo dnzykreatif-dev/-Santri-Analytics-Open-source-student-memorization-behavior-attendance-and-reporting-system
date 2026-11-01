@@ -851,7 +851,7 @@
           const scriptUrl = String(
             window.SCRIPT_URL || window.APP_SCRIPT_URL || "",
           ).trim();
-          if (!scriptUrl || scriptUrl.includes("<?=") || scriptUrl.includes("?>")) {
+          if (!scriptUrl || scriptUrl.indexOf("<" + "?=") !== -1 || scriptUrl.indexOf("?" + ">") !== -1) {
             throw new Error("SCRIPT_URL belum dikonfigurasi.");
           }
           return scriptUrl;
@@ -962,8 +962,8 @@
         if (
           canonicalPublicUrl &&
           canonicalPublicUrl.trim() &&
-          !canonicalPublicUrl.includes("<?=") &&
-          !canonicalPublicUrl.includes("?>")
+          canonicalPublicUrl.indexOf("<" + "?=") === -1 &&
+          canonicalPublicUrl.indexOf("?" + ">") === -1
         ) {
           return canonicalPublicUrl;
         }
@@ -979,10 +979,17 @@
       }
 
       function getDashboardUrl() {
+        try {
+          if (document.referrer && document.referrer.includes("script.google.com/macros/s/")) {
+            return document.referrer.split("?")[0].split("#")[0].replace(/\/$/, "");
+          }
+        } catch (e) {}
+
         const baseUrl =
           canonicalScriptUrl &&
-          !canonicalScriptUrl.includes("<?=") &&
-          !canonicalScriptUrl.includes("?>")
+          canonicalScriptUrl.indexOf("<" + "?=") === -1 &&
+          canonicalScriptUrl.indexOf("?" + ">") === -1 &&
+          canonicalScriptUrl.includes("script.google.com")
             ? canonicalScriptUrl
             : window.location.href;
         return cleanAppUrl(baseUrl);

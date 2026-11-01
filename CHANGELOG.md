@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-11-02 - Versi Update: Paket Raport Lengkap, Bulk PDF 1-Klik & Santri Analytics PRO (360° Intelligence)
+
+- **Paket Raport Lengkap & Bulk PDF 1-Klik**:
+  - Menerapkan sistem raport terpadu berbasis referensi standar lembaga Islam: Format TPQ (A4), MDT (F4), Pondok Pesantren (F4), Leger Nilai 1 Kelas (Landscape), dan Sertifikat Kenaikan Jilid.
+  - Kemampuan unduh/cetak PDF massal untuk seluruh santri 1 kelas sekaligus (`getBulkClassReportData`) tanpa harus memproses satu per satu.
+  - Menggunakan engine cetak berbasis CSS `@media print` (`page-break-after: always`) client-side untuk mengeliminasi risiko eksekusi Google Apps Script timeout pada data puluhan hingga ratusan santri.
+  - Tombol "📄 Cetak Raport 1 Kelas" terintegrasi di `Tab_Students.html` dan "📄 Cetak Raport Massal & Leger" di `Tab_Akademik.html`.
+- **Santri Analytics PRO (360° Intelligence & Advanced Operational Simulation)**:
+  - Modul `analytics_pro` resmi terdaftar di arsitektur produk (`PRODUCT_MODULES`, `PRODUCT_NAV_MODULES`, `PRODUCT_ACTION_MODULES`).
+  - Lisensi modular dapat diatur per pondok melalui menu **Setup Pondok** $\rightarrow$ **Paket & Lisensi Modul** (gating) dengan kartu promosi upsell otomatis bagi pondok yang belum berlangganan.
+  - **Simulasi Multi-Data Operasional Terpadu**:
+    - Integrasi sinkron skor perilaku akumulatif riil dari sheet `Incidents` menggunakan `calculateBehaviorScore_`, mendukung nilai minus (seperti kasus Ahmad Mujahid -135) secara presisi.
+    - Status perkembangan santri otomatis sinkron: `PEMBINAAN INTENSIF (KRITIS)` (merah/pulse), `PERLU PEMBINAAN` (kuning), `SANTRI NORMAL` (biru), atau `SANTRI UNGGUL` (hijau).
+    - 4 Bento Cards metrik operasional mendalam: Poin Perilaku Riil & Rincian Kasus per Kategori (Asrama, Ibadah, Ketertiban), Presensi & Alpa, Halaqoh & Hafalan (Ziyadah vs Muroja'ah), serta Akademik & Kitab Kuning.
+    - Radar Chart 5 Pilar (Tahfidz, Kitab, Akhlak, Ibadah, Sosial): Pilar Akhlak mencerminkan kondisi riil (skor 9/100 pada kasus Ahmad Mujahid) sehingga memberikan peringatan visual dini yang dramatis dan akurat.
+    - Diagnosis Karakter & Potensi Terarah: Menghilangkan pujian semu pada santri bermasalah, menggantinya dengan diagnosis psikologis objektif ("Diagnosis Karakter & Pembinaan Khusus" dan "Potensi Tahfidz yang Terdistraksi").
+    - Rekonstruksi Matriks SWOT: Larangan mutlak memasukkan adab ke dalam Strengths jika poin perilaku rendah/minus; penajaman Weaknesses mencakup krisis poin minus, kategori kasus terbanyak, absensi alpa, dan ketimpangan muroja'ah.
+    - Panduan Aksi Sinergis 2 Pihak (Dual Action Plan): Solusi konkret intervensi krisis untuk Ustadz di pondok (konseling 1-on-1, kontrak komitmen tertulis, rotasi kamar, restorasi poin khidmah) dan Orang Tua di rumah (koordinasi pondok, karantina gadget/HP, dialog empatik, keteladanan ibadah).
+  - **Akses Akun Wali Santri**:
+    - Tombol "🧠 Analisis 360° (PRO)" diaktifkan pada `Tab_WaliSantriDetail.html` sehingga orang tua dapat memantau analisis perkembangan dan panduan pendampingan ananda di rumah.
+  - **Engine Cetak Portofolio Eksekutif (PDF A4)**:
+    - Perbaikan stylesheet `@media print` dengan isolasi kelas `body.is-printing-portfolio` untuk mencegah pratinjau cetak browser kosong/blank.
+    - Lembar portofolio memuat Kop Resmi Pondok/Yayasan, Biodata Santri, Radar 5 Pilar, Bento Simulasi Operasional, Matriks SWOT, Histori Pelanggaran, Panduan Sinergi, dan 2 Kolom Tanda Tangan Resmi (Wali Santri & Ustadz Pembina Asrama).
+
+
 ## 2026-11-02 - Versi Production @212: Integrasi Product Readiness, Smart Schedule Parser & Multi-Pondok
 
 - **Smart Schedule Parser**:

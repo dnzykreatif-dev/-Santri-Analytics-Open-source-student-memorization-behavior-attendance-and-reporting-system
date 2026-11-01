@@ -18,6 +18,12 @@ Data pondok tidak dicampur dengan data pondok lain. Pembuat aplikasi hanya diber
 - Salinan Spreadsheet Template Resmi Kosong.
 - Salinan project Apps Script.
 - Template Google Docs untuk raport.
+- **Paket Raport Lengkap & Bulk PDF 1-Klik**: Cetak raport serentak 1 kelas (Format Pondok, TPQ, MDT, Leger Nilai Landscape, dan Sertifikat Jilid).
+- **Layanan Upgrade Tambahan: Santri Analytics PRO (360° Intelligence)**:
+  - Dijual sebagai add-on/upgrade terpisah dalam satu aplikasi.
+  - Simulasi multi-data operasional (perilaku riil/minus, absensi alpa, halaqah ziyadah vs muroja'ah, akademik).
+  - Diagnosis karakter objektif, radar 5 pilar, SWOT, histori pelanggaran, dan panduan aksi sinergis 2 pihak (Ustadz & Orang Tua).
+  - Akses langsung untuk akun Wali Santri guna memantau perkembangan anak.
 - Panduan singkat admin, ustadz, dan wali.
 - Bantuan pemasangan dan import data.
 - Backup dan pemeliharaan sesuai paket yang dibeli.

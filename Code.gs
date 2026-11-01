@@ -129,10 +129,21 @@ function runAppAction(request) {
         message: "Library inti tidak memiliki fungsi runAction yang sesuai.",
       };
     }
-    const result = sharedCore.runAction(action, args, PRODUCT_buildCoreContext_());
-    return result && typeof result.ok === "boolean"
-      ? result
-      : { ok: true, data: result === undefined ? null : result };
+    try {
+      const result = sharedCore.runAction(action, args, PRODUCT_buildCoreContext_());
+      return result && typeof result.ok === "boolean"
+        ? result
+        : { ok: true, data: result === undefined ? null : result };
+    } catch (coreErr) {
+      const handler = globalThis[action];
+      if (typeof handler === "function") {
+        const result = handler.apply(null, args);
+        return result && typeof result.ok === "boolean"
+          ? result
+          : { ok: true, data: result === undefined ? null : result };
+      }
+      return { ok: false, message: coreErr && coreErr.message ? coreErr.message : String(coreErr) };
+    }
   }
 
   const handler = globalThis[action];
@@ -159,6 +170,9 @@ function PRODUCT_isWrapperOnlyAction_(action) {
     "getAppReleaseStatus",
     "saveSharedCoreSettings",
     "runHealthCheck",
+    "getStudent360Analytics",
+    "getBulkClassReportData",
+    "getClassLegerNilai",
   ].includes(String(action || ""));
 }
 
@@ -270,6 +284,9 @@ function isExternalActionAllowed_(action) {
     "saveExamEligibilityOverride",
     "downloadStudentReportPdf",
     "generateStudentReportPdf",
+    "getStudent360Analytics",
+    "getBulkClassReportData",
+    "getClassLegerNilai",
     "getGuardianReportSharePreview",
     "getFullStudentReport",
     "getStudentFullReport",

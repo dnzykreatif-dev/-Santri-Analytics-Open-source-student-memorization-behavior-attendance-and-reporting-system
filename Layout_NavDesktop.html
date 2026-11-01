@@ -11,7 +11,7 @@
   <nav class="app-sidebar-nav">
     <template x-for="item in visibleNavigationItems('utama')" :key="item.id">
       <button type="button" @click="handleNavigationItem(item)" class="app-sidebar-item"
-        :class="{ 'is-active': !item.external && currentTab === item.id }">
+        :class="{ 'is-active': currentTab === item.id }">
         <span class="app-sidebar-icon" x-html="navIcon(item.icon)"></span>
         <span x-text="item.label"></span>
       </button>

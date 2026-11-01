@@ -23,7 +23,7 @@
             x-text="navigationGroupLabel(group)"></p>
           <template x-for="item in visibleNavigationItems(group)" :key="item.id">
             <button type="button" @click="handleNavigationItem(item)" class="app-mobile-drawer-item"
-              :class="{ 'is-active': !item.external && currentTab === item.id }">
+              :class="{ 'is-active': currentTab === item.id }">
               <span class="app-mobile-more-icon" x-html="navIcon(item.icon)"></span>
               <span x-text="item.label"></span>
             </button>
