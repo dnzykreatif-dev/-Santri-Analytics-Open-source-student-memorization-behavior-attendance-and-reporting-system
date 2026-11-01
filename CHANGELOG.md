@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-11-02 - Versi Update: Restrukturisasi Menu Akademik, Setup Raport Terpadu, Identitas Riil Mudir & Lembaga, serta Kurikulum Jadwal Riil
+
+- **Restrukturisasi Total Menu Akademik & Pengalaman Pengguna (UX)**:
+  - Menggantikan tampilan lama yang membingungkan dan alur 6 langkah kaku menjadi 5 sub-navigasi tab terstruktur:
+    1. **📋 Raport & Penilaian**: Pusat kendali raport santri, filter periode & kelas, status penilaian, tombol cetak F4 massal per kelas, leger nilai, serta switcher mode *Daftar Santri & Status Raport* vs *Matrix Input Nilai*.
+    2. **📚 Kurikulum & Kitab**: Pemetaan jadwal KBM aktif dan kurikulum ujian per kelas.
+    3. **⚙️ Setup Raport & Lembaga**: Menu setup khusus raport terpadu yang sebelumnya belum tersedia.
+    4. **🔧 Master Periode & Mapel**: Pengelolaan tahun ajaran, semester, bobot nilai, dan master mapel.
+    5. **👤 Profil Santri**: Pengaturan jenjang pendidikan (SMP/SMA) dan gender santri.
+- **Penyediaan Menu Terpadu "Setup Raport & Lembaga"**:
+  - **Live Preview Kop Surat Interaktif**: Memvisualisasikan langsung lambang/logo, nama yayasan, nama pondok, teks kaligrafi Arab, alamat, kontak, dan NSPP secara real-time.
+  - **Identitas Lembaga & NSPP**: Form edit instansi lembaga, teks kaligrafi Arab (`معهد روضة العلوم`), NSPP, alamat (Sinam, Pemangkat, Kab. Sambas), dan nomor telepon.
+  - **Logo Pesantren & Vektor Fallback**: Kemampuan upload logo kustom lembaga langsung via file picker (disimpan sebagai base64), reset logo, dan fallback mulus ke lambang resmi SVG kubah & bintang emas hijau jika logo rusak/belum ada.
+  - **Identitas Pejabat Penandatangan**: Pimpinan Pondok/Mudir disinkronkan langsung dengan akun aktif **Dede Nuriman, Lc.** (menghapus nama simulasi *KH. Ahmad Syarifuddin*), serta kota titimangsa resmi **Pemangkat** (menghapus *Tasikmalaya*).
+  - **Penugasan Wali Kelas per Kelas**: Pengaturan dinamis penugasan wali kelas riil per rombel/kelas (Kelas 7, 8, 9, 10, 11, 12, dll.) lengkap dengan autocomplete datalist dari daftar Ustadz yang terdaftar di aplikasi (menghapus nama simulasi *Ustdz. Nida Fadhilah*).
+  - **Pemetaan Kitab Kuning per Mata Pelajaran**: Input rujukan kitab kuning riil per mapel pesantren (menghilangkan label statis *Kitab Turots*).
+  - **Opsi Penayangan Seksi C (Hafalan Nadzam & Matan)**: Toggle aktivasi seksi nadzam; jika santri/kelas tidak mempelajari Nadzam Alfiyah/Jauharul Maknun/Baiquniyah, seksi ini otomatis disembunyikan sehingga tidak menampilkan tabel kosong/simulasi.
+- **Backend Raport Intelligence (`SantriIntelligence.gs`)**:
+  - API baru `getRaportSetup(currentUser)` dan `saveRaportSetup(payload, currentUser)`.
+  - Helper `SI_isClassMatch_(studentClass, scheduleClass)` untuk pencocokan kelas yang fleksibel dan toleran format (misal `"10"` vs `"KELAS 10"`).
+  - Integrasi kurikulum raport langsung dari jadwal KBM kelas riil (`Schedules` & `AcademicSubjects`), dengan fallback cerdas ke master mapel pondok.
+- **Sinkronisasi Multi-Environment**:
+  - Tersinkronisasi identik di Production (`1x84JjMXFDR-eOeuuzV6S4sVsmFLnjrpLnnnoYKW4nZyj9tjIbLaKPKez`) dan Staging (`1_CIhMWKami-et1cawF4GM1gqRIsw8qXOTRrev6hTGflmwix0oCif-3ey`).
+
 ## 2026-11-02 - Versi Update: 100% Data Riil Rapor Santri, Presisi Format Referensi F4/A4, & Eliminasi Duplikasi
 
 - **100% Data Riil Aplikasi (Eliminasi Total Nilai Palsu / Simulasi)**:
