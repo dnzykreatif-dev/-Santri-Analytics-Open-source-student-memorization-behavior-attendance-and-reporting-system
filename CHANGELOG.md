@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-11-02 - Versi Update: Keterangan Kelas, Tab Filter Kelas & Pemetaan Kitab Spesifik per-Jenjang
+
+- **Keterangan Kelas Jelas pada Setiap Kartu Mapel**:
+  - Setiap kartu mata pelajaran pada pemetaan kitab kini secara eksplisit mencantumkan keterangan kelas/rombel yang mempelajarinya (misal: `🏫 Kelas: KELAS 10` untuk mapel jadwal seperti *AQ (Aqidah)*, *Si (Sirah)*, *Hi (H.Doa)*, *Ti (Tilawah)*, atau `🏫 Kelas: Semua Kelas` untuk muatan umum pesantren).
+  - Mengeliminasi kebingungan guru/mudir mengenai asal kelas dan sasaran mapel yang diajarkan.
+- **Bar Filter Tab Kelas Interaktif**:
+  - Penambahan tombol filter kelas di atas kartu pemetaan: `[🏷️ Semua Kelas]`, `[🏫 KELAS 7]`, `[🏫 KELAS 8]`, `[🏫 KELAS 9]`, `[🏫 KELAS 10]`, `[🏫 KELAS 11]`, `[🏫 KELAS 12]`.
+  - Memungkinkan mudir menyaring hanya mapel yang diajarkan di kelas tertentu dengan sekali klik.
+- **Dukungan Kitab Spesifik per Jenjang (Multi-Level Class Override)**:
+  - Mendukung penentuan kitab yang berbeda untuk jenjang kelas yang berbeda pada mapel yang sama (misal: Fiqih Kelas 7 menggunakan *Safinatun Najah*, sedangkan Fiqih Kelas 10 menggunakan *Fathul Qorib*).
+  - Format penyimpanan override `KELAS 10::Fiqih` dengan placeholder default otomatis.
+  - Backend engine cetak raport F4 (`SantriIntelligence.gs`) otomatis memprioritaskan rujukan kitab spesifik kelas santri sebelum jatuh ke default umum.
+- **Form Tambah Mapel dengan Pilihan Target Kelas**:
+  - Input `+ Tambah Mapel Baru` kini dilengkapi dropdown target kelas (*Semua Kelas*, *Kelas 7*, *Kelas 8*, dst.).
+
 ## 2026-11-02 - Versi Update: Restrukturisasi Menu Akademik, Setup Raport Terpadu, Identitas Riil Mudir & Lembaga, serta Kurikulum Jadwal Riil
 
 - **Restrukturisasi Total Menu Akademik & Pengalaman Pengguna (UX)**:
