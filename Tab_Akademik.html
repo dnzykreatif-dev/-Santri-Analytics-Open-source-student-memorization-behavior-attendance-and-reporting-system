@@ -468,6 +468,40 @@
 
     <!-- ================= SEKSI 3: SETUP RAPORT & LEMBAGA (FITUR UTAMA BARU) ================= -->
     <div x-show="academicSection === 'setup_raport' && (user.Role === 'Mudir' || user.Role === 'Admin')" class="space-y-6">
+
+      <!-- BANNER PROGRES & PENYIMPANAN OTOMATIS -->
+      <div class="app-card p-4 bg-gradient-to-r from-emerald-50 via-teal-50 to-white border border-emerald-300 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-[#0f5f4a] text-white flex items-center justify-center font-black text-xl shadow-md shrink-0">
+            💾
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h4 class="font-black text-sm text-gray-900">Progres Pengaturan Raport</h4>
+              <span class="inline-flex items-center gap-1.5 text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Draf otomatis tersimpan di perangkat
+              </span>
+            </div>
+            <p class="text-xs text-gray-600 mt-0.5">
+              Anda bisa mengatur secara bertahap dan melanjutkan kapan saja. Terakhir tersimpan di server:
+              <span class="font-bold text-emerald-900" x-text="lastRaportSavedAt ? ('Pukul ' + lastRaportSavedAt) : 'Belum disimpan ke server'"></span>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="app-btn bg-[#0f5f4a] hover:bg-[#0b4939] text-white px-5 py-2.5 font-black text-xs shadow-md flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+            :disabled="savingRaportSetup"
+            @click="saveRaportSetup()"
+          >
+            <span>💾</span>
+            <span x-text="savingRaportSetup ? 'Menyimpan...' : 'Simpan Seluruh Pengaturan'"></span>
+          </button>
+        </div>
+      </div>
       
       <!-- PRATINJAU LANGSUNG KOP SURAT RESMI -->
       <div class="app-card p-6 bg-white border-2 border-emerald-900/20">
@@ -677,6 +711,20 @@
                 <option :value="t.Name"></option>
               </template>
             </datalist>
+
+            <!-- TOMBOL SIMPAN WALI KELAS -->
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-between">
+              <span class="text-[11px] text-gray-400">Draf tersimpan otomatis di perangkat</span>
+              <button
+                type="button"
+                class="app-btn bg-emerald-800 hover:bg-emerald-900 text-white text-xs px-4 py-2 font-bold shadow-sm flex items-center gap-1.5 transition-all"
+                :disabled="savingRaportSetup"
+                @click="saveRaportSetup()"
+              >
+                <span>💾</span>
+                <span x-text="savingRaportSetup ? 'Menyimpan...' : 'Simpan Penugasan Wali Kelas'"></span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -824,10 +872,15 @@
         </div>
 
         <!-- TOMBOL SIMPAN UTAMA SETUP RAPORT -->
-        <div class="pt-4 border-t border-gray-100 flex justify-end">
+        <div class="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+          <div class="text-xs text-gray-500 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Draf tersimpan di perangkat. Terakhir ke server: </span>
+            <span class="font-bold text-emerald-800" x-text="lastRaportSavedAt ? ('Pukul ' + lastRaportSavedAt) : 'Belum disimpan ke server'"></span>
+          </div>
           <button
             type="button"
-            class="app-btn bg-[#0f5f4a] text-white hover:bg-[#0b4939] px-6 py-3 font-black text-sm shadow-md flex items-center gap-2"
+            class="app-btn bg-[#0f5f4a] text-white hover:bg-[#0b4939] px-6 py-3 font-black text-sm shadow-md flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
             :disabled="savingRaportSetup"
             @click="saveRaportSetup()"
           >
@@ -835,6 +888,23 @@
             <span x-text="savingRaportSetup ? 'Menyimpan Pengaturan...' : 'Simpan Seluruh Pengaturan Raport'"></span>
           </button>
         </div>
+      </div>
+
+      <!-- STICKY FLOATING SAVE PILL (AGAR USTADZ TIDAK PERLU SCROLL KE BAWAH) -->
+      <div class="fixed bottom-6 right-6 z-40 bg-white/95 backdrop-blur-md border-2 border-emerald-600 shadow-2xl p-2.5 rounded-2xl flex items-center gap-3">
+        <div class="text-xs hidden sm:block pl-2">
+          <p class="font-black text-gray-900 leading-tight">Progres Setup</p>
+          <p class="text-[10px] text-gray-500 leading-tight" x-text="lastRaportSavedAt ? ('Server: ' + lastRaportSavedAt) : 'Draf aman di perangkat'"></p>
+        </div>
+        <button
+          type="button"
+          class="app-btn bg-[#0f5f4a] hover:bg-[#0b4939] text-white px-4 py-2.5 font-black text-xs shadow-lg flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+          :disabled="savingRaportSetup"
+          @click="saveRaportSetup()"
+        >
+          <span>💾</span>
+          <span x-text="savingRaportSetup ? 'Menyimpan...' : 'Simpan Pengaturan'"></span>
+        </button>
       </div>
 
     </div>

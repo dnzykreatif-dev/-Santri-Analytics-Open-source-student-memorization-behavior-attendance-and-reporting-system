@@ -547,6 +547,8 @@
       logoBroken: false,
       loadingRaportSetup: false,
       savingRaportSetup: false,
+      lastRaportSavedAt: "",
+      raportDraftSavedAt: "",
       newRaportClass: "",
       newRaportSubject: "",
       newRaportKitab: "",
@@ -4027,18 +4029,21 @@
 
       loadRaportSetup() {
         this.loadingRaportSetup = true;
+        // 1. Muat draf lokal terlebih dahulu agar progres pengeditan sebelumnya tidak hilang
+        this.loadLocalRaportDraft();
+
         callGoogleScript("getRaportSetup", this.user).onSuccessRaw((res, data, err) => {
           this.loadingRaportSetup = false;
           if (res && res.ok && res.data) {
             const incoming = res.data;
             if (incoming.profile) {
-              this.raportSetup.profile = Object.assign({}, this.raportSetup.profile, incoming.profile);
+              // Gabungkan profil dari server, pertahankan editan lokal yang belum tersimpan jika ada
+              this.raportSetup.profile = Object.assign({}, incoming.profile, this.raportSetup.profile || {});
             }
             if (!this.raportSetup.profile.HeadName && this.user.Role === "Mudir") {
               this.raportSetup.profile.HeadName = this.user.Name;
             }
             if (Array.isArray(incoming.classes) && incoming.classes.length > 0) {
-              // Gabungkan kelas baru dengan default tanpa duplikasi
               const mergedClasses = Array.from(new Set([...(this.raportSetup.classes || []), ...incoming.classes]));
               this.raportSetup.classes = mergedClasses.sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
             }
@@ -4049,10 +4054,10 @@
               this.raportSetup.defaultKitabList = incoming.defaultKitabList;
             }
             if (incoming.waliKelasMap && typeof incoming.waliKelasMap === "object") {
-              this.raportSetup.waliKelasMap = Object.assign({}, this.raportSetup.waliKelasMap, incoming.waliKelasMap);
+              this.raportSetup.waliKelasMap = Object.assign({}, incoming.waliKelasMap, this.raportSetup.waliKelasMap || {});
             }
             if (incoming.kitabMap && typeof incoming.kitabMap === "object") {
-              this.raportSetup.kitabMap = Object.assign({}, this.raportSetup.kitabMap, incoming.kitabMap);
+              this.raportSetup.kitabMap = Object.assign({}, incoming.kitabMap, this.raportSetup.kitabMap || {});
             }
             if (this.raportSetup.defaultKitabList) {
               this.raportSetup.defaultKitabList.forEach(k => {
@@ -4061,13 +4066,57 @@
                 }
               });
             }
-            if (incoming.showNadzam !== undefined) {
+            if (incoming.showNadzam !== undefined && this.raportSetup.showNadzam === undefined) {
               this.raportSetup.showNadzam = incoming.showNadzam === true;
             }
+            this.lastRaportSavedAt = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
           } else if (err) {
             console.warn("Gagal memuat setup raport:", err);
           }
         });
+      },
+
+      saveLocalRaportDraft() {
+        try {
+          const draft = {
+            timestamp: new Date().toISOString(),
+            profile: this.raportSetup.profile,
+            waliKelasMap: this.raportSetup.waliKelasMap,
+            kitabMap: this.raportSetup.kitabMap,
+            showNadzam: this.raportSetup.showNadzam,
+            classes: this.raportSetup.classes
+          };
+          localStorage.setItem("santriAnalytics:raportSetupDraft", JSON.stringify(draft));
+          this.raportDraftSavedAt = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+        } catch (e) {}
+      },
+
+      loadLocalRaportDraft() {
+        try {
+          const raw = localStorage.getItem("santriAnalytics:raportSetupDraft");
+          if (!raw) return false;
+          const draft = JSON.parse(raw);
+          if (draft.profile) {
+            this.raportSetup.profile = Object.assign({}, this.raportSetup.profile, draft.profile);
+          }
+          if (draft.waliKelasMap) {
+            this.raportSetup.waliKelasMap = Object.assign({}, this.raportSetup.waliKelasMap, draft.waliKelasMap);
+          }
+          if (draft.kitabMap) {
+            this.raportSetup.kitabMap = Object.assign({}, this.raportSetup.kitabMap, draft.kitabMap);
+          }
+          if (draft.classes && Array.isArray(draft.classes)) {
+            const merged = Array.from(new Set([...(this.raportSetup.classes || []), ...draft.classes]));
+            this.raportSetup.classes = merged.sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+          }
+          if (draft.showNadzam !== undefined) {
+            this.raportSetup.showNadzam = draft.showNadzam;
+          }
+          this.raportDraftSavedAt = new Date(draft.timestamp || Date.now()).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+          return true;
+        } catch (e) {
+          return false;
+        }
       },
 
       addRaportClass() {
@@ -4149,8 +4198,18 @@
         this.showToast("Kitab rujukan standar pesantren berhasil dimuat ke seluruh mapel!", "success");
       },
 
-      saveRaportSetup() {
+      saveRaportSetup(silent = false) {
         this.savingRaportSetup = true;
+        // 1. Simpan draf lokal seketika agar progres tidak hilang walau koneksi terputus
+        this.saveLocalRaportDraft();
+
+        // 2. Pastikan LogoUrl tidak melampaui batas aman sel Google Sheet (35.000 karakter)
+        let safeLogo = this.raportSetup.profile?.LogoUrl || "";
+        if (safeLogo.length > 35000) {
+          safeLogo = ""; // Reset logo jika terlalu besar demi keamanan penyimpanan
+          if (this.raportSetup.profile) this.raportSetup.profile.LogoUrl = "";
+        }
+
         const payload = {
           PondokName: this.raportSetup.profile?.InstitutionName || "PONDOK PESANTREN RAUDHATUL ULUM",
           InstitutionName: this.raportSetup.profile?.InstitutionName || "PONDOK PESANTREN RAUDHATUL ULUM",
@@ -4163,7 +4222,7 @@
           HeadName: this.raportSetup.profile?.HeadName || "Dede Nuriman, Lc.",
           HeadTitle: this.raportSetup.profile?.HeadTitle || "Pimpinan Pondok",
           WaliKelasDefault: this.raportSetup.profile?.WaliKelasDefault || "",
-          LogoUrl: this.raportSetup.profile?.LogoUrl || "",
+          LogoUrl: safeLogo,
           ShowNadzam: this.raportSetup.showNadzam === true,
           waliKelasMap: this.raportSetup.waliKelasMap || {},
           kitabMap: this.raportSetup.kitabMap || {}
@@ -4171,7 +4230,10 @@
         callGoogleScript("saveRaportSetup", payload, this.user).onSuccessRaw((res, data, err) => {
           this.savingRaportSetup = false;
           if (res && res.ok) {
-            this.showToast(res.message || "Pengaturan Raport & Lembaga berhasil disimpan!", "success");
+            this.lastRaportSavedAt = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+            if (!silent) {
+              this.showToast(res.message || "Pengaturan Raport & Lembaga berhasil disimpan!", "success");
+            }
             this.loadRaportSetup();
             if (this.showBulkRaportModal) this.loadBulkClassRaport();
           } else {
@@ -4193,18 +4255,35 @@
         reader.onload = () => {
           const image = new Image();
           image.onload = () => {
-            const maxSide = 400;
-            const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
-            const canvas = document.createElement("canvas");
+            // Kompresi logo agar muat di kop raport F4 (cukup 120x120px) dan ukuran string base64 < 25.000 karakter (aman dari limit 50.000 sel Google Sheet)
+            let maxSide = 120;
+            let scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+            let canvas = document.createElement("canvas");
             canvas.width = Math.max(1, Math.round(image.width * scale));
             canvas.height = Math.max(1, Math.round(image.height * scale));
-            const context = canvas.getContext("2d");
+            let context = canvas.getContext("2d");
             context.drawImage(image, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL("image/png");
+            let dataUrl = canvas.toDataURL("image/png");
+            
+            // Jika PNG > 25000 karakter, kompres ke JPEG dengan kualitas 0.85
+            if (dataUrl.length > 25000) {
+              dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+            }
+            if (dataUrl.length > 25000) {
+              maxSide = 96;
+              scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+              canvas.width = Math.max(1, Math.round(image.width * scale));
+              canvas.height = Math.max(1, Math.round(image.height * scale));
+              context = canvas.getContext("2d");
+              context.drawImage(image, 0, 0, canvas.width, canvas.height);
+              dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+            }
+
             if (!this.raportSetup.profile) this.raportSetup.profile = {};
             this.raportSetup.profile.LogoUrl = dataUrl;
             this.logoBroken = false;
-            this.showToast("Logo berhasil dipilih. Klik 'Simpan Pengaturan Raport' untuk menerapkan.", "info");
+            this.saveLocalRaportDraft();
+            this.showToast("Logo berhasil dipilih & dikompres optimal (" + Math.round(dataUrl.length / 1024) + " KB). Klik 'Simpan Seluruh Pengaturan' untuk menerapkan.", "info");
           };
           image.onerror = () => this.showToast("File gambar tidak dapat dibaca.", "error");
           image.src = String(reader.result || "");
@@ -4217,6 +4296,7 @@
         if (!this.raportSetup.profile) this.raportSetup.profile = {};
         this.raportSetup.profile.LogoUrl = "";
         this.logoBroken = false;
+        this.saveLocalRaportDraft();
         this.showToast("Logo direset ke Lambang Resmi Pesantren.", "info");
       },
 

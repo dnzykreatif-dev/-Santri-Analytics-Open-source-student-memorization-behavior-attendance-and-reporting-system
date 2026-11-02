@@ -1112,31 +1112,53 @@ function saveRaportSetup(payload, currentUser) {
     if (payload.City !== undefined) updates.push({ ProfileKey: "City", ProfileValue: String(payload.City).trim() });
     if (payload.HeadName !== undefined) updates.push({ ProfileKey: "HeadName", ProfileValue: String(payload.HeadName).trim() });
     if (payload.HeadTitle !== undefined) updates.push({ ProfileKey: "HeadTitle", ProfileValue: String(payload.HeadTitle).trim() });
-    if (payload.LogoUrl !== undefined) updates.push({ ProfileKey: "LogoUrl", ProfileValue: String(payload.LogoUrl).trim() });
     if (payload.WaliKelasDefault !== undefined) updates.push({ ProfileKey: "WaliKelasDefault", ProfileValue: String(payload.WaliKelasDefault).trim() });
     if (payload.ShowNadzam !== undefined) updates.push({ ProfileKey: "ShowNadzam", ProfileValue: String(payload.ShowNadzam) });
 
+    if (payload.LogoUrl !== undefined) {
+      let logo = String(payload.LogoUrl || "").trim();
+      // Google Sheets cell limit adalah 50.000 karakter. Batasi maksimal 35.000 karakter agar tidak pernah melempar error
+      if (logo.length > 35000) {
+        logo = ""; // Jika melebihi batas sel, kosongkan agar kembali memakai lambang resmi pesantren
+      }
+      updates.push({ ProfileKey: "LogoUrl", ProfileValue: logo });
+    }
+
     if (payload.waliKelasMap !== undefined) {
       const jsonWali = typeof payload.waliKelasMap === "string" ? payload.waliKelasMap : JSON.stringify(payload.waliKelasMap);
-      updates.push({ ProfileKey: "WaliKelasMap", ProfileValue: jsonWali });
+      updates.push({ ProfileKey: "WaliKelasMap", ProfileValue: jsonWali.substring(0, 45000) });
     }
 
     if (payload.kitabMap !== undefined) {
       const jsonKitab = typeof payload.kitabMap === "string" ? payload.kitabMap : JSON.stringify(payload.kitabMap);
-      updates.push({ ProfileKey: "KitabMap", ProfileValue: jsonKitab });
+      updates.push({ ProfileKey: "KitabMap", ProfileValue: jsonKitab.substring(0, 45000) });
     }
 
-    if (updates.length > 0 && typeof PRODUCT_upsertKeyValueRows_ === "function") {
-      PRODUCT_upsertKeyValueRows_(SHEET_TENANT_PROFILE, "ProfileKey", "ProfileValue", updates, sessionUser.Username);
-    }
+    // Lakukan penyimpanan secara aman dan terisolasi agar satu kegagalan tidak membatalkan penyimpanan pengaturan lainnya
+    let savedCount = 0;
+    updates.forEach(u => {
+      // Potong nilai jika melebihi batas 45.000 karakter
+      if (u.ProfileValue && u.ProfileValue.length > 45000) {
+        u.ProfileValue = u.ProfileValue.substring(0, 45000);
+      }
+      try {
+        if (typeof PRODUCT_upsertKeyValueRows_ === "function") {
+          PRODUCT_upsertKeyValueRows_(SHEET_TENANT_PROFILE, "ProfileKey", "ProfileValue", [u], sessionUser.Username);
+          savedCount++;
+        }
+      } catch (keyErr) {
+        console.warn("Gagal menyimpan key " + u.ProfileKey + ": " + keyErr.message);
+      }
+    });
 
     AUTH_appendAuditLog_("UPDATE", "RaportSetup", "current", sessionUser, {
-      keys: updates.map(u => u.ProfileKey)
+      keys: updates.map(u => u.ProfileKey),
+      savedCount: savedCount
     });
 
     return {
       ok: true,
-      message: "Pengaturan Raport & Lembaga berhasil disimpan.",
+      message: "Pengaturan Raport & Lembaga berhasil disimpan (" + savedCount + " data diperbarui).",
       data: SI_getTenantProfile_(sessionUser)
     };
   } catch (err) {
