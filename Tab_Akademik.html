@@ -815,13 +815,25 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <template x-for="item in filteredKitabList" :key="item.subject">
             <div class="p-3.5 rounded-xl border border-gray-200 bg-white hover:border-emerald-300 transition-all shadow-xs space-y-2">
-              <!-- Baris Atas: Nama Mapel & KKM -->
+              <!-- Baris Atas: Nama Mapel & KKM (Dapat Disesuaikan Langsung) -->
               <div class="flex items-center justify-between gap-2">
                 <span class="font-black text-xs text-gray-900 flex items-center gap-1.5 truncate">
                   <span class="text-emerald-700 font-bold">📚</span>
                   <span x-text="item.subject" class="truncate"></span>
                 </span>
-                <span class="text-[10px] text-gray-500 font-bold shrink-0 bg-gray-100 px-1.5 py-0.5 rounded" x-text="item.kkm ? 'KKM ' + item.kkm : 'KKM 70'"></span>
+                <div class="flex items-center gap-1.5 bg-gray-50 border border-gray-200 hover:border-emerald-400 px-2 py-0.5 rounded-lg transition-colors shrink-0">
+                  <span class="text-[10px] text-gray-500 font-extrabold" title="Kriteria Ketuntasan Minimal (Batas Nilai Kelulusan)">KKM:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    x-model.number="raportSetup.kkmMap[item.subject]"
+                    class="w-12 text-center font-black text-xs py-0.5 bg-white border border-gray-300 rounded focus:border-emerald-600 focus:outline-none"
+                    :placeholder="item.kkm || 70"
+                    @input="saveLocalRaportDraft()"
+                    title="Kriteria Ketuntasan Minimal (KKM). Batas nilai kelulusan santri di raport. Standar default: 70."
+                  />
+                </div>
               </div>
 
               <!-- BARIS KETERANGAN KELAS (JELAS & TEGAS) -->
@@ -890,15 +902,18 @@
         </div>
       </div>
 
-      <!-- STICKY FLOATING SAVE PILL (AGAR USTADZ TIDAK PERLU SCROLL KE BAWAH) -->
-      <div class="fixed bottom-6 right-6 z-40 bg-white/95 backdrop-blur-md border-2 border-emerald-600 shadow-2xl p-2.5 rounded-2xl flex items-center gap-3">
-        <div class="text-xs hidden sm:block pl-2">
-          <p class="font-black text-gray-900 leading-tight">Progres Setup</p>
-          <p class="text-[10px] text-gray-500 leading-tight" x-text="lastRaportSavedAt ? ('Server: ' + lastRaportSavedAt) : 'Draf aman di perangkat'"></p>
+      <!-- STICKY FLOATING SAVE PILL (DIPOSISIKAN SIMETRIS DI TENGAH BAWAH, BEBAS TABRAKAN DENGAN ACTION BUTTONS BROWSER) -->
+      <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur-md border border-emerald-600/60 shadow-2xl px-4 py-2.5 rounded-full flex items-center gap-4 transition-all">
+        <div class="text-xs hidden sm:flex flex-col pl-1">
+          <div class="flex items-center gap-1.5 font-black text-gray-900 leading-tight">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Progres Setup Raport</span>
+          </div>
+          <p class="text-[10px] text-gray-500 leading-tight" x-text="lastRaportSavedAt ? ('Tersimpan di Cloud: ' + lastRaportSavedAt) : (raportDraftSavedAt ? ('Draf Lokal: ' + raportDraftSavedAt) : 'Draf aman di perangkat')"></p>
         </div>
         <button
           type="button"
-          class="app-btn bg-[#0f5f4a] hover:bg-[#0b4939] text-white px-4 py-2.5 font-black text-xs shadow-lg flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+          class="app-btn bg-[#0f5f4a] hover:bg-[#0b4939] text-white px-4 py-2 rounded-full font-black text-xs shadow-md flex items-center gap-2 transition-transform hover:scale-105 active:scale-95 whitespace-nowrap"
           :disabled="savingRaportSetup"
           @click="saveRaportSetup()"
         >

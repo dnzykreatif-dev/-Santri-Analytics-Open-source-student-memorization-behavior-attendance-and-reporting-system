@@ -812,6 +812,7 @@ function SI_getTenantProfile_(currentUser) {
     let logoUrl = "";
     let waliKelasMapRaw = "";
     let kitabMapRaw = "";
+    let kkmMapRaw = "";
     let showNadzam = false;
 
     // 1. Coba baca dari sheet TenantProfile jika ada
@@ -835,6 +836,7 @@ function SI_getTenantProfile_(currentUser) {
           if (k === "LogoUrl") logoUrl = v;
           if (k === "WaliKelasMap") waliKelasMapRaw = v;
           if (k === "KitabMap") kitabMapRaw = v;
+          if (k === "KkmMap") kkmMapRaw = v;
           if (k === "ShowNadzam") showNadzam = v === "true" || v === "1";
         });
       } catch (e) {}
@@ -869,6 +871,13 @@ function SI_getTenantProfile_(currentUser) {
       } catch (e) {}
     }
 
+    let kkmMap = {};
+    if (kkmMapRaw) {
+      try {
+        kkmMap = JSON.parse(kkmMapRaw);
+      } catch (e) {}
+    }
+
     return {
       InstitutionName: pondokName || "PONDOK PESANTREN RAUDHATUL ULUM",
       YayasanName: yayasanName || "YAYASAN RAUDHATUL ULUM",
@@ -883,8 +892,10 @@ function SI_getTenantProfile_(currentUser) {
       LogoUrl: logoUrl || "",
       WaliKelasMapRaw: waliKelasMapRaw,
       KitabMapRaw: kitabMapRaw,
+      KkmMapRaw: kkmMapRaw,
       waliKelasMap: waliKelasMap,
       kitabMap: kitabMap,
+      kkmMap: kkmMap,
       ShowNadzam: showNadzam
     };
   } catch (err) {
@@ -902,8 +913,10 @@ function SI_getTenantProfile_(currentUser) {
       LogoUrl: "",
       WaliKelasMapRaw: "",
       KitabMapRaw: "",
+      KkmMapRaw: "",
       waliKelasMap: {},
       kitabMap: {},
+      kkmMap: {},
       ShowNadzam: false
     };
   }
@@ -1077,9 +1090,15 @@ function getRaportSetup(currentUser) {
         profile: tenantProfile,
         classes: sortedClasses,
         teachers: teacherList,
-        defaultKitabList: defaultKitabList,
+        defaultKitabList: defaultKitabList.map(item => {
+          if (tenantProfile.kkmMap && tenantProfile.kkmMap[item.subject]) {
+            item.kkm = Number(tenantProfile.kkmMap[item.subject]);
+          }
+          return item;
+        }),
         waliKelasMap: tenantProfile.waliKelasMap || {},
         kitabMap: tenantProfile.kitabMap || {},
+        kkmMap: tenantProfile.kkmMap || {},
         showNadzam: tenantProfile.ShowNadzam === true
       }
     };
@@ -1132,6 +1151,11 @@ function saveRaportSetup(payload, currentUser) {
     if (payload.kitabMap !== undefined) {
       const jsonKitab = typeof payload.kitabMap === "string" ? payload.kitabMap : JSON.stringify(payload.kitabMap);
       updates.push({ ProfileKey: "KitabMap", ProfileValue: jsonKitab.substring(0, 45000) });
+    }
+
+    if (payload.kkmMap !== undefined) {
+      const jsonKkm = typeof payload.kkmMap === "string" ? payload.kkmMap : JSON.stringify(payload.kkmMap);
+      updates.push({ ProfileKey: "KkmMap", ProfileValue: jsonKkm.substring(0, 45000) });
     }
 
     // Lakukan penyimpanan secara aman dan terisolasi agar satu kegagalan tidak membatalkan penyimpanan pengaturan lainnya
@@ -1456,7 +1480,7 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
 
       subjectsToProcess.forEach((sub, idx) => {
         const meta = SI_getSubjectMeta_(sub.Name);
-        const kkm = sub.DefaultKKM || sub.KKM || meta.defaultKkm || 70;
+        const kkm = (tenantProfile.kkmMap && Number(tenantProfile.kkmMap[sub.Name])) || sub.DefaultKKM || sub.KKM || meta.defaultKkm || 70;
         const arabic = sub.ArabicName || meta.arabic || "";
         // Cek rujukan kitab dari pengaturan setup raport pondok:
         // 1. Prioritas utama: Kitab spesifik untuk kelas santri (misal "KELAS 10::Fiqih" atau "10::Fiqih")

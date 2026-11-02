@@ -607,6 +607,20 @@
           "Ushul Fiqih": "Al-Waraqat",
           "Tauhid": "Tijanud Darori"
         },
+        kkmMap: {
+          "Akidah": 70,
+          "Fiqih": 70,
+          "Nahwu": 70,
+          "Shorof": 70,
+          "Hadits": 70,
+          "Tajwid": 70,
+          "Tarikh / Siroh": 70,
+          "Akhlak / Adab": 70,
+          "Tafsir": 70,
+          "Balaghah": 70,
+          "Ushul Fiqih": 70,
+          "Tauhid": 70
+        },
         showNadzam: false
       },
       academicSetup: {
@@ -4059,10 +4073,17 @@
             if (incoming.kitabMap && typeof incoming.kitabMap === "object") {
               this.raportSetup.kitabMap = Object.assign({}, incoming.kitabMap, this.raportSetup.kitabMap || {});
             }
+            if (incoming.kkmMap && typeof incoming.kkmMap === "object") {
+              this.raportSetup.kkmMap = Object.assign({}, incoming.kkmMap, this.raportSetup.kkmMap || {});
+            }
             if (this.raportSetup.defaultKitabList) {
+              if (!this.raportSetup.kkmMap) this.raportSetup.kkmMap = {};
               this.raportSetup.defaultKitabList.forEach(k => {
                 if (!this.raportSetup.kitabMap[k.subject]) {
                   this.raportSetup.kitabMap[k.subject] = k.kitab;
+                }
+                if (this.raportSetup.kkmMap[k.subject] === undefined) {
+                  this.raportSetup.kkmMap[k.subject] = k.kkm || 70;
                 }
               });
             }
@@ -4083,6 +4104,7 @@
             profile: this.raportSetup.profile,
             waliKelasMap: this.raportSetup.waliKelasMap,
             kitabMap: this.raportSetup.kitabMap,
+            kkmMap: this.raportSetup.kkmMap,
             showNadzam: this.raportSetup.showNadzam,
             classes: this.raportSetup.classes
           };
@@ -4104,6 +4126,9 @@
           }
           if (draft.kitabMap) {
             this.raportSetup.kitabMap = Object.assign({}, this.raportSetup.kitabMap, draft.kitabMap);
+          }
+          if (draft.kkmMap) {
+            this.raportSetup.kkmMap = Object.assign({}, this.raportSetup.kkmMap, draft.kkmMap);
           }
           if (draft.classes && Array.isArray(draft.classes)) {
             const merged = Array.from(new Set([...(this.raportSetup.classes || []), ...draft.classes]));
@@ -4147,6 +4172,8 @@
         }
         if (!this.raportSetup.defaultKitabList) this.raportSetup.defaultKitabList = [];
         if (!this.raportSetup.kitabMap) this.raportSetup.kitabMap = {};
+        if (!this.raportSetup.kkmMap) this.raportSetup.kkmMap = {};
+        if (this.raportSetup.kkmMap[sub] === undefined) this.raportSetup.kkmMap[sub] = 70;
         const existing = this.raportSetup.defaultKitabList.find(item => item.subject.toLowerCase() === sub.toLowerCase());
         if (!existing) {
           this.raportSetup.defaultKitabList.push({
@@ -4189,6 +4216,8 @@
         ];
         if (!this.raportSetup.defaultKitabList) this.raportSetup.defaultKitabList = [];
         if (!this.raportSetup.kitabMap) this.raportSetup.kitabMap = {};
+        if (!this.raportSetup.kkmMap) this.raportSetup.kkmMap = {};
+        if (this.raportSetup.kkmMap[sub] === undefined) this.raportSetup.kkmMap[sub] = 70;
         standardList.forEach(item => {
           this.raportSetup.kitabMap[item.subject] = item.kitab;
           if (!this.raportSetup.defaultKitabList.some(k => k.subject.toLowerCase() === item.subject.toLowerCase())) {
@@ -4225,7 +4254,8 @@
           LogoUrl: safeLogo,
           ShowNadzam: this.raportSetup.showNadzam === true,
           waliKelasMap: this.raportSetup.waliKelasMap || {},
-          kitabMap: this.raportSetup.kitabMap || {}
+          kitabMap: this.raportSetup.kitabMap || {},
+          kkmMap: this.raportSetup.kkmMap || {}
         };
         callGoogleScript("saveRaportSetup", payload, this.user).onSuccessRaw((res, data, err) => {
           this.savingRaportSetup = false;
