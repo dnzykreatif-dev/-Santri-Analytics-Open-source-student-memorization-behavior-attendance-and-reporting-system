@@ -83,6 +83,8 @@ const PRODUCT_ACTION_MODULES = {
   getStudent360Analytics: "analytics_pro",
   getBulkClassReportData: "academic",
   getClassLegerNilai: "academic",
+  getRaportSetup: "academic",
+  saveRaportSetup: "academic",
   getFullStudentReport: "academic",
   getStudentFullReport: "academic",
   sendReportToEmail: "academic",

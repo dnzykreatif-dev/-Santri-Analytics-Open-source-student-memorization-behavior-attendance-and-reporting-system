@@ -624,25 +624,51 @@
 
           <!-- FORM 3: PENUGASAN WALI KELAS PER KELAS -->
           <div class="app-card p-6 bg-white space-y-4">
-            <div class="flex items-center gap-2 border-b pb-3">
-              <span class="text-xl">👨‍🏫</span>
-              <div>
-                <h4 class="font-black text-gray-900">Penugasan Wali Kelas per Kelas</h4>
-                <p class="text-xs text-gray-500">Nama wali kelas asli yang dicetak pada raport tiap kelas</p>
+            <div class="flex items-center justify-between border-b pb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">👨‍🏫</span>
+                <div>
+                  <h4 class="font-black text-gray-900">Penugasan Wali Kelas per Kelas</h4>
+                  <p class="text-xs text-gray-500">Nama wali kelas asli yang dicetak pada raport tiap kelas</p>
+                </div>
               </div>
+              <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full" x-text="((raportSetup.classes && raportSetup.classes.length) || 0) + ' Kelas'"></span>
             </div>
 
-            <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
-              <template x-for="cName in (raportSetup.classes || uniqueClasses || [])" :key="cName">
-                <div class="flex items-center gap-3 p-2 rounded-xl bg-gray-50 border border-gray-200">
-                  <span class="font-bold text-xs text-gray-700 w-28 truncate" x-text="cName"></span>
+            <!-- Input Tambah Kelas Baru -->
+            <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-xl border border-gray-200">
+              <input
+                type="text"
+                x-model="newRaportClass"
+                class="app-input text-xs py-1.5 flex-1 bg-white"
+                placeholder="Tambah rombel/kelas baru (cth: KELAS 10 TAHFIDZ)..."
+                @keydown.enter.prevent="addRaportClass()"
+              />
+              <button
+                type="button"
+                class="app-btn bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-1.5 font-bold shadow-sm"
+                @click="addRaportClass()"
+              >
+                + Tambah
+              </button>
+            </div>
+
+            <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
+              <template x-for="cName in (raportSetup.classes && raportSetup.classes.length ? raportSetup.classes : ['KELAS 7', 'KELAS 8', 'KELAS 9', 'KELAS 10', 'KELAS 11', 'KELAS 12'])" :key="cName">
+                <div class="flex items-center gap-2.5 p-2 rounded-xl bg-gray-50 hover:bg-emerald-50/40 border border-gray-200 transition-colors">
+                  <span class="font-bold text-xs bg-white text-emerald-900 border border-emerald-200 px-2 py-1 rounded-lg w-28 text-center shrink-0 truncate shadow-2xs" x-text="cName"></span>
                   <input
                     type="text"
                     x-model="raportSetup.waliKelasMap[cName]"
-                    class="app-input text-xs flex-1 py-1.5"
-                    :placeholder="'Nama Wali Kelas ' + cName"
+                    class="app-input text-xs flex-1 py-1.5 bg-white border-gray-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500"
+                    :placeholder="'Nama Wali Kelas ' + cName + ' (cth: Ustdz. Ahmad Fulan, Lc.)'"
                     list="teacherListDatalist"
                   />
+                  <span
+                    class="text-[10px] font-bold px-2 py-1 rounded-md shrink-0 shadow-2xs"
+                    :class="raportSetup.waliKelasMap[cName] ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-500'"
+                    x-text="raportSetup.waliKelasMap[cName] ? '✓ Terisi' : 'Belum diisi'"
+                  ></span>
                 </div>
               </template>
             </div>
@@ -657,7 +683,7 @@
 
       <!-- FORM 4: PEMETAAN KITAB KUNING PER MATA PELAJARAN -->
       <div class="app-card p-6 bg-white space-y-4">
-        <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
           <div class="flex items-center gap-2">
             <span class="text-xl">📖</span>
             <div>
@@ -665,18 +691,58 @@
               <p class="text-xs text-gray-500">Tentukan nama kitab kuning yang dikaji untuk masing-masing mata pelajaran raport</p>
             </div>
           </div>
-          <span class="text-xs text-gray-400">Dicetak di Kolom "Kitab" Tabel B Raport F4</span>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              @click="applyStandardPesantrenKitabs()"
+              class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+            >
+              <span>⚡</span>
+              <span>Muat Kitab Standar Pesantren</span>
+            </button>
+            <span class="text-xs text-gray-400 hidden md:inline">Dicetak di Kolom "Kitab" Tabel B Raport F4</span>
+          </div>
+        </div>
+
+        <!-- Input Tambah Mapel Baru -->
+        <div class="flex flex-wrap items-center gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
+          <span class="text-xs font-bold text-gray-700">Tambah Mapel Baru:</span>
+          <input
+            type="text"
+            x-model="newRaportSubject"
+            placeholder="Nama Mapel (cth: Mahfudzot)"
+            class="app-input text-xs py-1.5 flex-1 min-w-[140px] bg-white"
+          />
+          <input
+            type="text"
+            x-model="newRaportKitab"
+            placeholder="Nama Kitab (cth: Mahfudzot Juz 1)"
+            class="app-input text-xs py-1.5 flex-1 min-w-[140px] bg-white"
+          />
+          <button
+            type="button"
+            class="app-btn bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-1.5 font-bold shadow-sm"
+            @click="addRaportKitab()"
+          >
+            + Tambah Mapel
+          </button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <template x-for="item in (raportSetup.defaultKitabList || [])" :key="item.subject">
-            <div class="p-3 rounded-xl border border-gray-200 bg-gray-50/70 space-y-1">
-              <p class="font-black text-xs text-gray-800" x-text="item.subject"></p>
+          <template x-for="item in (raportSetup.defaultKitabList && raportSetup.defaultKitabList.length ? raportSetup.defaultKitabList : [])" :key="item.subject">
+            <div class="p-3 rounded-xl border border-gray-200 bg-white hover:border-emerald-300 transition-all shadow-xs space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="font-black text-xs text-gray-900 flex items-center gap-1.5">
+                  <span class="text-emerald-700 font-bold">📚</span>
+                  <span x-text="item.subject"></span>
+                </span>
+                <span class="text-[10px] text-gray-400 font-semibold" x-text="item.kkm ? 'KKM ' + item.kkm : ''"></span>
+              </div>
               <input
                 type="text"
                 x-model="raportSetup.kitabMap[item.subject]"
-                class="app-input text-xs py-1.5 bg-white"
-                :placeholder="item.kitab"
+                class="app-input text-xs py-1.5 bg-gray-50/70 border-gray-200 focus:bg-white focus:border-emerald-500"
+                :placeholder="'Kitab rujukan: ' + (item.kitab || 'Kitab Standar')"
               />
             </div>
           </template>

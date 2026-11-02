@@ -547,6 +547,9 @@
       logoBroken: false,
       loadingRaportSetup: false,
       savingRaportSetup: false,
+      newRaportClass: "",
+      newRaportSubject: "",
+      newRaportKitab: "",
       raportSetup: {
         profile: {
           InstitutionName: "PONDOK PESANTREN RAUDHATUL ULUM",
@@ -562,11 +565,44 @@
           LogoUrl: "",
           ShowNadzam: false
         },
-        classes: [],
+        classes: ["KELAS 7", "KELAS 8", "KELAS 9", "KELAS 10", "KELAS 11", "KELAS 12"],
         teachers: [],
-        defaultKitabList: [],
-        waliKelasMap: {},
-        kitabMap: {},
+        defaultKitabList: [
+          { subject: "Akidah", kitab: "Aqidatul Awam", kkm: 70 },
+          { subject: "Fiqih", kitab: "Safinatun Najah / Fathul Qorib", kkm: 70 },
+          { subject: "Nahwu", kitab: "Al-Ajurumiyyah", kkm: 70 },
+          { subject: "Shorof", kitab: "Amtsilatut Tashrifiyyah", kkm: 70 },
+          { subject: "Hadits", kitab: "Al-Arba'in An-Nawawiyyah", kkm: 70 },
+          { subject: "Tajwid", kitab: "Tuhfatul Athfal", kkm: 70 },
+          { subject: "Tarikh / Siroh", kitab: "Khulashoh Nuril Yaqin", kkm: 70 },
+          { subject: "Akhlak / Adab", kitab: "Taisirul Khalaq", kkm: 70 },
+          { subject: "Tafsir", kitab: "Tafsir Jalalain", kkm: 70 },
+          { subject: "Balaghah", kitab: "Jauharul Maknun", kkm: 70 },
+          { subject: "Ushul Fiqih", kitab: "Al-Waraqat", kkm: 70 },
+          { subject: "Tauhid", kitab: "Tijanud Darori", kkm: 70 }
+        ],
+        waliKelasMap: {
+          "KELAS 7": "",
+          "KELAS 8": "",
+          "KELAS 9": "",
+          "KELAS 10": "",
+          "KELAS 11": "",
+          "KELAS 12": ""
+        },
+        kitabMap: {
+          "Akidah": "Aqidatul Awam",
+          "Fiqih": "Safinatun Najah / Fathul Qorib",
+          "Nahwu": "Al-Ajurumiyyah",
+          "Shorof": "Amtsilatut Tashrifiyyah",
+          "Hadits": "Al-Arba'in An-Nawawiyyah",
+          "Tajwid": "Tuhfatul Athfal",
+          "Tarikh / Siroh": "Khulashoh Nuril Yaqin",
+          "Akhlak / Adab": "Taisirul Khalaq",
+          "Tafsir": "Tafsir Jalalain",
+          "Balaghah": "Jauharul Maknun",
+          "Ushul Fiqih": "Al-Waraqat",
+          "Tauhid": "Tijanud Darori"
+        },
         showNadzam: false
       },
       academicSetup: {
@@ -3978,22 +4014,113 @@
         callGoogleScript("getRaportSetup", this.user).onSuccessRaw((res, data, err) => {
           this.loadingRaportSetup = false;
           if (res && res.ok && res.data) {
-            this.raportSetup = res.data;
-            if (!this.raportSetup.profile) this.raportSetup.profile = {};
+            const incoming = res.data;
+            if (incoming.profile) {
+              this.raportSetup.profile = Object.assign({}, this.raportSetup.profile, incoming.profile);
+            }
             if (!this.raportSetup.profile.HeadName && this.user.Role === "Mudir") {
               this.raportSetup.profile.HeadName = this.user.Name;
             }
-            if (!this.raportSetup.waliKelasMap) this.raportSetup.waliKelasMap = {};
-            if (!this.raportSetup.kitabMap) this.raportSetup.kitabMap = {};
-            if (this.raportSetup.defaultKitabList && Object.keys(this.raportSetup.kitabMap).length === 0) {
-              this.raportSetup.defaultKitabList.forEach(k => {
-                this.raportSetup.kitabMap[k.subject] = k.kitab;
+            if (Array.isArray(incoming.classes) && incoming.classes.length > 0) {
+              // Gabungkan kelas baru dengan default tanpa duplikasi
+              const mergedClasses = Array.from(new Set([...(this.raportSetup.classes || []), ...incoming.classes]));
+              this.raportSetup.classes = mergedClasses.sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+            }
+            if (Array.isArray(incoming.teachers) && incoming.teachers.length > 0) {
+              this.raportSetup.teachers = incoming.teachers;
+            }
+            if (Array.isArray(incoming.defaultKitabList) && incoming.defaultKitabList.length > 0) {
+              // Gabungkan list kitab
+              const existingSubs = new Set((this.raportSetup.defaultKitabList || []).map(k => k.subject.toLowerCase()));
+              incoming.defaultKitabList.forEach(k => {
+                if (!existingSubs.has(k.subject.toLowerCase())) {
+                  this.raportSetup.defaultKitabList.push(k);
+                  existingSubs.add(k.subject.toLowerCase());
+                }
               });
+            }
+            if (incoming.waliKelasMap && typeof incoming.waliKelasMap === "object") {
+              this.raportSetup.waliKelasMap = Object.assign({}, this.raportSetup.waliKelasMap, incoming.waliKelasMap);
+            }
+            if (incoming.kitabMap && typeof incoming.kitabMap === "object") {
+              this.raportSetup.kitabMap = Object.assign({}, this.raportSetup.kitabMap, incoming.kitabMap);
+            }
+            if (this.raportSetup.defaultKitabList) {
+              this.raportSetup.defaultKitabList.forEach(k => {
+                if (!this.raportSetup.kitabMap[k.subject]) {
+                  this.raportSetup.kitabMap[k.subject] = k.kitab;
+                }
+              });
+            }
+            if (incoming.showNadzam !== undefined) {
+              this.raportSetup.showNadzam = incoming.showNadzam === true;
             }
           } else if (err) {
             console.warn("Gagal memuat setup raport:", err);
           }
         });
+      },
+
+      addRaportClass() {
+        const c = String(this.newRaportClass || "").trim().toUpperCase();
+        if (!c) {
+          this.showToast("Nama rombel/kelas tidak boleh kosong.", "error");
+          return;
+        }
+        if (!this.raportSetup.classes.includes(c)) {
+          this.raportSetup.classes.push(c);
+          this.raportSetup.classes.sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+        }
+        if (!this.raportSetup.waliKelasMap) this.raportSetup.waliKelasMap = {};
+        if (!this.raportSetup.waliKelasMap[c]) {
+          this.raportSetup.waliKelasMap[c] = "";
+        }
+        this.newRaportClass = "";
+        this.showToast("Kelas " + c + " berhasil ditambahkan. Silakan tentukan nama wali kelas lalu klik Simpan.", "success");
+      },
+
+      addRaportKitab() {
+        const sub = String(this.newRaportSubject || "").trim();
+        const kitab = String(this.newRaportKitab || "").trim();
+        if (!sub) {
+          this.showToast("Nama mata pelajaran tidak boleh kosong.", "error");
+          return;
+        }
+        if (!this.raportSetup.defaultKitabList) this.raportSetup.defaultKitabList = [];
+        if (!this.raportSetup.kitabMap) this.raportSetup.kitabMap = {};
+        if (!this.raportSetup.defaultKitabList.some(item => item.subject.toLowerCase() === sub.toLowerCase())) {
+          this.raportSetup.defaultKitabList.push({ subject: sub, kitab: kitab || "Kitab Standar", kkm: 70 });
+        }
+        this.raportSetup.kitabMap[sub] = kitab || "Kitab Standar";
+        this.newRaportSubject = "";
+        this.newRaportKitab = "";
+        this.showToast("Mapel " + sub + " berhasil ditambahkan ke daftar pemetaan kitab.", "success");
+      },
+
+      applyStandardPesantrenKitabs() {
+        const standardList = [
+          { subject: "Akidah", kitab: "Aqidatul Awam" },
+          { subject: "Fiqih", kitab: "Safinatun Najah / Fathul Qorib" },
+          { subject: "Nahwu", kitab: "Al-Ajurumiyyah" },
+          { subject: "Shorof", kitab: "Amtsilatut Tashrifiyyah" },
+          { subject: "Hadits", kitab: "Al-Arba'in An-Nawawiyyah" },
+          { subject: "Tajwid", kitab: "Tuhfatul Athfal" },
+          { subject: "Tarikh / Siroh", kitab: "Khulashoh Nuril Yaqin" },
+          { subject: "Akhlak / Adab", kitab: "Taisirul Khalaq" },
+          { subject: "Tafsir", kitab: "Tafsir Jalalain" },
+          { subject: "Balaghah", kitab: "Jauharul Maknun" },
+          { subject: "Ushul Fiqih", kitab: "Al-Waraqat" },
+          { subject: "Tauhid", kitab: "Tijanud Darori" }
+        ];
+        if (!this.raportSetup.defaultKitabList) this.raportSetup.defaultKitabList = [];
+        if (!this.raportSetup.kitabMap) this.raportSetup.kitabMap = {};
+        standardList.forEach(item => {
+          this.raportSetup.kitabMap[item.subject] = item.kitab;
+          if (!this.raportSetup.defaultKitabList.some(k => k.subject.toLowerCase() === item.subject.toLowerCase())) {
+            this.raportSetup.defaultKitabList.push({ subject: item.subject, kitab: item.kitab, kkm: 70 });
+          }
+        });
+        this.showToast("Kitab rujukan standar pesantren berhasil dimuat ke seluruh mapel!", "success");
       },
 
       saveRaportSetup() {

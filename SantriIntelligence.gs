@@ -920,9 +920,9 @@ function getRaportSetup(currentUser) {
 
     const tenantProfile = SI_getTenantProfile_(sessionUser);
 
-    // Ambil daftar kelas dari Students dan Schedules
+    // Ambil daftar kelas dari Students, Schedules, dan Setup yang sudah ada
     const allStudents = typeof AC_getStudents_ === "function" ? AC_getStudents_() : [];
-    const classSet = new Set();
+    const classSet = new Set(["KELAS 7", "KELAS 8", "KELAS 9", "KELAS 10", "KELAS 11", "KELAS 12"]);
     allStudents.forEach(s => {
       const c = SI_text_(s["Class/Level"] || s.Class || s.Kelas);
       if (c) classSet.add(c);
@@ -930,37 +930,88 @@ function getRaportSetup(currentUser) {
 
     const allSchedules = typeof SCHEDULE_readSchedules_ === "function" ? SCHEDULE_readSchedules_() : [];
     const subjectSet = new Set();
+    const scheduleTeachers = new Set();
     allSchedules.forEach(sch => {
       const c = SI_text_(sch.ClassOrGroupName);
       if (c) classSet.add(c);
       const sub = SI_text_(sch.SubjectOrActivityName || sch.ActivityName);
       if (sub && sch.Type === "KBM") subjectSet.add(sub);
+      const t = SI_text_(sch.TeacherName);
+      if (t) scheduleTeachers.add(t);
     });
 
-    // Ambil daftar guru dari Users
+    if (tenantProfile.waliKelasMap && typeof tenantProfile.waliKelasMap === "object") {
+      Object.keys(tenantProfile.waliKelasMap).forEach(c => {
+        if (c) classSet.add(c);
+      });
+    }
+
+    // Ambil daftar guru dari Users dan Schedules
     const allUsers = typeof AUTH_getUsersByUsername_ === "function" ? AUTH_getUsersByUsername_() : [];
-    const teacherList = allUsers
-      .filter(u => ["Ustadz", "Mudir", "Admin"].includes(SI_text_(u.Role)))
-      .map(u => ({
-        Username: u.Username,
-        Name: u.Name || u.Username,
-        Role: u.Role
-      }));
+    const teacherMap = new Map();
+    allUsers
+      .filter(u => ["Ustadz", "Mudir", "Admin", "Guru"].includes(SI_text_(u.Role)))
+      .forEach(u => {
+        const name = SI_text_(u.Name || u.Username);
+        if (name) teacherMap.set(name, { Username: u.Username, Name: name, Role: u.Role });
+      });
+
+    scheduleTeachers.forEach(name => {
+      if (name && !teacherMap.has(name)) {
+        teacherMap.set(name, { Username: name, Name: name, Role: "Ustadz" });
+      }
+    });
+
+    const teacherList = Array.from(teacherMap.values()).sort((a, b) => a.Name.localeCompare(b.Name, "id"));
+
+    // Ambil master subjects dari Academic
+    const allAcademicSubjects = typeof AC_getSubjects_ === "function" ? AC_getSubjects_() : [];
+    allAcademicSubjects.forEach(s => {
+      const name = SI_text_(s.SubjectName || s.Name);
+      if (name) subjectSet.add(name);
+    });
 
     // Default pemetaan kitab kuning per mapel
     const defaultKitabList = [
       { subject: "Akidah", kitab: "Aqidatul Awam", kkm: 70 },
-      { subject: "Fiqih", kitab: "Safinatun Najah", kkm: 70 },
+      { subject: "Fiqih", kitab: "Safinatun Najah / Fathul Qorib", kkm: 70 },
       { subject: "Nahwu", kitab: "Al-Ajurumiyyah", kkm: 70 },
       { subject: "Shorof", kitab: "Amtsilatut Tashrifiyyah", kkm: 70 },
       { subject: "Hadits", kitab: "Al-Arba'in An-Nawawiyyah", kkm: 70 },
       { subject: "Tajwid", kitab: "Tuhfatul Athfal", kkm: 70 },
       { subject: "Tarikh / Siroh", kitab: "Khulashoh Nuril Yaqin", kkm: 70 },
-      { subject: "Akhlak / Tasawuf", kitab: "Taisirul Khalaq", kkm: 70 },
+      { subject: "Akhlak / Adab", kitab: "Taisirul Khalaq", kkm: 70 },
       { subject: "Tafsir", kitab: "Tafsir Jalalain", kkm: 70 },
       { subject: "Balaghah", kitab: "Jauharul Maknun", kkm: 70 },
-      { subject: "Ushul Fiqih", kitab: "Al-Waraqat", kkm: 70 }
+      { subject: "Ushul Fiqih", kitab: "Al-Waraqat", kkm: 70 },
+      { subject: "Tauhid", kitab: "Tijanud Darori", kkm: 70 }
     ];
+
+    // Tambahkan mapel yang ada di schedule atau academic subjects bila belum ada di list
+    const existingSubjectNames = new Set(defaultKitabList.map(k => k.subject.toLowerCase()));
+    subjectSet.forEach(subName => {
+      if (subName && !existingSubjectNames.has(subName.toLowerCase())) {
+        defaultKitabList.push({
+          subject: subName,
+          kitab: tenantProfile.kitabMap && tenantProfile.kitabMap[subName] ? tenantProfile.kitabMap[subName] : "Kitab Standar",
+          kkm: 70
+        });
+        existingSubjectNames.add(subName.toLowerCase());
+      }
+    });
+
+    if (tenantProfile.kitabMap && typeof tenantProfile.kitabMap === "object") {
+      Object.keys(tenantProfile.kitabMap).forEach(subName => {
+        if (subName && !existingSubjectNames.has(subName.toLowerCase())) {
+          defaultKitabList.push({
+            subject: subName,
+            kitab: tenantProfile.kitabMap[subName] || "Kitab Standar",
+            kkm: 70
+          });
+          existingSubjectNames.add(subName.toLowerCase());
+        }
+      });
+    }
 
     const sortedClasses = Array.from(classSet).sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
 

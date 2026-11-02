@@ -173,6 +173,8 @@ function PRODUCT_isWrapperOnlyAction_(action) {
     "getStudent360Analytics",
     "getBulkClassReportData",
     "getClassLegerNilai",
+    "getRaportSetup",
+    "saveRaportSetup",
   ].includes(String(action || ""));
 }
 
@@ -287,6 +289,8 @@ function isExternalActionAllowed_(action) {
     "getStudent360Analytics",
     "getBulkClassReportData",
     "getClassLegerNilai",
+    "getRaportSetup",
+    "saveRaportSetup",
     "getGuardianReportSharePreview",
     "getFullStudentReport",
     "getStudentFullReport",
