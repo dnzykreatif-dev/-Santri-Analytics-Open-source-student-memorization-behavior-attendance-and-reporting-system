@@ -19,6 +19,15 @@
           Refresh
         </button>
         <button
+          type="button"
+          @click="openSmartScheduleImportModal()"
+          class="px-4 py-2 bg-[#0f5f4a] hover:bg-[#0b4939] text-white rounded-lg font-bold flex items-center gap-2 shadow-sm transition-transform active:scale-95 text-sm"
+          title="Unggah tabel jadwal dan otomatis sinkronkan ke seluruh modul kurikulum"
+        >
+          <span>⚡</span>
+          <span>Impor Cerdas Jadwal & Kurikulum</span>
+        </button>
+        <button
           @click="openAddScheduleModal()"
           class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center gap-2"
         >

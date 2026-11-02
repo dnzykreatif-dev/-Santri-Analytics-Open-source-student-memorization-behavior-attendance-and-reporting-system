@@ -356,3 +356,372 @@ function SCHEDULE_resolveTeacherIdentity_(payload) {
   ).trim();
   return { Username: username, TeacherSourceID: sourceId };
 }
+
+/**
+ * Smart Schedule & Curriculum Auto-Setup Importer
+ * Parses raw schedule tables (TSV/CSV/Excel copy-paste), auto-classifies subjects,
+ * and synchronizes schedules, academic subjects, and raport kitabs in a single batch.
+ */
+function importSmartSchedules(payload, currentUser) {
+  try {
+    const sessionUser = requireSessionUser_(currentUser, { roles: ["Admin", "Mudir"] });
+    payload = payload || {};
+    const rawText = String(payload.rawText || "").trim();
+    if (!rawText) {
+      return { ok: false, message: "Data jadwal kosong. Silakan tempel (paste) tabel jadwal atau unggah file." };
+    }
+
+    // 1. Parsing Baris & Kolom Cerdas
+    const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) {
+      return { ok: false, message: "Data jadwal minimal harus memiliki 1 baris judul kolom (header) dan 1 baris data." };
+    }
+
+    // Deteksi Delimiter (Tab, Titik Koma, atau Koma)
+    const firstLine = lines[0];
+    const tabCount = (firstLine.match(/\t/g) || []).length;
+    const semiCount = (firstLine.match(/;/g) || []).length;
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    let delimiter = "\t";
+    if (semiCount > tabCount && semiCount > commaCount) delimiter = ";";
+    else if (commaCount > tabCount && commaCount > semiCount) delimiter = ",";
+
+    function splitLine(line) {
+      if (delimiter === "\t") return line.split("\t");
+      if (delimiter === ";") return line.split(";");
+      const pattern = /(".*?"|[^",\s]+)(?=\s*,|\s*$)/g;
+      const res = [];
+      let m;
+      while ((m = pattern.exec(line)) !== null) {
+        res.push(m[1].replace(/^"|"$/g, ''));
+      }
+      return res.length > 0 ? res : line.split(",");
+    }
+
+    const rawHeaders = splitLine(lines[0]).map(h => String(h || "").trim().toLowerCase());
+    
+    // Pemetaan Header Fleksibel (Header-Agnostic)
+    const colMap = {};
+    rawHeaders.forEach((h, idx) => {
+      const clean = h.replace(/[^a-z0-9_]/g, '');
+      if (["schedule_id", "id", "kode_jadwal", "scheduleid"].includes(clean)) colMap.schedule_id = idx;
+      else if (["class_id", "id_kelas", "kode_kelas", "classid"].includes(clean)) colMap.class_id = idx;
+      else if (["kelompok", "gender", "putra_putri", "ikhwan_akhwat", "group"].includes(clean)) colMap.kelompok = idx;
+      else if (["kelas", "tingkat", "level", "grade", "jenjang"].includes(clean)) colMap.kelas = idx;
+      else if (["classorgroupname", "rombel", "nama_kelas", "kelas_lengkap"].includes(clean)) colMap.classorgroupname = idx;
+      else if (["hari", "day", "hari_belajar", "dayofweek"].includes(clean)) colMap.hari = idx;
+      else if (["waktu", "jam", "time", "jam_pelajaran", "waktu_belajar", "period"].includes(clean)) colMap.waktu = idx;
+      else if (["starttime", "jam_mulai", "mulai"].includes(clean)) colMap.starttime = idx;
+      else if (["endtime", "jam_selesai", "selesai"].includes(clean)) colMap.endtime = idx;
+      else if (["subject_id", "id_mapel", "kode_mapel", "subjectid"].includes(clean)) colMap.subject_id = idx;
+      else if (["mata_pelajaran", "mapel", "subject", "pelajaran", "subjectoractivityname", "activityname"].includes(clean)) colMap.mata_pelajaran = idx;
+      else if (["kode", "kode_singkat", "singkatan"].includes(clean)) colMap.kode = idx;
+      else if (["teacher_id", "id_guru", "kode_guru", "teacherid"].includes(clean)) colMap.teacher_id = idx;
+      else if (["pengajar", "guru", "ustadz", "ustadzah", "teacher", "nama_guru", "teachername"].includes(clean)) colMap.pengajar = idx;
+      else if (["status", "isactive", "aktif"].includes(clean)) colMap.status = idx;
+    });
+
+    if (colMap.mata_pelajaran === undefined && colMap.subject_id === undefined) {
+      return { ok: false, message: "Kolom nama mata pelajaran (contoh: mata_pelajaran, mapel, subject) tidak ditemukan dalam tabel." };
+    }
+
+    function parseTimeRange(waktuStr, startColVal, endColVal) {
+      if (startColVal && endColVal) {
+        return { start: normalizeScheduleTime_(startColVal), end: normalizeScheduleTime_(endColVal) };
+      }
+      const str = String(waktuStr || "").trim();
+      const m = str.match(/(\d{1,2})[.:](\d{2})\s*[-–—to]+\s*(\d{1,2})[.:](\d{2})/);
+      if (m) {
+        const sH = String(m[1]).padStart(2, '0');
+        const sM = m[2];
+        const eH = String(m[3]).padStart(2, '0');
+        const eM = m[4];
+        return { start: sH + ":" + sM, end: eH + ":" + eM };
+      }
+      return { start: "07:00", end: "07:40" };
+    }
+
+    const parsedSchedules = [];
+    const detectedClasses = new Set();
+    const detectedSubjects = new Map();
+    const detectedTeachers = new Map();
+
+    for (let i = 1; i < lines.length; i++) {
+      const parts = splitLine(lines[i]);
+      if (!parts || parts.length === 0 || parts.every(p => !p.trim())) continue;
+
+      const subName = String(parts[colMap.mata_pelajaran] || parts[colMap.subject_id] || "").trim();
+      if (!subName) continue;
+
+      let clsName = "";
+      if (colMap.classorgroupname !== undefined && parts[colMap.classorgroupname]) {
+        clsName = String(parts[colMap.classorgroupname]).trim();
+      } else {
+        const kls = colMap.kelas !== undefined ? String(parts[colMap.kelas] || "").trim() : "";
+        const klp = colMap.kelompok !== undefined ? String(parts[colMap.kelompok] || "").trim() : "";
+        if (kls && klp) clsName = kls + " " + klp;
+        else if (kls) clsName = /^\d+$/.test(kls) ? "KELAS " + kls : kls;
+        else if (klp) clsName = klp;
+        else clsName = "Semua Kelas";
+      }
+
+      const hariRaw = colMap.hari !== undefined ? String(parts[colMap.hari] || "").trim() : "Senin";
+      const hari = hariRaw.charAt(0).toUpperCase() + hariRaw.slice(1).toLowerCase();
+
+      const waktuRaw = colMap.waktu !== undefined ? parts[colMap.waktu] : "";
+      const startRaw = colMap.starttime !== undefined ? parts[colMap.starttime] : "";
+      const endRaw = colMap.endtime !== undefined ? parts[colMap.endtime] : "";
+      const times = parseTimeRange(waktuRaw, startRaw, endRaw);
+
+      const teacherName = colMap.pengajar !== undefined ? String(parts[colMap.pengajar] || "").trim() : "";
+      const teacherSourceId = colMap.teacher_id !== undefined ? String(parts[colMap.teacher_id] || "").trim() : "";
+      const schedId = colMap.schedule_id !== undefined && parts[colMap.schedule_id] ? String(parts[colMap.schedule_id]).trim() : ("SCH-" + (i < 10 ? "00" : (i < 100 ? "0" : "")) + i);
+
+      let teacherUsername = "";
+      if (teacherName) {
+        teacherUsername = teacherName.toLowerCase().replace(/^(ust\.|ustzh\.|ustadz\.|ustadzah\.|kyai|guru)\s*/i, '').replace(/[^a-z0-9]/g, '');
+        if (!detectedTeachers.has(teacherName)) {
+          detectedTeachers.set(teacherName, {
+            name: teacherName,
+            username: teacherUsername || ("ust_" + (detectedTeachers.size + 1)),
+            sourceId: teacherSourceId || ("T" + String(detectedTeachers.size + 1).padStart(3, '0'))
+          });
+        }
+      }
+
+      detectedClasses.add(clsName);
+
+      // Klasifikasi Jenjang (Tsanawiyyah 7-9 vs Aliyah 10-12)
+      const numMatch = (clsName.match(/\b(7|8|9|10|11|12)\b/) || [])[0];
+      const levelTier = (numMatch && Number(numMatch) >= 10) ? "Aliyah" : ((numMatch && Number(numMatch) <= 9) ? "Tsanawiyyah" : "Semua");
+
+      if (!detectedSubjects.has(subName)) {
+        detectedSubjects.set(subName, {
+          name: subName,
+          code: colMap.kode !== undefined ? String(parts[colMap.kode] || "").trim() : "",
+          teachers: new Set(),
+          classes: new Set(),
+          levels: new Set()
+        });
+      }
+      const subInfo = detectedSubjects.get(subName);
+      if (teacherName) subInfo.teachers.add(teacherName);
+      subInfo.classes.add(clsName);
+      subInfo.levels.add(levelTier);
+
+      parsedSchedules.push({
+        ScheduleID: schedId,
+        Type: "KBM",
+        TeacherID: teacherUsername || teacherName || "Admin",
+        TeacherSourceID: teacherSourceId || "",
+        SubjectOrActivityName: subName,
+        ClassOrGroupName: clsName,
+        DayOfWeek: hari,
+        StartTime: times.start,
+        EndTime: times.end,
+        IsActive: true
+      });
+    }
+
+    if (parsedSchedules.length === 0) {
+      return { ok: false, message: "Tidak ada baris jadwal yang valid dapat dibaca dari data yang dimasukkan." };
+    }
+
+    // Standar Pemetaan Kitab Kuning Otomatis Berdasarkan Rumpun & Jenjang
+    const smartKitabMap = {};
+    const subjectListPreview = [];
+
+    detectedSubjects.forEach((info, subName) => {
+      const isAliyahOnly = info.levels.has("Aliyah") && !info.levels.has("Tsanawiyyah");
+      const isTsanawiyyahOnly = info.levels.has("Tsanawiyyah") && !info.levels.has("Aliyah");
+      const isBoth = info.levels.has("Aliyah") && info.levels.has("Tsanawiyyah");
+
+      let category = "Diniyyah";
+      let recommendedKitab = "Kitab Standar";
+
+      const low = subName.toLowerCase();
+      if (low.includes("umum")) {
+        category = "Umum";
+        recommendedKitab = "Buku Paket Nasional";
+      } else if (low.includes("aqidah") || low.includes("tauhid")) {
+        category = "Diniyyah";
+        recommendedKitab = isAliyahOnly ? "Jauharatut Tauhid / Tijanud Darori" : "Aqidatul Awam";
+      } else if (low.includes("fiqh") || low.includes("fiqih")) {
+        category = "Diniyyah";
+        recommendedKitab = isAliyahOnly ? "Fathul Qorib" : "Safinatun Najah";
+      } else if (low.includes("qawaid")) {
+        category = "Diniyyah";
+        recommendedKitab = "Al-Qawaidul Fiqhiyyah";
+      } else if (low.includes("ushul")) {
+        category = "Diniyyah";
+        recommendedKitab = "Al-Waraqat";
+      } else if (low.includes("faraid") || low.includes("waris")) {
+        category = "Diniyyah";
+        recommendedKitab = "Matan Rahabiyyah";
+      } else if (low.includes("nahwu")) {
+        category = "Diniyyah";
+        recommendedKitab = isAliyahOnly ? "Alfiyah Ibnu Malik" : "Al-Ajurumiyyah";
+      } else if (low.includes("shorof")) {
+        category = "Diniyyah";
+        recommendedKitab = "Amtsilatut Tashrifiyyah";
+      } else if (low.includes("balaghah")) {
+        category = "Diniyyah";
+        recommendedKitab = "Jauharul Maknun";
+      } else if (low.includes("tafsir")) {
+        category = "Diniyyah";
+        recommendedKitab = "Tafsir Jalalain";
+      } else if (low.includes("hadits") && (low.includes("h.") || low.includes("hafalan"))) {
+        category = "Diniyyah";
+        recommendedKitab = "Hafalan 100 Hadits Shahih";
+      } else if (low.includes("hadits")) {
+        category = "Diniyyah";
+        recommendedKitab = "Al-Arba'in An-Nawawiyyah";
+      } else if (low.includes("doa")) {
+        category = "Diniyyah";
+        recommendedKitab = "Al-Adzkar An-Nawawiyyah";
+      } else if (low.includes("tilawah") || low.includes("tajwid")) {
+        category = "Diniyyah";
+        recommendedKitab = "Tuhfatul Athfal";
+      } else if (low.includes("siroh") || low.includes("tarikh")) {
+        category = "Diniyyah";
+        recommendedKitab = "Khulashoh Nuril Yaqin";
+      } else if (low.includes("adab") || low.includes("akhlak")) {
+        category = "Diniyyah";
+        recommendedKitab = "Taisirul Khalaq";
+      } else if (low.includes("kitabah") || low.includes("imla")) {
+        category = "Diniyyah";
+        recommendedKitab = "Qawa'idul Imla'";
+      } else if (low.includes("arab")) {
+        category = "Diniyyah";
+        recommendedKitab = "Al-Arabiyyah Baina Yadaik";
+      }
+
+      smartKitabMap[subName] = recommendedKitab;
+
+      // Jika mapel diajarkan di kedua jenjang, petakan kitab khusus Tsanawiyyah vs Aliyah
+      if (isBoth) {
+        if (low.includes("fiqh") || low.includes("fiqih")) {
+          smartKitabMap["KELAS 10::" + subName] = "Fathul Qorib";
+          smartKitabMap["KELAS 11::" + subName] = "Fathul Qorib";
+          smartKitabMap["KELAS 12::" + subName] = "Fathul Qorib";
+          smartKitabMap["KELAS 7::" + subName] = "Safinatun Najah";
+          smartKitabMap["KELAS 8::" + subName] = "Safinatun Najah";
+          smartKitabMap["KELAS 9::" + subName] = "Safinatun Najah";
+        }
+      }
+
+      subjectListPreview.push({
+        name: subName,
+        code: info.code,
+        category: category,
+        levels: Array.from(info.levels).join(", "),
+        classesCount: info.classes.size,
+        teachers: Array.from(info.teachers).join(", "),
+        recommendedKitab: recommendedKitab
+      });
+    });
+
+    if (payload.previewOnly) {
+      return {
+        ok: true,
+        preview: true,
+        summary: {
+          totalSchedules: parsedSchedules.length,
+          totalClasses: detectedClasses.size,
+          classes: Array.from(detectedClasses).sort((a,b)=>a.localeCompare(b,'id',{numeric:true})),
+          totalSubjects: detectedSubjects.size,
+          totalTeachers: detectedTeachers.size,
+          teachers: Array.from(detectedTeachers.values())
+        },
+        subjects: subjectListPreview,
+        previewRows: parsedSchedules.slice(0, 10)
+      };
+    }
+
+    // 2. Mode Eksekusi Simpan ke Sheet Schedules
+    setupSheetWithHeaders_(SHEET_SCHEDULES, CORE_SHEET_SCHEMAS.Schedules);
+    const sheet = getSheet_(SHEET_SCHEDULES);
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    if (payload.overwrite === true) {
+      // Bersihkan jadwal lama jika mode overwrite aktif
+      if (sheet.getLastRow() > 1) {
+        sheet.deleteRows(2, sheet.getLastRow() - 1);
+      }
+    }
+
+    const rowsToAppend = parsedSchedules.map(sch => {
+      return headers.map(h => sch[h] !== undefined ? sch[h] : "");
+    });
+
+    if (rowsToAppend.length > 0) {
+      sheet.getRange(sheet.getLastRow() + 1, 1, rowsToAppend.length, headers.length).setValues(rowsToAppend);
+    }
+
+    // 3. Jika syncAcademic aktif, sinkronkan ke Master Mapel & Setup Raport!
+    if (payload.syncAcademic !== false) {
+      // A. Simpan Pemetaan Kitab ke TenantProfile
+      if (typeof SI_getTenantProfile_ === "function" && typeof saveRaportSetup === "function") {
+        try {
+          const tenantProfile = SI_getTenantProfile_(sessionUser);
+          const updatedKitabMap = Object.assign({}, tenantProfile.kitabMap || {}, smartKitabMap);
+          saveRaportSetup({
+            kitabMap: updatedKitabMap
+          }, sessionUser);
+        } catch (tpErr) {
+          console.warn("Gagal update kitabMap profil: " + tpErr.message);
+        }
+      }
+
+      // B. Daftarkan ke Master Mapel AcademicSubjects jika ada sheetnya
+      try {
+        const academicSubjectsSheet = getSheet_("AcademicSubjects");
+        if (academicSubjectsSheet) {
+          const subHeaders = academicSubjectsSheet.getRange(1, 1, 1, academicSubjectsSheet.getLastColumn()).getValues()[0];
+          const existingSubs = academicSubjectsSheet.getDataRange().getValues().slice(1);
+          const nameCol = subHeaders.indexOf("Name") > -1 ? subHeaders.indexOf("Name") : subHeaders.indexOf("SubjectName");
+          const existingNames = new Set(existingSubs.map(r => String(r[nameCol] || "").trim().toLowerCase()));
+
+          const newSubRows = [];
+          detectedSubjects.forEach((info, subName) => {
+            if (!existingNames.has(subName.toLowerCase())) {
+              const rowObj = {
+                SubjectID: "SUB-" + subName.toUpperCase().replace(/[^A-Z0-9]/g, '_').substring(0, 10),
+                Name: subName,
+                SubjectName: subName,
+                Code: info.code,
+                Category: subName.toLowerCase().includes("umum") ? "Umum" : "Diniyyah",
+                Classes: Array.from(info.classes).join(", "),
+                DefaultKKM: 70,
+                IsActive: true
+              };
+              newSubRows.push(subHeaders.map(h => rowObj[h] !== undefined ? rowObj[h] : ""));
+            }
+          });
+          if (newSubRows.length > 0) {
+            academicSubjectsSheet.getRange(academicSubjectsSheet.getLastRow() + 1, 1, newSubRows.length, subHeaders.length).setValues(newSubRows);
+          }
+        }
+      } catch (acErr) {
+        console.warn("Sinkronisasi AcademicSubjects: " + acErr.message);
+      }
+    }
+
+    if (typeof ATT_clearScheduleCache_ === "function") {
+      parsedSchedules.forEach(s => ATT_clearScheduleCache_(s.ScheduleID));
+    }
+
+    return {
+      ok: true,
+      message: "Sukses! " + parsedSchedules.length + " jadwal pelajaran berhasil diimpor & kurikulum berhasil disinkronkan.",
+      data: {
+        totalSchedules: parsedSchedules.length,
+        totalClasses: detectedClasses.size,
+        totalSubjects: detectedSubjects.size,
+        totalTeachers: detectedTeachers.size
+      }
+    };
+  } catch (e) {
+    return { ok: false, message: "Gagal mengimpor jadwal cerdas: " + e.message };
+  }
+}

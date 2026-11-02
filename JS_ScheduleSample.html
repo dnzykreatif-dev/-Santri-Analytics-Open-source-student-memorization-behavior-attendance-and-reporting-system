@@ -1,0 +1,687 @@
+<script>
+window.SAMPLE_PONDOK_SCHEDULE_DATA = `schedule_id	class_id	kelompok	kelas	hari	period_id	waktu	subject_id	kode	mata_pelajaran	teacher_id	pengajar	status	kode_sumber	catatan_sumber
+
+K0001	C001	Ikhwan	7	Senin	P001	07.00–07.40	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0002	C001	Ikhwan	7	Senin	P002	07.40–08.20	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0003	C001	Ikhwan	7	Senin	P003	08.20–09.00	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0004	C001	Ikhwan	7	Senin	P004	09.00–09.40	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0005	C001	Ikhwan	7	Senin	P006	10.10–10.50	S001	AQ	Aqidah	T007	Ust. Suherlan	Aktif	AQ	Warna pada sumber jadwal
+
+K0006	C001	Ikhwan	7	Senin	P007	10.50–11.30	S001	AQ	Aqidah	T007	Ust. Suherlan	Aktif	AQ	Warna pada sumber jadwal
+
+K0007	C001	Ikhwan	7	Selasa	P001	07.00–07.40	S016	Si	Siroh	T003	Ust. Alan	Aktif	Si	Warna pada sumber jadwal
+
+K0008	C001	Ikhwan	7	Selasa	P002	07.40–08.20	S016	Si	Siroh	T003	Ust. Alan	Aktif	Si	Warna pada sumber jadwal
+
+K0009	C001	Ikhwan	7	Selasa	P003	08.20–09.00	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0010	C001	Ikhwan	7	Selasa	P004	09.00–09.40	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0011	C001	Ikhwan	7	Selasa	P006	10.10–10.50	S008	Ti	Tilawah	T013	Ust. Ivan	Aktif	Ti	Warna pada sumber jadwal
+
+K0012	C001	Ikhwan	7	Selasa	P007	10.50–11.30	S008	Ti	Tilawah	T013	Ust. Ivan	Aktif	Ti	Warna pada sumber jadwal
+
+K0013	C001	Ikhwan	7	Rabu	P001	07.00–07.40	S009	H	Hadits	T011	Ust. Zulfian	Aktif	H	Warna pada sumber jadwal
+
+K0014	C001	Ikhwan	7	Rabu	P002	07.40–08.20	S009	H	Hadits	T011	Ust. Zulfian	Aktif	H	Warna pada sumber jadwal
+
+K0015	C001	Ikhwan	7	Rabu	P003	08.20–09.00	S002	FQ	Fiqh	T007	Ust. Suherlan	Aktif	FQ	Warna pada sumber jadwal
+
+K0016	C001	Ikhwan	7	Rabu	P004	09.00–09.40	S002	FQ	Fiqh	T007	Ust. Suherlan	Aktif	FQ	Warna pada sumber jadwal
+
+K0017	C001	Ikhwan	7	Rabu	P006	10.10–10.50	S007	So	Shorof	T007	Ust. Suherlan	Aktif	So	Warna pada sumber jadwal
+
+K0018	C001	Ikhwan	7	Rabu	P007	10.50–11.30	S007	So	Shorof	T007	Ust. Suherlan	Aktif	So	Warna pada sumber jadwal
+
+K0019	C001	Ikhwan	7	Kamis	P001	07.00–07.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0020	C001	Ikhwan	7	Kamis	P002	07.40–08.20	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0021	C001	Ikhwan	7	Kamis	P003	08.20–09.00	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0022	C001	Ikhwan	7	Kamis	P004	09.00–09.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0023	C001	Ikhwan	7	Kamis	P006	10.10–10.50	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0024	C001	Ikhwan	7	Kamis	P007	10.50–11.30	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0025	C001	Ikhwan	7	Jumat	P001	07.00–07.40	S011	AD	Adab	T003	Ust. Alan	Aktif	AD	Warna pada sumber jadwal
+
+K0026	C001	Ikhwan	7	Jumat	P002	07.40–08.20	S011	AD	Adab	T003	Ust. Alan	Aktif	AD	Warna pada sumber jadwal
+
+K0027	C001	Ikhwan	7	Jumat	P003	08.20–09.00	S012	Ki	Kitabah	T003	Ust. Alan	Aktif	Ki	Warna pada sumber jadwal
+
+K0028	C001	Ikhwan	7	Jumat	P004	09.00–09.40	S012	Ki	Kitabah	T003	Ust. Alan	Aktif	Ki	Warna pada sumber jadwal
+
+K0029	C001	Ikhwan	7	Sabtu	P001	07.00–07.40	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0030	C001	Ikhwan	7	Sabtu	P002	07.40–08.20	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0031	C001	Ikhwan	7	Sabtu	P003	08.20–09.00	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0032	C001	Ikhwan	7	Sabtu	P004	09.00–09.40	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0033	C001	Ikhwan	7	Sabtu	P006	10.10–10.50	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0034	C001	Ikhwan	7	Sabtu	P007	10.50–11.30	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0035	C002	Akhwat	7	Senin	P001	07.00–07.40	S009	H	Hadits	T003	Ust. Alan	Aktif	H	Warna pada sumber jadwal
+
+K0036	C002	Akhwat	7	Senin	P002	07.40–08.20	S009	H	Hadits	T003	Ust. Alan	Aktif	H	Warna pada sumber jadwal
+
+K0037	C002	Akhwat	7	Senin	P003	08.20–09.00	S001	AQ	Aqidah	T007	Ust. Suherlan	Aktif	AQ	Warna pada sumber jadwal
+
+K0038	C002	Akhwat	7	Senin	P004	09.00–09.40	S001	AQ	Aqidah	T007	Ust. Suherlan	Aktif	AQ	Warna pada sumber jadwal
+
+K0039	C002	Akhwat	7	Senin	P006	10.10–10.50	S012	Ki	Kitabah	T010	Musyrifah	Aktif	Ki	Warna pada sumber jadwal
+
+K0040	C002	Akhwat	7	Senin	P007	10.50–11.30	S012	Ki	Kitabah	T010	Musyrifah	Aktif	Ki	Warna pada sumber jadwal
+
+K0041	C002	Akhwat	7	Selasa	P001	07.00–07.40	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0042	C002	Akhwat	7	Selasa	P002	07.40–08.20	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0043	C002	Akhwat	7	Selasa	P003	08.20–09.00	S008	Ti	Tilawah	T010	Musyrifah	Aktif	Ti	Warna pada sumber jadwal
+
+K0044	C002	Akhwat	7	Selasa	P004	09.00–09.40	S008	Ti	Tilawah	T010	Musyrifah	Aktif	Ti	Warna pada sumber jadwal
+
+K0045	C002	Akhwat	7	Selasa	P006	10.10–10.50	S007	So	Shorof	T008	Ustzh. Nisa	Aktif	So	Warna pada sumber jadwal
+
+K0046	C002	Akhwat	7	Selasa	P007	10.50–11.30	S007	So	Shorof	T008	Ustzh. Nisa	Aktif	So	Warna pada sumber jadwal
+
+K0047	C002	Akhwat	7	Rabu	P001	07.00–07.40	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0048	C002	Akhwat	7	Rabu	P002	07.40–08.20	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0049	C002	Akhwat	7	Rabu	P003	08.20–09.00	S011	AD	Adab	T014	Ustzh. Aina	Aktif	AD	Warna pada sumber jadwal
+
+K0050	C002	Akhwat	7	Rabu	P004	09.00–09.40	S011	AD	Adab	T014	Ustzh. Aina	Aktif	AD	Warna pada sumber jadwal
+
+K0051	C002	Akhwat	7	Rabu	P006	10.10–10.50	S006	BA	Bahasa Arab	T008	Ustzh. Nisa	Aktif	BA	Warna pada sumber jadwal
+
+K0052	C002	Akhwat	7	Rabu	P007	10.50–11.30	S006	BA	Bahasa Arab	T008	Ustzh. Nisa	Aktif	BA	Warna pada sumber jadwal
+
+K0053	C002	Akhwat	7	Kamis	P001	07.00–07.40	S011	AD	Adab	T014	Ustzh. Aina	Aktif	AD	Warna pada sumber jadwal
+
+K0054	C002	Akhwat	7	Kamis	P002	07.40–08.20	S011	AD	Adab	T014	Ustzh. Aina	Aktif	AD	Warna pada sumber jadwal
+
+K0055	C002	Akhwat	7	Kamis	P003	08.20–09.00	S002	FQ	Fiqh	T004	Ust. Feri	Aktif	FQ	Warna pada sumber jadwal
+
+K0056	C002	Akhwat	7	Kamis	P004	09.00–09.40	S002	FQ	Fiqh	T004	Ust. Feri	Aktif	FQ	Warna pada sumber jadwal
+
+K0057	C002	Akhwat	7	Kamis	P006	10.10–10.50	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0058	C002	Akhwat	7	Kamis	P007	10.50–11.30	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0059	C002	Akhwat	7	Jumat	P001	07.00–07.40	S006	BA	Bahasa Arab	T008	Ustzh. Nisa	Aktif	BA	Warna pada sumber jadwal
+
+K0060	C002	Akhwat	7	Jumat	P002	07.40–08.20	S006	BA	Bahasa Arab	T008	Ustzh. Nisa	Aktif	BA	Warna pada sumber jadwal
+
+K0061	C002	Akhwat	7	Jumat	P003	08.20–09.00	S006	BA	Bahasa Arab	T008	Ustzh. Nisa	Aktif	BA	Warna pada sumber jadwal
+
+K0062	C002	Akhwat	7	Jumat	P004	09.00–09.40	S006	BA	Bahasa Arab	T008	Ustzh. Nisa	Aktif	BA	Warna pada sumber jadwal
+
+K0063	C002	Akhwat	7	Sabtu	P001	07.00–07.40	S001	AQ	Aqidah	T007	Ust. Suherlan	Aktif	AQ(8)	Warna pada sumber jadwal
+
+K0064	C002	Akhwat	7	Sabtu	P002	07.40–08.20	S001	AQ	Aqidah	T007	Ust. Suherlan	Aktif	AQ(8)	Warna pada sumber jadwal
+
+K0065	C002	Akhwat	7	Sabtu	P003	08.20–09.00	S016	Si	Siroh	T008	Ustzh. Nisa	Aktif	Si	Warna pada sumber jadwal
+
+K0066	C002	Akhwat	7	Sabtu	P004	09.00–09.40	S016	Si	Siroh	T008	Ustzh. Nisa	Aktif	Si	Warna pada sumber jadwal
+
+K0067	C002	Akhwat	7	Sabtu	P006	10.10–10.50	S002	FQ	Fiqh	T004	Ust. Feri	Aktif	FQ	Warna pada sumber jadwal
+
+K0068	C002	Akhwat	7	Sabtu	P007	10.50–11.30	S002	FQ	Fiqh	T004	Ust. Feri	Aktif	FQ	Warna pada sumber jadwal
+
+K0069	C003	Ikhwan	8	Senin	P001	07.00–07.40	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0070	C003	Ikhwan	8	Senin	P002	07.40–08.20	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0071	C003	Ikhwan	8	Senin	P003	08.20–09.00	S016	Si	Siroh	T003	Ust. Alan	Aktif	Si	Warna pada sumber jadwal
+
+K0072	C003	Ikhwan	8	Senin	P004	09.00–09.40	S016	Si	Siroh	T003	Ust. Alan	Aktif	Si	Warna pada sumber jadwal
+
+K0073	C003	Ikhwan	8	Senin	P006	10.10–10.50	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0074	C003	Ikhwan	8	Senin	P007	10.50–11.30	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0075	C003	Ikhwan	8	Selasa	P001	07.00–07.40	S006	BA	Bahasa Arab	T007	Ust. Suherlan	Aktif	BA	Warna pada sumber jadwal
+
+K0076	C003	Ikhwan	8	Selasa	P002	07.40–08.20	S006	BA	Bahasa Arab	T007	Ust. Suherlan	Aktif	BA	Warna pada sumber jadwal
+
+K0077	C003	Ikhwan	8	Selasa	P003	08.20–09.00	S002	FQ	Fiqh	T009	Ustzh. Selly	Aktif	FQ	Warna pada sumber jadwal
+
+K0078	C003	Ikhwan	8	Selasa	P004	09.00–09.40	S002	FQ	Fiqh	T009	Ustzh. Selly	Aktif	FQ	Warna pada sumber jadwal
+
+K0079	C003	Ikhwan	8	Selasa	P006	10.10–10.50	S001	AQ	Aqidah	T007	Ust. Suherlan	Aktif	AQ	Warna pada sumber jadwal
+
+K0080	C003	Ikhwan	8	Selasa	P007	10.50–11.30	S001	AQ	Aqidah	T007	Ust. Suherlan	Aktif	AQ	Warna pada sumber jadwal
+
+K0081	C003	Ikhwan	8	Rabu	P001	07.00–07.40	S006	BA	Bahasa Arab	T007	Ust. Suherlan	Aktif	BA	Warna pada sumber jadwal
+
+K0082	C003	Ikhwan	8	Rabu	P002	07.40–08.20	S006	BA	Bahasa Arab	T007	Ust. Suherlan	Aktif	BA	Warna pada sumber jadwal
+
+K0083	C003	Ikhwan	8	Rabu	P003	08.20–09.00	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0084	C003	Ikhwan	8	Rabu	P004	09.00–09.40	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0085	C003	Ikhwan	8	Rabu	P006	10.10–10.50	S007	So	Shorof	T007	Ust. Suherlan	Aktif	So	Warna pada sumber jadwal
+
+K0086	C003	Ikhwan	8	Rabu	P007	10.50–11.30	S007	So	Shorof	T007	Ust. Suherlan	Aktif	So	Warna pada sumber jadwal
+
+K0087	C003	Ikhwan	8	Kamis	P001	07.00–07.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0088	C003	Ikhwan	8	Kamis	P002	07.40–08.20	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0089	C003	Ikhwan	8	Kamis	P003	08.20–09.00	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0090	C003	Ikhwan	8	Kamis	P004	09.00–09.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0091	C003	Ikhwan	8	Kamis	P006	10.10–10.50	S008	Ti	Tilawah	T013	Ust. Ivan	Aktif	Ti	Warna pada sumber jadwal
+
+K0092	C003	Ikhwan	8	Kamis	P007	10.50–11.30	S008	Ti	Tilawah	T013	Ust. Ivan	Aktif	Ti	Warna pada sumber jadwal
+
+K0093	C003	Ikhwan	8	Jumat	P001	07.00–07.40	S011	AD	Adab	T003	Ust. Alan	Aktif	AD	Warna pada sumber jadwal
+
+K0094	C003	Ikhwan	8	Jumat	P002	07.40–08.20	S011	AD	Adab	T003	Ust. Alan	Aktif	AD	Warna pada sumber jadwal
+
+K0095	C003	Ikhwan	8	Jumat	P003	08.20–09.00	S012	Ki	Kitabah	T003	Ust. Alan	Aktif	Ki	Warna pada sumber jadwal
+
+K0096	C003	Ikhwan	8	Jumat	P004	09.00–09.40	S012	Ki	Kitabah	T003	Ust. Alan	Aktif	Ki	Warna pada sumber jadwal
+
+K0097	C003	Ikhwan	8	Sabtu	P001	07.00–07.40	S009	H	Hadits	T007	Ust. Suherlan	Aktif	H	Warna pada sumber jadwal
+
+K0098	C003	Ikhwan	8	Sabtu	P002	07.40–08.20	S009	H	Hadits	T007	Ust. Suherlan	Aktif	H	Warna pada sumber jadwal
+
+K0099	C003	Ikhwan	8	Sabtu	P003	08.20–09.00	S004	N	Nahwu	T007	Ust. Suherlan	Aktif	N	Warna pada sumber jadwal
+
+K0100	C003	Ikhwan	8	Sabtu	P004	09.00–09.40	S004	N	Nahwu	T007	Ust. Suherlan	Aktif	N	Warna pada sumber jadwal
+
+K0101	C003	Ikhwan	8	Sabtu	P006	10.10–10.50	S004	N	Nahwu	T007	Ust. Suherlan	Aktif	N	Warna pada sumber jadwal
+
+K0102	C003	Ikhwan	8	Sabtu	P007	10.50–11.30	S004	N	Nahwu	T007	Ust. Suherlan	Aktif	N	Warna pada sumber jadwal
+
+K0103	C004	Akhwat	8	Senin	P001	07.00–07.40	S009	H	Hadits	T008	Ustzh. Nisa	Aktif	H	Warna pada sumber jadwal
+
+K0104	C004	Akhwat	8	Senin	P002	07.40–08.20	S009	H	Hadits	T008	Ustzh. Nisa	Aktif	H	Warna pada sumber jadwal
+
+K0105	C004	Akhwat	8	Senin	P003	08.20–09.00	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0106	C004	Akhwat	8	Senin	P004	09.00–09.40	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0107	C004	Akhwat	8	Senin	P006	10.10–10.50	S012	Ki	Kitabah	T010	Musyrifah	Aktif	Ki	Warna pada sumber jadwal
+
+K0108	C004	Akhwat	8	Senin	P007	10.50–11.30	S012	Ki	Kitabah	T010	Musyrifah	Aktif	Ki	Warna pada sumber jadwal
+
+K0109	C004	Akhwat	8	Selasa	P001	07.00–07.40	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0110	C004	Akhwat	8	Selasa	P002	07.40–08.20	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0111	C004	Akhwat	8	Selasa	P003	08.20–09.00	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0112	C004	Akhwat	8	Selasa	P004	09.00–09.40	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0113	C004	Akhwat	8	Selasa	P006	10.10–10.50	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0114	C004	Akhwat	8	Selasa	P007	10.50–11.30	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0115	C004	Akhwat	8	Rabu	P001	07.00–07.40	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0116	C004	Akhwat	8	Rabu	P002	07.40–08.20	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0117	C004	Akhwat	8	Rabu	P003	08.20–09.00	S011	AD	Adab	T014	Ustzh. Aina	Aktif	AD	Warna pada sumber jadwal
+
+K0118	C004	Akhwat	8	Rabu	P004	09.00–09.40	S011	AD	Adab	T014	Ustzh. Aina	Aktif	AD	Warna pada sumber jadwal
+
+K0119	C004	Akhwat	8	Rabu	P006	10.10–10.50	S004	N	Nahwu	T009	Ustzh. Selly	Aktif	N	Warna pada sumber jadwal
+
+K0120	C004	Akhwat	8	Rabu	P007	10.50–11.30	S004	N	Nahwu	T009	Ustzh. Selly	Aktif	N	Warna pada sumber jadwal
+
+K0121	C004	Akhwat	8	Kamis	P001	07.00–07.40	S011	AD	Adab	T014	Ustzh. Aina	Aktif	AD	Warna pada sumber jadwal
+
+K0122	C004	Akhwat	8	Kamis	P002	07.40–08.20	S011	AD	Adab	T014	Ustzh. Aina	Aktif	AD	Warna pada sumber jadwal
+
+K0123	C004	Akhwat	8	Kamis	P003	08.20–09.00	S004	N	Nahwu	T009	Ustzh. Selly	Aktif	N	Warna pada sumber jadwal
+
+K0124	C004	Akhwat	8	Kamis	P004	09.00–09.40	S004	N	Nahwu	T009	Ustzh. Selly	Aktif	N	Warna pada sumber jadwal
+
+K0125	C004	Akhwat	8	Kamis	P006	10.10–10.50	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0126	C004	Akhwat	8	Kamis	P007	10.50–11.30	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0127	C004	Akhwat	8	Jumat	P001	07.00–07.40	S008	Ti	Tilawah	T003	Ust. Alan	Aktif	Ti	Warna pada sumber jadwal
+
+K0128	C004	Akhwat	8	Jumat	P002	07.40–08.20	S008	Ti	Tilawah	T003	Ust. Alan	Aktif	Ti	Warna pada sumber jadwal
+
+K0129	C004	Akhwat	8	Jumat	P003	08.20–09.00	S010	Ha	H. Hadits	T003	Ust. Alan	Aktif	Ha	Warna pada sumber jadwal
+
+K0130	C004	Akhwat	8	Jumat	P004	09.00–09.40	S010	Ha	H. Hadits	T003	Ust. Alan	Aktif	Ha	Warna pada sumber jadwal
+
+K0131	C004	Akhwat	8	Sabtu	P001	07.00–07.40	S001	AQ	Aqidah	T003	Ust. Alan	Aktif	AQ	Warna pada sumber jadwal
+
+K0132	C004	Akhwat	8	Sabtu	P002	07.40–08.20	S001	AQ	Aqidah	T003	Ust. Alan	Aktif	AQ	Warna pada sumber jadwal
+
+K0133	C004	Akhwat	8	Sabtu	P003	08.20–09.00	S016	Si	Siroh	T008	Ustzh. Nisa	Aktif	Si	Warna pada sumber jadwal
+
+K0134	C004	Akhwat	8	Sabtu	P004	09.00–09.40	S016	Si	Siroh	T008	Ustzh. Nisa	Aktif	Si	Warna pada sumber jadwal
+
+K0135	C004	Akhwat	8	Sabtu	P006	10.10–10.50	S002	FQ	Fiqh	T002	Ust. Andre	Aktif	FQ	Warna pada sumber jadwal
+
+K0136	C004	Akhwat	8	Sabtu	P007	10.50–11.30	S002	FQ	Fiqh	T002	Ust. Andre	Aktif	FQ	Warna pada sumber jadwal
+
+K0137	C005	Ikhwan	9	Senin	P001	07.00–07.40	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0138	C005	Ikhwan	9	Senin	P002	07.40–08.20	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0139	C005	Ikhwan	9	Senin	P003	08.20–09.00	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0140	C005	Ikhwan	9	Senin	P004	09.00–09.40	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0141	C005	Ikhwan	9	Senin	P006	10.10–10.50	S004	N	Nahwu	T002	Ust. Andre	Aktif	N	Warna pada sumber jadwal
+
+K0142	C005	Ikhwan	9	Senin	P007	10.50–11.30	S004	N	Nahwu	T002	Ust. Andre	Aktif	N	Warna pada sumber jadwal
+
+K0143	C005	Ikhwan	9	Selasa	P001	07.00–07.40	S008	Ti	Tilawah	T013	Ust. Ivan	Aktif	Ti	Warna pada sumber jadwal
+
+K0144	C005	Ikhwan	9	Selasa	P002	07.40–08.20	S008	Ti	Tilawah	T013	Ust. Ivan	Aktif	Ti	Warna pada sumber jadwal
+
+K0145	C005	Ikhwan	9	Selasa	P003	08.20–09.00	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0146	C005	Ikhwan	9	Selasa	P004	09.00–09.40	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0147	C005	Ikhwan	9	Selasa	P006	10.10–10.50	S011	AD	Adab	T011	Ust. Zulfian	Aktif	AD	Warna pada sumber jadwal
+
+K0148	C005	Ikhwan	9	Selasa	P007	10.50–11.30	S011	AD	Adab	T011	Ust. Zulfian	Aktif	AD	Warna pada sumber jadwal
+
+K0149	C005	Ikhwan	9	Rabu	P001	07.00–07.40	S001	AQ	Aqidah	T001	Ust. Dede	Aktif	AQ	Warna pada sumber jadwal
+
+K0150	C005	Ikhwan	9	Rabu	P002	07.40–08.20	S001	AQ	Aqidah	T001	Ust. Dede	Aktif	AQ	Warna pada sumber jadwal
+
+K0151	C005	Ikhwan	9	Rabu	P003	08.20–09.00	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0152	C005	Ikhwan	9	Rabu	P004	09.00–09.40	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0153	C005	Ikhwan	9	Rabu	P006	10.10–10.50	S002	FQ	Fiqh	T011	Ust. Zulfian	Aktif	FQ	Warna pada sumber jadwal
+
+K0154	C005	Ikhwan	9	Rabu	P007	10.50–11.30	S002	FQ	Fiqh	T011	Ust. Zulfian	Aktif	FQ	Warna pada sumber jadwal
+
+K0155	C005	Ikhwan	9	Kamis	P001	07.00–07.40	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0156	C005	Ikhwan	9	Kamis	P002	07.40–08.20	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0157	C005	Ikhwan	9	Kamis	P003	08.20–09.00	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0158	C005	Ikhwan	9	Kamis	P004	09.00–09.40	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0159	C005	Ikhwan	9	Kamis	P006	10.10–10.50	S012	Ki	Kitabah	T007	Ust. Suherlan	Aktif	Ki	Warna pada sumber jadwal
+
+K0160	C005	Ikhwan	9	Kamis	P007	10.50–11.30	S012	Ki	Kitabah	T007	Ust. Suherlan	Aktif	Ki	Warna pada sumber jadwal
+
+K0161	C005	Ikhwan	9	Jumat	P001	07.00–07.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0162	C005	Ikhwan	9	Jumat	P002	07.40–08.20	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0163	C005	Ikhwan	9	Jumat	P003	08.20–09.00	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0164	C005	Ikhwan	9	Jumat	P004	09.00–09.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0165	C005	Ikhwan	9	Sabtu	P001	07.00–07.40	S016	Si	Siroh	T002	Ust. Andre	Aktif	Si	Warna pada sumber jadwal
+
+K0166	C005	Ikhwan	9	Sabtu	P002	07.40–08.20	S016	Si	Siroh	T002	Ust. Andre	Aktif	Si	Warna pada sumber jadwal
+
+K0167	C005	Ikhwan	9	Sabtu	P003	08.20–09.00	S004	N	Nahwu	T002	Ust. Andre	Aktif	N	Warna pada sumber jadwal
+
+K0168	C005	Ikhwan	9	Sabtu	P004	09.00–09.40	S004	N	Nahwu	T002	Ust. Andre	Aktif	N	Warna pada sumber jadwal
+
+K0169	C005	Ikhwan	9	Sabtu	P006	10.10–10.50	S009	H	Hadits	T003	Ust. Alan	Aktif	H	Warna pada sumber jadwal
+
+K0170	C005	Ikhwan	9	Sabtu	P007	10.50–11.30	S009	H	Hadits	T003	Ust. Alan	Aktif	H	Warna pada sumber jadwal
+
+K0171	C009	Akhwat	11	Senin	P001	07.00–07.40	S011	AD	Adab	T002	Ust. Andre	Aktif	AD	Warna pada sumber jadwal
+
+K0172	C009	Akhwat	11	Senin	P002	07.40–08.20	S011	AD	Adab	T002	Ust. Andre	Aktif	AD	Warna pada sumber jadwal
+
+K0173	C009	Akhwat	11	Senin	P003	08.20–09.00	S001	AQ	Aqidah	T001	Ust. Dede	Aktif	AQ	Warna pada sumber jadwal
+
+K0174	C009	Akhwat	11	Senin	P004	09.00–09.40	S001	AQ	Aqidah	T001	Ust. Dede	Aktif	AQ	Warna pada sumber jadwal
+
+K0175	C009	Akhwat	11	Senin	P006	10.10–10.50	S016	Si	Siroh	T002	Ust. Andre	Aktif	Si	Warna pada sumber jadwal
+
+K0176	C009	Akhwat	11	Senin	P007	10.50–11.30	S016	Si	Siroh	T002	Ust. Andre	Aktif	Si	Warna pada sumber jadwal
+
+K0177	C009	Akhwat	11	Selasa	P001	07.00–07.40	S006	BA	Bahasa Arab	T002	Ust. Andre	Aktif	BA	Warna pada sumber jadwal
+
+K0178	C009	Akhwat	11	Selasa	P002	07.40–08.20	S006	BA	Bahasa Arab	T002	Ust. Andre	Aktif	BA	Warna pada sumber jadwal
+
+K0179	C009	Akhwat	11	Selasa	P003	08.20–09.00	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0180	C009	Akhwat	11	Selasa	P004	09.00–09.40	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0181	C009	Akhwat	11	Selasa	P006	10.10–10.50	S003	Q	Qawaid	T002	Ust. Andre	Aktif	Q	Warna pada sumber jadwal
+
+K0182	C009	Akhwat	11	Selasa	P007	10.50–11.30	S003	Q	Qawaid	T002	Ust. Andre	Aktif	Q	Warna pada sumber jadwal
+
+K0183	C009	Akhwat	11	Rabu	P001	07.00–07.40	S006	BA	Bahasa Arab	T002	Ust. Andre	Aktif	BA	Warna pada sumber jadwal
+
+K0184	C009	Akhwat	11	Rabu	P002	07.40–08.20	S006	BA	Bahasa Arab	T002	Ust. Andre	Aktif	BA	Warna pada sumber jadwal
+
+K0185	C009	Akhwat	11	Rabu	P003	08.20–09.00	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0186	C009	Akhwat	11	Rabu	P004	09.00–09.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0187	C009	Akhwat	11	Rabu	P006	10.10–10.50	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0188	C009	Akhwat	11	Rabu	P007	10.50–11.30	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0189	C009	Akhwat	11	Kamis	P001	07.00–07.40	S009	H	Hadits	T002	Ust. Andre	Aktif	H	Warna pada sumber jadwal
+
+K0190	C009	Akhwat	11	Kamis	P002	07.40–08.20	S009	H	Hadits	T002	Ust. Andre	Aktif	H	Warna pada sumber jadwal
+
+K0191	C009	Akhwat	11	Kamis	P003	08.20–09.00	S012	Ki	Kitabah	T010	Musyrifah	Aktif	Ki	Warna pada sumber jadwal
+
+K0192	C009	Akhwat	11	Kamis	P004	09.00–09.40	S012	Ki	Kitabah	T010	Musyrifah	Aktif	Ki	Warna pada sumber jadwal
+
+K0193	C009	Akhwat	11	Kamis	P006	10.10–10.50	S005	Ta	Tafsir	T002	Ust. Andre	Aktif	Ta	Warna pada sumber jadwal
+
+K0194	C009	Akhwat	11	Kamis	P007	10.50–11.30	S005	Ta	Tafsir	T002	Ust. Andre	Aktif	Ta	Warna pada sumber jadwal
+
+K0195	C009	Akhwat	11	Jumat	P001	07.00–07.40	S002	FQ	Fiqh	T002	Ust. Andre	Aktif	FQ	Warna pada sumber jadwal
+
+K0196	C009	Akhwat	11	Jumat	P002	07.40–08.20	S002	FQ	Fiqh	T002	Ust. Andre	Aktif	FQ	Warna pada sumber jadwal
+
+K0197	C009	Akhwat	11	Jumat	P003	08.20–09.00	S002	FQ	Fiqh	T002	Ust. Andre	Aktif	FQ	Warna pada sumber jadwal
+
+K0198	C009	Akhwat	11	Jumat	P004	09.00–09.40	S002	FQ	Fiqh	T002	Ust. Andre	Aktif	FQ	Warna pada sumber jadwal
+
+K0199	C009	Akhwat	11	Sabtu	P001	07.00–07.40	S013	Bal	Balaghah	T001	Ust. Dede	Aktif	Bal	Warna pada sumber jadwal
+
+K0200	C009	Akhwat	11	Sabtu	P002	07.40–08.20	S013	Bal	Balaghah	T001	Ust. Dede	Aktif	Bal	Warna pada sumber jadwal
+
+K0201	C009	Akhwat	11	Sabtu	P003	08.20–09.00	S014	UF	Ushul Fiqh	T001	Ust. Dede	Aktif	UF	Warna pada sumber jadwal
+
+K0202	C009	Akhwat	11	Sabtu	P004	09.00–09.40	S014	UF	Ushul Fiqh	T001	Ust. Dede	Aktif	UF	Warna pada sumber jadwal
+
+K0203	C009	Akhwat	11	Sabtu	P006	10.10–10.50	S002	FQ	Fiqh	T002	Ust. Andre	Aktif	FQ	Warna pada sumber jadwal
+
+K0204	C009	Akhwat	11	Sabtu	P007	10.50–11.30	S002	FQ	Fiqh	T002	Ust. Andre	Aktif	FQ	Warna pada sumber jadwal
+
+K0205	C010	Ikhwan	12	Senin	P001	07.00–07.40	S009	H	Hadits	T007	Ust. Suherlan	Aktif	H	Warna pada sumber jadwal
+
+K0206	C010	Ikhwan	12	Senin	P002	07.40–08.20	S009	H	Hadits	T007	Ust. Suherlan	Aktif	H	Warna pada sumber jadwal
+
+K0207	C010	Ikhwan	12	Senin	P003	08.20–09.00	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0208	C010	Ikhwan	12	Senin	P004	09.00–09.40	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0209	C010	Ikhwan	12	Senin	P006	10.10–10.50	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0210	C010	Ikhwan	12	Senin	P007	10.50–11.30	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0211	C010	Ikhwan	12	Selasa	P001	07.00–07.40	S008	Ti	Tilawah	T013	Ust. Ivan	Aktif	Ti	Warna pada sumber jadwal
+
+K0212	C010	Ikhwan	12	Selasa	P002	07.40–08.20	S008	Ti	Tilawah	T013	Ust. Ivan	Aktif	Ti	Warna pada sumber jadwal
+
+K0213	C010	Ikhwan	12	Selasa	P003	08.20–09.00	S003	Q	Qawaid	T001	Ust. Dede	Aktif	Q	Warna pada sumber jadwal
+
+K0214	C010	Ikhwan	12	Selasa	P004	09.00–09.40	S003	Q	Qawaid	T001	Ust. Dede	Aktif	Q	Warna pada sumber jadwal
+
+K0215	C010	Ikhwan	12	Selasa	P006	10.10–10.50	S002	FQ	Fiqh	T001	Ust. Dede	Aktif	FQ	Warna pada sumber jadwal
+
+K0216	C010	Ikhwan	12	Selasa	P007	10.50–11.30	S002	FQ	Fiqh	T001	Ust. Dede	Aktif	FQ	Warna pada sumber jadwal
+
+K0217	C010	Ikhwan	12	Rabu	P001	07.00–07.40	S011	AD	Adab	T005	Ust. Rido	Aktif	AD	Warna pada sumber jadwal
+
+K0218	C010	Ikhwan	12	Rabu	P002	07.40–08.20	S011	AD	Adab	T005	Ust. Rido	Aktif	AD	Warna pada sumber jadwal
+
+K0219	C010	Ikhwan	12	Rabu	P003	08.20–09.00	S001	AQ	Aqidah	T001	Ust. Dede	Aktif	AQ	Warna pada sumber jadwal
+
+K0220	C010	Ikhwan	12	Rabu	P004	09.00–09.40	S001	AQ	Aqidah	T001	Ust. Dede	Aktif	AQ	Warna pada sumber jadwal
+
+K0221	C010	Ikhwan	12	Rabu	P006	10.10–10.50	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0222	C010	Ikhwan	12	Rabu	P007	10.50–11.30	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0223	C010	Ikhwan	12	Kamis	P001	07.00–07.40	S006	BA	Bahasa Arab	T007	Ust. Suherlan	Aktif	BA	Warna pada sumber jadwal
+
+K0224	C010	Ikhwan	12	Kamis	P002	07.40–08.20	S006	BA	Bahasa Arab	T007	Ust. Suherlan	Aktif	BA	Warna pada sumber jadwal
+
+K0225	C010	Ikhwan	12	Kamis	P003	08.20–09.00	S016	Si	Siroh	T007	Ust. Suherlan	Aktif	Si	Warna pada sumber jadwal
+
+K0226	C010	Ikhwan	12	Kamis	P004	09.00–09.40	S016	Si	Siroh	T007	Ust. Suherlan	Aktif	Si	Warna pada sumber jadwal
+
+K0227	C010	Ikhwan	12	Kamis	P006	10.10–10.50	S005	Ta	Tafsir	T003	Ust. Alan	Aktif	Ta	Warna pada sumber jadwal
+
+K0228	C010	Ikhwan	12	Kamis	P007	10.50–11.30	S005	Ta	Tafsir	T003	Ust. Alan	Aktif	Ta	Warna pada sumber jadwal
+
+K0229	C010	Ikhwan	12	Jumat	P001	07.00–07.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0230	C010	Ikhwan	12	Jumat	P002	07.40–08.20	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0231	C010	Ikhwan	12	Jumat	P003	08.20–09.00	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0232	C010	Ikhwan	12	Jumat	P004	09.00–09.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0233	C010	Ikhwan	12	Sabtu	P001	07.00–07.40	S013	Bal	Balaghah	T001	Ust. Dede	Aktif	Bal	Warna pada sumber jadwal
+
+K0234	C010	Ikhwan	12	Sabtu	P002	07.40–08.20	S013	Bal	Balaghah	T001	Ust. Dede	Aktif	Bal	Warna pada sumber jadwal
+
+K0235	C010	Ikhwan	12	Sabtu	P003	08.20–09.00	S014	UF	Ushul Fiqh	T001	Ust. Dede	Aktif	UF	Warna pada sumber jadwal
+
+K0236	C010	Ikhwan	12	Sabtu	P004	09.00–09.40	S014	UF	Ushul Fiqh	T001	Ust. Dede	Aktif	UF	Warna pada sumber jadwal
+
+K0237	C010	Ikhwan	12	Sabtu	P006	10.10–10.50	S015	FA	Faraid	T001	Ust. Dede	Aktif	FA	Warna pada sumber jadwal
+
+K0238	C010	Ikhwan	12	Sabtu	P007	10.50–11.30	S015	FA	Faraid	T001	Ust. Dede	Aktif	FA	Warna pada sumber jadwal
+
+K0239	C011	Akhwat	12	Senin	P001	07.00–07.40	S011	AD	Adab	T002	Ust. Andre	Aktif	AD	Warna pada sumber jadwal
+
+K0240	C011	Akhwat	12	Senin	P002	07.40–08.20	S011	AD	Adab	T002	Ust. Andre	Aktif	AD	Warna pada sumber jadwal
+
+K0241	C011	Akhwat	12	Senin	P003	08.20–09.00	S016	Si	Siroh	T002	Ust. Andre	Aktif	Si	Warna pada sumber jadwal
+
+K0242	C011	Akhwat	12	Senin	P004	09.00–09.40	S016	Si	Siroh	T002	Ust. Andre	Aktif	Si	Warna pada sumber jadwal
+
+K0243	C011	Akhwat	12	Senin	P006	10.10–10.50	S002	FQ	Fiqh	T001	Ust. Dede	Aktif	FQ	Warna pada sumber jadwal
+
+K0244	C011	Akhwat	12	Senin	P007	10.50–11.30	S002	FQ	Fiqh	T001	Ust. Dede	Aktif	FQ	Warna pada sumber jadwal
+
+K0245	C011	Akhwat	12	Selasa	P001	07.00–07.40	S001	AQ	Aqidah	T001	Ust. Dede	Aktif	AQ	Warna pada sumber jadwal
+
+K0246	C011	Akhwat	12	Selasa	P002	07.40–08.20	S001	AQ	Aqidah	T001	Ust. Dede	Aktif	AQ	Warna pada sumber jadwal
+
+K0247	C011	Akhwat	12	Selasa	P003	08.20–09.00	S009	H	Hadits	T007	Ust. Suherlan	Aktif	H	Warna pada sumber jadwal
+
+K0248	C011	Akhwat	12	Selasa	P004	09.00–09.40	S009	H	Hadits	T007	Ust. Suherlan	Aktif	H	Warna pada sumber jadwal
+
+K0249	C011	Akhwat	12	Selasa	P006	10.10–10.50	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0250	C011	Akhwat	12	Selasa	P007	10.50–11.30	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0251	C011	Akhwat	12	Rabu	P001	07.00–07.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0252	C011	Akhwat	12	Rabu	P002	07.40–08.20	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0253	C011	Akhwat	12	Rabu	P003	08.20–09.00	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0254	C011	Akhwat	12	Rabu	P004	09.00–09.40	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0255	C011	Akhwat	12	Rabu	P006	10.10–10.50	S003	Q	Qawaid	T001	Ust. Dede	Aktif	Q	Warna pada sumber jadwal
+
+K0256	C011	Akhwat	12	Rabu	P007	10.50–11.30	S003	Q	Qawaid	T001	Ust. Dede	Aktif	Q	Warna pada sumber jadwal
+
+K0257	C011	Akhwat	12	Kamis	P001	07.00–07.40	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0258	C011	Akhwat	12	Kamis	P002	07.40–08.20	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0259	C011	Akhwat	12	Kamis	P003	08.20–09.00	S006	BA	Bahasa Arab	T002	Ust. Andre	Aktif	BA	Warna pada sumber jadwal
+
+K0260	C011	Akhwat	12	Kamis	P004	09.00–09.40	S006	BA	Bahasa Arab	T002	Ust. Andre	Aktif	BA	Warna pada sumber jadwal
+
+K0261	C011	Akhwat	12	Kamis	P006	10.10–10.50	S005	Ta	Tafsir	T002	Ust. Andre	Aktif	Ta	Warna pada sumber jadwal
+
+K0262	C011	Akhwat	12	Kamis	P007	10.50–11.30	S005	Ta	Tafsir	T002	Ust. Andre	Aktif	Ta	Warna pada sumber jadwal
+
+K0263	C011	Akhwat	12	Jumat	P001	07.00–07.40	S008	Ti	Tilawah	T003	Ust. Alan	Aktif	Ti	Warna pada sumber jadwal
+
+K0264	C011	Akhwat	12	Jumat	P002	07.40–08.20	S008	Ti	Tilawah	T003	Ust. Alan	Aktif	Ti	Warna pada sumber jadwal
+
+K0265	C011	Akhwat	12	Jumat	P003	08.20–09.00	S010	Ha	H. Hadits	T003	Ust. Alan	Aktif	Ha	Warna pada sumber jadwal
+
+K0266	C011	Akhwat	12	Jumat	P004	09.00–09.40	S010	Ha	H. Hadits	T003	Ust. Alan	Aktif	Ha	Warna pada sumber jadwal
+
+K0267	C011	Akhwat	12	Sabtu	P001	07.00–07.40	S013	Bal	Balaghah	T001	Ust. Dede	Aktif	Bal	Warna pada sumber jadwal
+
+K0268	C011	Akhwat	12	Sabtu	P002	07.40–08.20	S013	Bal	Balaghah	T001	Ust. Dede	Aktif	Bal	Warna pada sumber jadwal
+
+K0269	C011	Akhwat	12	Sabtu	P003	08.20–09.00	S014	UF	Ushul Fiqh	T001	Ust. Dede	Aktif	UF	Warna pada sumber jadwal
+
+K0270	C011	Akhwat	12	Sabtu	P004	09.00–09.40	S014	UF	Ushul Fiqh	T001	Ust. Dede	Aktif	UF	Warna pada sumber jadwal
+
+K0271	C011	Akhwat	12	Sabtu	P006	10.10–10.50	S015	FA	Faraid	T001	Ust. Dede	Aktif	FA	Warna pada sumber jadwal
+
+K0272	C011	Akhwat	12	Sabtu	P007	10.50–11.30	S015	FA	Faraid	T001	Ust. Dede	Aktif	FA	Warna pada sumber jadwal
+
+K0273	C007	Ikhwan	10	Senin	P001	07.00–07.40	S001	AQ	Aqidah	T001	Ust. Dede	Aktif	AQ	Warna pada sumber jadwal
+
+K0274	C007	Ikhwan	10	Senin	P002	07.40–08.20	S001	AQ	Aqidah	T001	Ust. Dede	Aktif	AQ	Warna pada sumber jadwal
+
+K0275	C007	Ikhwan	10	Senin	P003	08.20–09.00	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0276	C007	Ikhwan	10	Senin	P004	09.00–09.40	S021	Hi	H. Doa	T013	Ust. Ivan	Aktif	Hi	Warna pada sumber jadwal
+
+K0277	C007	Ikhwan	10	Senin	P006	10.10–10.50	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0278	C007	Ikhwan	10	Senin	P007	10.50–11.30	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0279	C007	Ikhwan	10	Selasa	P001	07.00–07.40	S002	FQ	Fiqh	T009	Ustzh. Selly	Aktif	FQ	Warna pada sumber jadwal
+
+K0280	C007	Ikhwan	10	Selasa	P002	07.40–08.20	S002	FQ	Fiqh	T009	Ustzh. Selly	Aktif	FQ	Warna pada sumber jadwal
+
+K0281	C007	Ikhwan	10	Selasa	P003	08.20–09.00	S003	Q	Qawaid	T003	Ust. Alan	Aktif	Q	Warna pada sumber jadwal
+
+K0282	C007	Ikhwan	10	Selasa	P004	09.00–09.40	S003	Q	Qawaid	T003	Ust. Alan	Aktif	Q	Warna pada sumber jadwal
+
+K0283	C007	Ikhwan	10	Selasa	P006	10.10–10.50	S011	AD	Adab	T003	Ust. Alan	Aktif	AD	Warna pada sumber jadwal
+
+K0284	C007	Ikhwan	10	Selasa	P007	10.50–11.30	S011	AD	Adab	T003	Ust. Alan	Aktif	AD	Warna pada sumber jadwal
+
+K0285	C007	Ikhwan	10	Rabu	P001	07.00–07.40	S016	Si	Siroh	T003	Ust. Alan	Aktif	Si	Warna pada sumber jadwal
+
+K0286	C007	Ikhwan	10	Rabu	P002	07.40–08.20	S016	Si	Siroh	T003	Ust. Alan	Aktif	Si	Warna pada sumber jadwal
+
+K0287	C007	Ikhwan	10	Rabu	P003	08.20–09.00	S009	H	Hadits	T011	Ust. Zulfian	Aktif	H	Warna pada sumber jadwal
+
+K0288	C007	Ikhwan	10	Rabu	P004	09.00–09.40	S009	H	Hadits	T011	Ust. Zulfian	Aktif	H	Warna pada sumber jadwal
+
+K0289	C007	Ikhwan	10	Rabu	P006	10.10–10.50	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0290	C007	Ikhwan	10	Rabu	P007	10.50–11.30	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0291	C007	Ikhwan	10	Kamis	P001	07.00–07.40	S006	BA	Bahasa Arab	T003	Ust. Alan	Aktif	BA	Warna pada sumber jadwal
+
+K0292	C007	Ikhwan	10	Kamis	P002	07.40–08.20	S006	BA	Bahasa Arab	T003	Ust. Alan	Aktif	BA	Warna pada sumber jadwal
+
+K0293	C007	Ikhwan	10	Kamis	P003	08.20–09.00	S006	BA	Bahasa Arab	T003	Ust. Alan	Aktif	BA	Warna pada sumber jadwal
+
+K0294	C007	Ikhwan	10	Kamis	P004	09.00–09.40	S006	BA	Bahasa Arab	T003	Ust. Alan	Aktif	BA	Warna pada sumber jadwal
+
+K0295	C007	Ikhwan	10	Kamis	P006	10.10–10.50	S005	Ta	Tafsir	T003	Ust. Alan	Aktif	Ta	Warna pada sumber jadwal
+
+K0296	C007	Ikhwan	10	Kamis	P007	10.50–11.30	S005	Ta	Tafsir	T003	Ust. Alan	Aktif	Ta	Warna pada sumber jadwal
+
+K0297	C007	Ikhwan	10	Jumat	P001	07.00–07.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0298	C007	Ikhwan	10	Jumat	P002	07.40–08.20	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0299	C007	Ikhwan	10	Jumat	P003	08.20–09.00	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0300	C007	Ikhwan	10	Jumat	P004	09.00–09.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0301	C007	Ikhwan	10	Sabtu	P001	07.00–07.40	S013	Bal	Balaghah	T001	Ust. Dede	Aktif	Bal	Warna pada sumber jadwal
+
+K0302	C007	Ikhwan	10	Sabtu	P002	07.40–08.20	S013	Bal	Balaghah	T001	Ust. Dede	Aktif	Bal	Warna pada sumber jadwal
+
+K0303	C007	Ikhwan	10	Sabtu	P003	08.20–09.00	S014	UF	Ushul Fiqh	T001	Ust. Dede	Aktif	UF	Warna pada sumber jadwal
+
+K0304	C007	Ikhwan	10	Sabtu	P004	09.00–09.40	S014	UF	Ushul Fiqh	T001	Ust. Dede	Aktif	UF	Warna pada sumber jadwal
+
+K0305	C007	Ikhwan	10	Sabtu	P006	10.10–10.50	S015	FA	Faraid	T001	Ust. Dede	Aktif	FA	Warna pada sumber jadwal
+
+K0306	C007	Ikhwan	10	Sabtu	P007	10.50–11.30	S015	FA	Faraid	T001	Ust. Dede	Aktif	FA	Warna pada sumber jadwal
+
+K0307	C008	Akhwat	10	Senin	P001	07.00–07.40	S002	FQ	Fiqh	T009	Ustzh. Selly	Aktif	FQ	Warna pada sumber jadwal
+
+K0308	C008	Akhwat	10	Senin	P002	07.40–08.20	S002	FQ	Fiqh	T009	Ustzh. Selly	Aktif	FQ	Warna pada sumber jadwal
+
+K0309	C008	Akhwat	10	Senin	P003	08.20–09.00	S011	AD	Adab	T008	Ustzh. Nisa	Aktif	AD	Warna pada sumber jadwal
+
+K0310	C008	Akhwat	10	Senin	P004	09.00–09.40	S011	AD	Adab	T008	Ustzh. Nisa	Aktif	AD	Warna pada sumber jadwal
+
+K0311	C008	Akhwat	10	Senin	P006	10.10–10.50	S008	Ti	Tilawah	T010	Musyrifah	Aktif	Ti	Warna pada sumber jadwal
+
+K0312	C008	Akhwat	10	Senin	P007	10.50–11.30	S008	Ti	Tilawah	T010	Musyrifah	Aktif	Ti	Warna pada sumber jadwal
+
+K0313	C008	Akhwat	10	Selasa	P001	07.00–07.40	S016	Si	Siroh	T008	Ustzh. Nisa	Aktif	Si	Warna pada sumber jadwal
+
+K0314	C008	Akhwat	10	Selasa	P002	07.40–08.20	S016	Si	Siroh	T008	Ustzh. Nisa	Aktif	Si	Warna pada sumber jadwal
+
+K0315	C008	Akhwat	10	Selasa	P003	08.20–09.00	S001	AQ	Aqidah	T002	Ust. Andre	Aktif	AQ	Warna pada sumber jadwal
+
+K0316	C008	Akhwat	10	Selasa	P004	09.00–09.40	S001	AQ	Aqidah	T002	Ust. Andre	Aktif	AQ	Warna pada sumber jadwal
+
+K0317	C008	Akhwat	10	Selasa	P006	10.10–10.50	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0318	C008	Akhwat	10	Selasa	P007	10.50–11.30	S019	Fi	Umum	T006	Ust. Fikri	Aktif	Fi	Warna pada sumber jadwal
+
+K0319	C008	Akhwat	10	Rabu	P001	07.00–07.40	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0320	C008	Akhwat	10	Rabu	P002	07.40–08.20	S020	Fe	Umum	T004	Ust. Feri	Aktif	Fe	Warna pada sumber jadwal
+
+K0321	C008	Akhwat	10	Rabu	P003	08.20–09.00	S009	H	Hadits	T011	Ust. Zulfian	Aktif	H	Warna pada sumber jadwal
+
+K0322	C008	Akhwat	10	Rabu	P004	09.00–09.40	S009	H	Hadits	T011	Ust. Zulfian	Aktif	H	Warna pada sumber jadwal
+
+K0323	C008	Akhwat	10	Rabu	P006	10.10–10.50	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0324	C008	Akhwat	10	Rabu	P007	10.50–11.30	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Warna pada sumber jadwal
+
+K0325	C008	Akhwat	10	Kamis	P001	07.00–07.40	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0326	C008	Akhwat	10	Kamis	P002	07.40–08.20	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0327	C008	Akhwat	10	Kamis	P003	08.20–09.00	S012	Ki	Kitabah	T010	Musyrifah	Aktif	Ki	Warna pada sumber jadwal
+
+K0328	C008	Akhwat	10	Kamis	P004	09.00–09.40	S012	Ki	Kitabah	T010	Musyrifah	Aktif	Ki	Warna pada sumber jadwal
+
+K0329	C008	Akhwat	10	Kamis	P006	10.10–10.50	S005	Ta	Tafsir	T002	Ust. Andre	Aktif	Ta	Warna pada sumber jadwal
+
+K0330	C008	Akhwat	10	Kamis	P007	10.50–11.30	S005	Ta	Tafsir	T002	Ust. Andre	Aktif	Ta	Warna pada sumber jadwal
+
+K0331	C008	Akhwat	10	Jumat	P001	07.00–07.40	S003	Q	Qawaid	T009	Ustzh. Selly	Aktif	Q	Warna pada sumber jadwal
+
+K0332	C008	Akhwat	10	Jumat	P002	07.40–08.20	S003	Q	Qawaid	T009	Ustzh. Selly	Aktif	Q	Warna pada sumber jadwal
+
+K0333	C008	Akhwat	10	Jumat	P003	08.20–09.00	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0334	C008	Akhwat	10	Jumat	P004	09.00–09.40	S006	BA	Bahasa Arab	T009	Ustzh. Selly	Aktif	BA	Warna pada sumber jadwal
+
+K0335	C008	Akhwat	10	Sabtu	P001	07.00–07.40	S013	Bal	Balaghah	T001	Ust. Dede	Aktif	Bal	Warna pada sumber jadwal
+
+K0336	C008	Akhwat	10	Sabtu	P002	07.40–08.20	S013	Bal	Balaghah	T001	Ust. Dede	Aktif	Bal	Warna pada sumber jadwal
+
+K0337	C008	Akhwat	10	Sabtu	P003	08.20–09.00	S014	UF	Ushul Fiqh	T001	Ust. Dede	Aktif	UF	Warna pada sumber jadwal
+
+K0338	C008	Akhwat	10	Sabtu	P004	09.00–09.40	S014	UF	Ushul Fiqh	T001	Ust. Dede	Aktif	UF	Warna pada sumber jadwal
+
+K0339	C008	Akhwat	10	Sabtu	P006	10.10–10.50	S015	FA	Faraid	T001	Ust. Dede	Aktif	FA	Warna pada sumber jadwal
+
+K0340	C008	Akhwat	10	Sabtu	P007	10.50–11.30	S015	FA	Faraid	T001	Ust. Dede	Aktif	FA	Warna pada sumber jadwal
+
+K0341	C010	Ikhwan	12	Rabu	P009	15.40–17.00	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Tambahan 15.40–17.00 pada sumber
+
+K0342	C007	Ikhwan	10	Kamis	P009	15.40–17.00	S018	Ri	Umum	T005	Ust. Rido	Aktif	Ri	Tambahan 15.40–17.00 pada sumber`;
+</script>

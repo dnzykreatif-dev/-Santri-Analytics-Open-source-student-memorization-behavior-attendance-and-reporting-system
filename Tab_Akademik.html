@@ -742,6 +742,15 @@
           <div class="flex items-center gap-2">
             <button
               type="button"
+              @click="openSmartScheduleImportModal()"
+              class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+              title="Unggah atau tempel tabel jadwal pelajaran untuk otomatisasi kurikulum raport"
+            >
+              <span>⚡</span>
+              <span>Impor Cerdas dari Jadwal</span>
+            </button>
+            <button
+              type="button"
               @click="applyStandardPesantrenKitabs()"
               class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
             >

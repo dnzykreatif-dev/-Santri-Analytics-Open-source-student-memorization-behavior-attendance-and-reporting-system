@@ -1,0 +1,235 @@
+<!-- Modal: Smart Schedule & Curriculum Auto-Setup Importer -->
+<div
+  x-show="showSmartImportModal"
+  x-cloak
+  class="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4"
+  @keydown.escape.window="closeSmartScheduleImportModal()"
+>
+  <div
+    class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden border border-gray-100 animate-in fade-in zoom-in-95 duration-150"
+    @click.away="closeSmartScheduleImportModal()"
+  >
+    <!-- Header -->
+    <div class="px-6 py-4 bg-gradient-to-r from-[#0a4636] to-[#0f5f4a] text-white flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl shadow-inner">
+          ⚡
+        </div>
+        <div>
+          <h3 class="font-black text-base md:text-lg text-white leading-tight">
+            Impor Cerdas Jadwal & Kurikulum Pondok
+          </h3>
+          <p class="text-xs text-emerald-200 mt-0.5">
+            Baca tabel jadwal otomatis, petakan jenjang & mata pelajaran, dan sinkronkan ke Raport dalam 1 klik
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        @click="closeSmartScheduleImportModal()"
+        class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition-colors"
+      >
+        ✕
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="p-6 overflow-y-auto space-y-5 flex-1 text-gray-800 text-xs">
+      
+      <!-- Top Action Bar & Quick Samples -->
+      <div class="flex flex-wrap items-center justify-between gap-2 p-3 bg-emerald-50/80 border border-emerald-200/90 rounded-xl">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">💡</span>
+          <div>
+            <p class="font-bold text-emerald-950 text-xs">Opsi Pengisian Cepat:</p>
+            <p class="text-[11px] text-gray-600">Tempel langsung tabel dari Excel/Google Sheet, atau unggah file CSV/TSV.</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            @click="loadPondokSampleSchedule()"
+            class="app-btn bg-[#0f5f4a] hover:bg-[#0b4939] text-white px-3 py-1.5 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5"
+            title="Muat data jadwal asli 342 sesi KBM pondok ini langsung ke editor"
+          >
+            <span>📋</span>
+            <span>Muat Data Riil Pondok Ini (342 Sesi)</span>
+          </button>
+          <label class="app-btn bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-3 py-1.5 text-xs font-bold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5">
+            <span>📁</span>
+            <span>Pilih File (.csv / .tsv / .txt)</span>
+            <input type="file" accept=".csv,.tsv,.txt" class="hidden" @change="handleSmartScheduleFileUpload($event)" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Text Input Area -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between text-xs">
+          <label class="font-black text-gray-800 flex items-center gap-1.5">
+            <span>📝</span>
+            <span>Teks Tabel Jadwal (TSV / CSV / Salinan Excel)</span>
+          </label>
+          <div class="flex items-center gap-2">
+            <span class="text-gray-400 text-[10px]" x-show="smartImportRawText">
+              <span x-text="smartImportRawText.split('\n').filter(Boolean).length"></span> baris terdeteksi
+            </span>
+            <button
+              type="button"
+              x-show="smartImportRawText"
+              @click="smartImportRawText = ''; smartImportPreview = null"
+              class="text-[10px] text-rose-600 hover:underline font-bold"
+            >
+              Kosongkan Teks
+            </button>
+          </div>
+        </div>
+        <textarea
+          x-model="smartImportRawText"
+          class="app-input font-mono text-xs w-full h-40 p-3 bg-gray-50/70 border-gray-300 focus:bg-white focus:border-emerald-600 transition-colors leading-relaxed"
+          placeholder="Tempel (paste) tabel jadwal Anda di sini... Contoh kolom: schedule_id, kelompok, kelas, hari, waktu, mata_pelajaran, pengajar"
+          @input="smartImportPreview = null"
+        ></textarea>
+      </div>
+
+      <!-- Import Options -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3.5 bg-gray-50 rounded-xl border border-gray-200">
+        <label class="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            x-model="smartImportOverwrite"
+            class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 mt-0.5"
+          />
+          <div class="space-y-0.5">
+            <span class="font-bold text-gray-900 block text-xs">Bersihkan Jadwal KBM Lama</span>
+            <span class="text-[11px] text-gray-500 block leading-tight">Ganti jadwal KBM lama dengan jadwal baru ini secara bersih dan rapi.</span>
+          </div>
+        </label>
+
+        <label class="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            x-model="smartImportSyncAcademic"
+            class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 mt-0.5"
+          />
+          <div class="space-y-0.5">
+            <span class="font-bold text-emerald-950 block text-xs">Sinkronkan Otomatis ke Setup Akademik & Raport</span>
+            <span class="text-[11px] text-gray-500 block leading-tight">Otomatis daftarkan mapel baru, petakan kitab kuning standar Tsanawiyyah & Aliyah, dan buat daftar wali kelas.</span>
+          </div>
+        </label>
+      </div>
+
+      <!-- Preview Summary Box (If parsed) -->
+      <template x-if="smartImportPreview">
+        <div class="space-y-4 pt-2 border-t border-gray-100">
+          <div class="flex items-center justify-between">
+            <h4 class="font-black text-gray-900 text-sm flex items-center gap-2">
+              <span>✨</span>
+              <span>Hasil Analisis Cerdas Data Jadwal</span>
+            </h4>
+            <span class="text-[10px] bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-full font-extrabold">
+              Valid & Siap Diimpor
+            </span>
+          </div>
+
+          <!-- 4 Stat Badges -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-0.5">
+              <span class="text-xs text-emerald-700 font-bold">Total Sesi KBM</span>
+              <p class="text-xl font-black text-emerald-950" x-text="smartImportPreview.summary.totalSchedules"></p>
+            </div>
+            <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-center space-y-0.5">
+              <span class="text-xs text-blue-700 font-bold">Rombel / Kelas</span>
+              <p class="text-xl font-black text-blue-950" x-text="smartImportPreview.summary.totalClasses"></p>
+            </div>
+            <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-center space-y-0.5">
+              <span class="text-xs text-amber-700 font-bold">Mata Pelajaran</span>
+              <p class="text-xl font-black text-amber-950" x-text="smartImportPreview.summary.totalSubjects"></p>
+            </div>
+            <div class="p-3 bg-purple-50 border border-purple-200 rounded-xl text-center space-y-0.5">
+              <span class="text-xs text-purple-700 font-bold">Ustadz / Pengajar</span>
+              <p class="text-xl font-black text-purple-950" x-text="smartImportPreview.summary.totalTeachers"></p>
+            </div>
+          </div>
+
+          <!-- Subjects & Kitab Mapping Preview -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-xs font-bold text-gray-700">
+              <span>📚 Klasifikasi Mapel & Rekomendasi Kitab Kuning Otomatis:</span>
+              <span class="text-[10px] text-gray-400">Otomatis dipetakan berdasarkan jenjang</span>
+            </div>
+            <div class="max-h-48 overflow-y-auto border border-gray-200 rounded-xl overflow-hidden bg-white shadow-xs">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-gray-100 text-gray-700 sticky top-0 font-bold text-[11px]">
+                  <tr>
+                    <th class="p-2 border-b">Mapel</th>
+                    <th class="p-2 border-b">Rumpun</th>
+                    <th class="p-2 border-b">Jenjang Terdeteksi</th>
+                    <th class="p-2 border-b">Kitab Rujukan Rekomendasi</th>
+                    <th class="p-2 border-b">Pengajar</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-[11px]">
+                  <template x-for="sub in (smartImportPreview.subjects || [])" :key="sub.name">
+                    <tr class="hover:bg-emerald-50/40">
+                      <td class="p-2 font-bold text-gray-900" x-text="sub.name"></td>
+                      <td class="p-2">
+                        <span
+                          class="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                          :class="sub.category === 'Diniyyah' ? 'bg-emerald-100 text-emerald-900' : 'bg-blue-100 text-blue-900'"
+                          x-text="sub.category"
+                        ></span>
+                      </td>
+                      <td class="p-2 text-gray-600 font-medium" x-text="sub.levels"></td>
+                      <td class="p-2 font-semibold text-emerald-800" x-text="sub.recommendedKitab"></td>
+                      <td class="p-2 text-gray-600 truncate max-w-[150px]" x-text="sub.teachers || '-'"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </template>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="px-6 py-3.5 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div class="text-xs text-gray-500 flex items-center gap-1.5">
+        <span>🔒</span>
+        <span>Data diproses aman dan tersimpan di database pondok Anda.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          @click="closeSmartScheduleImportModal()"
+          class="app-btn bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 px-4 py-2 text-xs font-bold rounded-lg shadow-xs"
+        >
+          Batal
+        </button>
+        <button
+          type="button"
+          x-show="!smartImportPreview"
+          :disabled="!smartImportRawText || smartImportLoading"
+          @click="parseSmartSchedulePreview()"
+          class="app-btn bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2 text-xs font-black rounded-lg shadow-md flex items-center gap-2 disabled:opacity-50"
+        >
+          <span x-show="smartImportLoading" class="animate-spin">⏳</span>
+          <span x-text="smartImportLoading ? 'Menganalisis...' : '🔍 Pratinjau Cerdas'"></span>
+        </button>
+        <button
+          type="button"
+          x-show="smartImportPreview"
+          :disabled="smartImportLoading"
+          @click="executeSmartScheduleImport()"
+          class="app-btn bg-[#0f5f4a] hover:bg-[#0b4939] text-white px-5 py-2 text-xs font-black rounded-lg shadow-md flex items-center gap-2 disabled:opacity-50 transition-transform hover:scale-105 active:scale-95"
+        >
+          <span x-show="smartImportLoading" class="animate-spin">⏳</span>
+          <span>🚀 Terapkan Jadwal & Sinkronkan Kurikulum</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

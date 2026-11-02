@@ -273,6 +273,14 @@
       bulkTemplateType: "pondok", // "pondok" | "tpq" | "mdt"
       bulkViewMode: "raport", // "raport" | "leger" | "sertifikat"
 
+      // ===== SMART SCHEDULE IMPORT STATE =====
+      showSmartImportModal: false,
+      smartImportRawText: "",
+      smartImportOverwrite: true,
+      smartImportSyncAcademic: true,
+      smartImportLoading: false,
+      smartImportPreview: null,
+
       // ===== SANTRI 360 INTELLIGENCE STATE (PRO) =====
       showSantriAnalyticsModal: false,
       loadingAnalytics360: false,
@@ -7010,6 +7018,83 @@
             this.scheduleValidation = data;
             this.showToast(data.valid ? "Tidak ada konflik kritis." : "Ada masalah jadwal yang perlu diperbaiki.", data.valid ? "success" : "error");
           });
+      },
+
+      openSmartScheduleImportModal() {
+        this.showSmartImportModal = true;
+        this.smartImportLoading = false;
+        if (!this.smartImportRawText && window.SAMPLE_PONDOK_SCHEDULE_DATA) {
+          this.smartImportRawText = window.SAMPLE_PONDOK_SCHEDULE_DATA;
+        }
+      },
+
+      closeSmartScheduleImportModal() {
+        this.showSmartImportModal = false;
+        this.smartImportLoading = false;
+      },
+
+      loadPondokSampleSchedule() {
+        if (window.SAMPLE_PONDOK_SCHEDULE_DATA) {
+          this.smartImportRawText = window.SAMPLE_PONDOK_SCHEDULE_DATA;
+          this.smartImportPreview = null;
+          this.showToast("Data jadwal 342 sesi KBM pondok berhasil dimuat ke editor.", "info");
+        } else {
+          this.showToast("Data contoh tidak tersedia.", "error");
+        }
+      },
+
+      handleSmartScheduleFileUpload(event) {
+        const file = event && event.target && event.target.files ? event.target.files[0] : null;
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.smartImportRawText = String(e.target.result || "").trim();
+          this.smartImportPreview = null;
+          this.showToast("File jadwal berhasil dibaca (" + this.smartImportRawText.split("\n").length + " baris).", "info");
+        };
+        reader.onerror = () => this.showToast("Gagal membaca file.", "error");
+        reader.readAsText(file);
+      },
+
+      parseSmartSchedulePreview() {
+        const text = String(this.smartImportRawText || "").trim();
+        if (!text) return this.showToast("Tempel teks atau pilih file jadwal terlebih dahulu.", "error");
+        this.smartImportLoading = true;
+        callGoogleScript("importSmartSchedules", {
+          rawText: text,
+          previewOnly: true
+        }, this.user).onSuccessRaw((res, data, err) => {
+          this.smartImportLoading = false;
+          if (res && res.ok) {
+            this.smartImportPreview = res;
+            this.showToast("Pratinjau cerdas berhasil dibuat. Periksa ringkasan di bawah.", "success");
+          } else {
+            this.showToast(err?.message || res?.message || "Gagal menganalisis jadwal.", "error");
+          }
+        });
+      },
+
+      executeSmartScheduleImport() {
+        const text = String(this.smartImportRawText || "").trim();
+        if (!text) return this.showToast("Data jadwal tidak boleh kosong.", "error");
+        this.smartImportLoading = true;
+        callGoogleScript("importSmartSchedules", {
+          rawText: text,
+          overwrite: this.smartImportOverwrite,
+          syncAcademic: this.smartImportSyncAcademic,
+          previewOnly: false
+        }, this.user).onSuccessRaw((res, data, err) => {
+          this.smartImportLoading = false;
+          if (res && res.ok) {
+            this.showToast(res.message || "Jadwal dan kurikulum berhasil diimpor & disinkronkan!", "success");
+            this.closeSmartScheduleImportModal();
+            this.loadSchedules();
+            this.loadRaportSetup();
+            this.loadAcademicSetup();
+          } else {
+            this.showToast(err?.message || res?.message || "Gagal mengimpor jadwal.", "error");
+          }
+        });
       },
 
       openScheduleMasterModal(master = null) {
