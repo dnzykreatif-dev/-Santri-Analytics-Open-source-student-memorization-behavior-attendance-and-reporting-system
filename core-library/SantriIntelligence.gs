@@ -964,12 +964,54 @@ function getRaportSetup(currentUser) {
 
     const teacherList = Array.from(teacherMap.values()).sort((a, b) => a.Name.localeCompare(b.Name, "id"));
 
+    // Petakan setiap mapel dengan kelas-kelas yang mempelajarinya dari Jadwal & Master Mapel
+    const subjectClassMap = {};
+
+    function addSubjectClass(sub, cls) {
+      if (!sub) return;
+      const key = String(sub).trim().toLowerCase();
+      if (!subjectClassMap[key]) subjectClassMap[key] = new Set();
+      if (cls && String(cls).trim()) subjectClassMap[key].add(String(cls).trim());
+    }
+
+    allSchedules.forEach(sch => {
+      const c = SI_text_(sch.ClassOrGroupName);
+      const sub = SI_text_(sch.SubjectOrActivityName || sch.ActivityName);
+      if (sub && sch.Type === "KBM") {
+        addSubjectClass(sub, c);
+      }
+    });
+
     // Ambil master subjects dari Academic
     const allAcademicSubjects = typeof AC_getSubjects_ === "function" ? AC_getSubjects_() : [];
     allAcademicSubjects.forEach(s => {
       const name = SI_text_(s.SubjectName || s.Name);
-      if (name) subjectSet.add(name);
+      const classes = SI_text_(s.Classes);
+      if (name) {
+        subjectSet.add(name);
+        if (classes && classes.toLowerCase() !== "semua") {
+          classes.split(",").forEach(c => addSubjectClass(name, c));
+        } else {
+          addSubjectClass(name, "Semua Kelas");
+        }
+      }
     });
+
+    function resolveClassesForItem(subName) {
+      const key = String(subName || "").trim().toLowerCase();
+      const set = subjectClassMap[key];
+      if (set && set.size > 0) {
+        const arr = Array.from(set).sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+        return {
+          classes: arr,
+          classesLabel: arr.join(", ")
+        };
+      }
+      return {
+        classes: ["Semua Kelas"],
+        classesLabel: "Semua Kelas"
+      };
+    }
 
     // Default pemetaan kitab kuning per mapel
     const defaultKitabList = [
@@ -987,28 +1029,42 @@ function getRaportSetup(currentUser) {
       { subject: "Tauhid", kitab: "Tijanud Darori", kkm: 70 }
     ];
 
+    defaultKitabList.forEach(item => {
+      const clsInfo = resolveClassesForItem(item.subject);
+      item.classes = clsInfo.classes;
+      item.classesLabel = clsInfo.classesLabel;
+    });
+
     // Tambahkan mapel yang ada di schedule atau academic subjects bila belum ada di list
     const existingSubjectNames = new Set(defaultKitabList.map(k => k.subject.toLowerCase()));
     subjectSet.forEach(subName => {
       if (subName && !existingSubjectNames.has(subName.toLowerCase())) {
+        const clsInfo = resolveClassesForItem(subName);
         defaultKitabList.push({
           subject: subName,
           kitab: tenantProfile.kitabMap && tenantProfile.kitabMap[subName] ? tenantProfile.kitabMap[subName] : "Kitab Standar",
-          kkm: 70
+          kkm: 70,
+          classes: clsInfo.classes,
+          classesLabel: clsInfo.classesLabel
         });
         existingSubjectNames.add(subName.toLowerCase());
       }
     });
 
     if (tenantProfile.kitabMap && typeof tenantProfile.kitabMap === "object") {
-      Object.keys(tenantProfile.kitabMap).forEach(subName => {
-        if (subName && !existingSubjectNames.has(subName.toLowerCase())) {
+      Object.keys(tenantProfile.kitabMap).forEach(key => {
+        // Abaikan key override per-kelas (misal "KELAS 10::Fiqih") agar tidak diduplikasi sebagai nama mapel
+        if (key.includes("::")) return;
+        if (key && !existingSubjectNames.has(key.toLowerCase())) {
+          const clsInfo = resolveClassesForItem(key);
           defaultKitabList.push({
-            subject: subName,
-            kitab: tenantProfile.kitabMap[subName] || "Kitab Standar",
-            kkm: 70
+            subject: key,
+            kitab: tenantProfile.kitabMap[key] || "Kitab Standar",
+            kkm: 70,
+            classes: clsInfo.classes,
+            classesLabel: clsInfo.classesLabel
           });
-          existingSubjectNames.add(subName.toLowerCase());
+          existingSubjectNames.add(key.toLowerCase());
         }
       });
     }
@@ -1380,8 +1436,18 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
         const meta = SI_getSubjectMeta_(sub.Name);
         const kkm = sub.DefaultKKM || sub.KKM || meta.defaultKkm || 70;
         const arabic = sub.ArabicName || meta.arabic || "";
-        // Cek rujukan kitab dari pengaturan setup raport pondok
-        const kitab = (tenantProfile.kitabMap && tenantProfile.kitabMap[sub.Name]) ||
+        // Cek rujukan kitab dari pengaturan setup raport pondok:
+        // 1. Prioritas utama: Kitab spesifik untuk kelas santri (misal "KELAS 10::Fiqih" atau "10::Fiqih")
+        // 2. Prioritas kedua: Kitab umum untuk mapel tersebut (misal "Fiqih")
+        // 3. Prioritas ketiga: KitabName dari master mapel / meta / default
+        let resolvedKitab = "";
+        if (tenantProfile.kitabMap && typeof tenantProfile.kitabMap === "object") {
+          const km = tenantProfile.kitabMap;
+          resolvedKitab = km[studentClass + "::" + sub.Name] ||
+                          km["KELAS " + studentClass + "::" + sub.Name] ||
+                          km[sub.Name] || "";
+        }
+        const kitab = resolvedKitab ||
                       sub.KitabName ||
                       meta.kitab ||
                       "Kitab Rujukan";
