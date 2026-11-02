@@ -175,6 +175,7 @@ function PRODUCT_isWrapperOnlyAction_(action) {
     "getClassLegerNilai",
     "getRaportSetup",
     "saveRaportSetup",
+    "importSmartSchedules",
   ].includes(String(action || ""));
 }
 
@@ -322,6 +323,7 @@ function isExternalActionAllowed_(action) {
     "syncWaliStudentsLink",
     "quickAddSetupSchedule",
     "applySmartSchedules",
+    "importSmartSchedules",
     "autoCompleteSetupPrerequisites",
     "quickSetupWizardAcademic",
     "completeSetupWizard",
