@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-11-02 - Versi Update: Solusi Batas Sel 50.000 Karakter, Kompresi Logo, & Penyimpanan Progres Bertahap
+
+- **Penyelesaian Error Limit 50.000 Karakter Google Sheets**:
+  - File logo pondok yang diunggah (`uploadRaportLogo`) kini otomatis dikompresi ke resolusi optimal 120x120px dengan ukuran base64 ~10KB - 15KB (< 20.000 karakter), aman jauh di bawah batas 50.000 karakter sel Google Sheets.
+  - Backend `saveRaportSetup` dilengkapi mekanisme pemotongan aman (*fail-safe*) dan penyimpanan independen per kunci (isolated upsert) sehingga kendala pada satu data tidak akan pernah membatalkan data wali kelas dan pemetaan kitab.
+- **Sistem Draf Otomatis di Browser (LocalStorage Persistence)**:
+  - Setiap perubahan yang dimasukkan pada setup raport langsung tersimpan otomatis sebagai draf di perangkat pengguna (`santriAnalytics:raportSetupDraft`).
+  - Jika browser ditutup atau di-refresh saat pengisian belum selesai, seluruh isian (wali kelas, pemetaan kitab, keterangan) otomatis dipulihkan sehingga pengguna tidak perlu mengetik ulang dari awal.
+- **Penyimpanan Bertahap & Tombol Simpan Terdistribusi**:
+  - Penambahan banner progres di bagian atas Setup Raport lengkap dengan indikator waktu simpan.
+  - Penambahan tombol simpan khusus per-seksi: `💾 Simpan Penugasan Wali Kelas` dan `💾 Simpan Pemetaan Kitab`.
+  - Penambahan **Sticky Floating Save Pill** di pojok kanan bawah agar pengguna dapat menyimpan progres kapan saja tanpa perlu menggulir ke bawah.
+
 ## 2026-11-02 - Versi Update: Keterangan Kelas, Tab Filter Kelas & Pemetaan Kitab Spesifik per-Jenjang
 
 - **Keterangan Kelas Jelas pada Setiap Kartu Mapel**:
