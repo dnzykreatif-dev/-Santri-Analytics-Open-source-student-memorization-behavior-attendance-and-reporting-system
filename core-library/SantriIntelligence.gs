@@ -922,6 +922,56 @@ function SI_getTenantProfile_(currentUser) {
   }
 }
 
+function SI_formatClassGroupLabel_(classList) {
+  if (!classList || classList.length === 0) return "Semua Jenjang (Kelas 7 - 12)";
+  if (classList.includes("Semua Kelas") || classList.includes("Semua")) return "Semua Jenjang (Kelas 7 - 12)";
+
+  const grades = new Set();
+  let hasIkhwan = false;
+  let hasAkhwat = false;
+
+  classList.forEach(c => {
+    const str = String(c).trim();
+    if (!str) return;
+    const m = str.match(/\b(7|8|9|10|11|12)\b/);
+    if (m) grades.add(Number(m[1]));
+    if (/ikhwan/i.test(str)) hasIkhwan = true;
+    if (/akhwat/i.test(str)) hasAkhwat = true;
+  });
+
+  const sortedGrades = Array.from(grades).sort((a, b) => a - b);
+
+  // Jika mencakup jenjang 7 s/d 12 (semua jenjang pondok) atau >= 5 jenjang
+  if (sortedGrades.length >= 5 || (sortedGrades.includes(7) && sortedGrades.includes(8) && sortedGrades.includes(9) && sortedGrades.includes(10) && sortedGrades.includes(12))) {
+    return "Semua Jenjang (Kelas 7 - 12)";
+  }
+
+  // Jika Tsanawiyyah (7, 8, 9)
+  const isTsanawiyyah = sortedGrades.length === 3 && sortedGrades.every(g => [7, 8, 9].includes(g));
+  if (isTsanawiyyah) {
+    return "Tsanawiyyah (Kelas 7, 8, 9)";
+  }
+
+  // Jika Aliyah (10, 11, 12)
+  const isAliyah = sortedGrades.length === 3 && sortedGrades.every(g => [10, 11, 12].includes(g));
+  if (isAliyah) {
+    return "Aliyah (Kelas 10, 11, 12)";
+  }
+
+  // Jika beberapa kelas terdaftar
+  if (sortedGrades.length > 0) {
+    let genderNote = "";
+    if (hasIkhwan && !hasAkhwat) genderNote = " (Ikhwan)";
+    else if (!hasIkhwan && hasAkhwat) genderNote = " (Akhwat)";
+    if (sortedGrades.length === 2) {
+      return "Kelas " + sortedGrades[0] + " & " + sortedGrades[1] + genderNote;
+    }
+    return "Kelas " + sortedGrades.join(", ") + genderNote;
+  }
+
+  return classList.join(", ");
+}
+
 /**
  * Backend API: Mengambil Setup Lengkap Raport & Lembaga
  */
@@ -1017,12 +1067,12 @@ function getRaportSetup(currentUser) {
         const arr = Array.from(set).sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
         return {
           classes: arr,
-          classesLabel: arr.join(", ")
+          classesLabel: SI_formatClassGroupLabel_(arr)
         };
       }
       return {
         classes: ["Semua Kelas"],
-        classesLabel: "Semua Kelas"
+        classesLabel: "Semua Jenjang (Kelas 7 - 12)"
       };
     }
 
@@ -1082,7 +1132,28 @@ function getRaportSetup(currentUser) {
       });
     }
 
-    const sortedClasses = Array.from(classSet).sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+    // Standard 6 Jenjang Utama Pesantren (Tsanawiyyah & Aliyah)
+    const canonicalGrades = ["KELAS 7", "KELAS 8", "KELAS 9", "KELAS 10", "KELAS 11", "KELAS 12"];
+    const customClasses = new Set();
+
+    function normalizeClassName(c) {
+      if (!c) return "";
+      const str = String(c).trim();
+      const m = str.match(/^(?:kelas\s*|kls\s*)?(7|8|9|10|11|12)$/i);
+      if (m) {
+        return "KELAS " + m[1];
+      }
+      return str;
+    }
+
+    classSet.forEach(c => {
+      const norm = normalizeClassName(c);
+      if (norm && !canonicalGrades.includes(norm) && !/^(7|8|9|10|11|12)\s*(ikhwan|akhwat)/i.test(norm)) {
+        customClasses.add(norm);
+      }
+    });
+
+    const sortedClasses = [...canonicalGrades, ...Array.from(customClasses).sort((a, b) => a.localeCompare(b, "id", { numeric: true }))];
 
     return {
       ok: true,
@@ -1489,7 +1560,9 @@ function getBulkClassReportData(periodId, className, templateType, currentUser) 
         let resolvedKitab = "";
         if (tenantProfile.kitabMap && typeof tenantProfile.kitabMap === "object") {
           const km = tenantProfile.kitabMap;
+          const numMatch = (studentClass.match(/\d+/) || [])[0];
           resolvedKitab = km[studentClass + "::" + sub.Name] ||
+                          (numMatch ? (km["KELAS " + numMatch + "::" + sub.Name] || km[numMatch + "::" + sub.Name]) : "") ||
                           km["KELAS " + studentClass + "::" + sub.Name] ||
                           km[sub.Name] || "";
         }

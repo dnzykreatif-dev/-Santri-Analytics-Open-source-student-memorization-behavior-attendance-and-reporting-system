@@ -926,11 +926,17 @@
         const list = this.raportSetup.defaultKitabList || [];
         const filter = String(this.raportKitabFilterClass || "ALL").trim();
         if (filter === "ALL") return list;
+        const filterNum = (filter.match(/\d+/) || [])[0];
         return list.filter((item) => {
           if (!item.classes || item.classes.includes("Semua Kelas") || item.classes.includes("Semua")) return true;
           return item.classes.some((c) => {
-            const a = String(c).toLowerCase().replace(/^(kelas|kls)\s*/, "").trim();
-            const b = String(filter).toLowerCase().replace(/^(kelas|kls)\s*/, "").trim();
+            const str = String(c).trim();
+            if (filterNum) {
+              const cNum = (str.match(/\d+/) || [])[0];
+              if (cNum === filterNum) return true;
+            }
+            const a = str.toLowerCase().replace(/^(kelas|kls)\s*/, "").trim();
+            const b = filter.toLowerCase().replace(/^(kelas|kls)\s*/, "").trim();
             return a === b || a.startsWith(b) || b.startsWith(a);
           });
         });
@@ -4058,8 +4064,15 @@
               this.raportSetup.profile.HeadName = this.user.Name;
             }
             if (Array.isArray(incoming.classes) && incoming.classes.length > 0) {
-              const mergedClasses = Array.from(new Set([...(this.raportSetup.classes || []), ...incoming.classes]));
-              this.raportSetup.classes = mergedClasses.sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+              const canonicalGrades = ["KELAS 7", "KELAS 8", "KELAS 9", "KELAS 10", "KELAS 11", "KELAS 12"];
+              const custom = incoming.classes.filter(c => {
+                const str = String(c).trim();
+                if (canonicalGrades.includes(str)) return false;
+                if (/^(?:kelas\s*|kls\s*)?(7|8|9|10|11|12)$/i.test(str)) return false;
+                if (/^(7|8|9|10|11|12)\s*(ikhwan|akhwat)/i.test(str)) return false;
+                return true;
+              });
+              this.raportSetup.classes = [...canonicalGrades, ...custom];
             }
             if (Array.isArray(incoming.teachers) && incoming.teachers.length > 0) {
               this.raportSetup.teachers = incoming.teachers;
@@ -4131,8 +4144,15 @@
             this.raportSetup.kkmMap = Object.assign({}, this.raportSetup.kkmMap, draft.kkmMap);
           }
           if (draft.classes && Array.isArray(draft.classes)) {
-            const merged = Array.from(new Set([...(this.raportSetup.classes || []), ...draft.classes]));
-            this.raportSetup.classes = merged.sort((a, b) => a.localeCompare(b, "id", { numeric: true }));
+            const canonicalGrades = ["KELAS 7", "KELAS 8", "KELAS 9", "KELAS 10", "KELAS 11", "KELAS 12"];
+            const custom = draft.classes.filter(c => {
+              const str = String(c).trim();
+              if (canonicalGrades.includes(str)) return false;
+              if (/^(?:kelas\s*|kls\s*)?(7|8|9|10|11|12)$/i.test(str)) return false;
+              if (/^(7|8|9|10|11|12)\s*(ikhwan|akhwat)/i.test(str)) return false;
+              return true;
+            });
+            this.raportSetup.classes = [...canonicalGrades, ...custom];
           }
           if (draft.showNadzam !== undefined) {
             this.raportSetup.showNadzam = draft.showNadzam;
@@ -4142,6 +4162,45 @@
         } catch (e) {
           return false;
         }
+      },
+
+      setRaportKitabFilterClass(cName) {
+        let norm = String(cName || "ALL").trim();
+        const m = norm.match(/^(?:kelas\s*|kls\s*)?(7|8|9|10|11|12)$/i);
+        if (m) norm = "KELAS " + m[1];
+        this.raportKitabFilterClass = norm;
+      },
+
+      formatRaportClassLabel(val) {
+        if (!val) return "Semua Jenjang (Kelas 7 - 12)";
+        if (typeof val === "string") {
+          const trimmed = val.trim();
+          if (trimmed.toLowerCase().includes("semua kelas") || trimmed.toLowerCase() === "semua") return "Semua Jenjang (Kelas 7 - 12)";
+          if (trimmed.includes("7 Akhwat") && trimmed.includes("12")) return "Semua Jenjang (Kelas 7 - 12)";
+          if (trimmed.startsWith("Semua Jenjang") || trimmed.startsWith("Tsanawiyyah") || trimmed.startsWith("Aliyah")) return trimmed;
+          if (trimmed.includes(",")) {
+            const parts = trimmed.split(",").map(p => p.trim());
+            return this.formatRaportClassLabel(parts);
+          }
+          return trimmed;
+        }
+        if (Array.isArray(val)) {
+          if (val.length === 0 || val.includes("Semua Kelas") || val.includes("Semua")) return "Semua Jenjang (Kelas 7 - 12)";
+          const nums = Array.from(new Set(val.map(c => {
+            const m = String(c).match(/\b(7|8|9|10|11|12)\b/);
+            return m ? Number(m[1]) : null;
+          }).filter(Boolean))).sort((a, b) => a - b);
+
+          if (nums.length >= 5 || (nums.includes(7) && nums.includes(8) && nums.includes(9) && nums.includes(10) && nums.includes(12))) {
+            return "Semua Jenjang (Kelas 7 - 12)";
+          }
+          if (nums.length === 3 && nums.every(n => [7, 8, 9].includes(n))) return "Tsanawiyyah (Kelas 7, 8, 9)";
+          if (nums.length === 3 && nums.every(n => [10, 11, 12].includes(n))) return "Aliyah (Kelas 10, 11, 12)";
+          if (nums.length === 2) return "Kelas " + nums[0] + " & " + nums[1];
+          if (nums.length > 0) return "Kelas " + nums.join(", ");
+          return val.join(", ");
+        }
+        return String(val);
       },
 
       addRaportClass() {
