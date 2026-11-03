@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-11-04 - Versi Update: Impor Cerdas Jadwal KBM, Pemetaan Kurikulum Otomatis, & Whitelist Dispatcher Security
+
+- **Fitur Impor Cerdas Jadwal & Kurikulum Pondok**:
+  - Modal interaktif `Modal_SmartScheduleImport.html` untuk impor data jadwal secara massal (mendukung .csv, .tsv, .txt, maupun salinan langsung dari Excel/Google Sheets).
+  - Parser cerdas *header-agnostic* yang otomatis mengenali nama kolom dan variasi delimiter (Tab, Titik Koma, Koma).
+  - Tombol pengisian cepat data riil pondok (342 sesi KBM) dari modul `JS_ScheduleSample.html`.
+  - Auto-klasifikasi tingkat Tsanawiyyah (Kelas 7–9) vs Aliyah (Kelas 10–12) dan rumpun mapel Diniyyah vs Umum.
+  - Rekomendasi kitab kuning otomatis berdasarkan jenjang dan sinkronisasi satu klik ke master mapel `AcademicSubjects` dan `RaportSetup`.
+- **Perbaikan Security Dispatcher & Action Whitelist (`Code.gs`)**:
+  - Menyelesaikan kendala `✕ Action tidak diizinkan` pada pemanggilan backend `importSmartSchedules`.
+  - Menambahkan `importSmartSchedules` ke dalam whitelist `isExternalActionAllowed_` dan `PRODUCT_isWrapperOnlyAction_` di seluruh environment (Root, Core Library, dan Staging).
+- **Penyusunan Dokumentasi Komprehensif**:
+  - Penambahan dokumen panduan lengkap `PANDUAN_SETUP_RAPORT_DAN_JADWAL.md` yang mencakup arsitektur data riil, panduan impor cerdas, panduan edit manual kitab rujukan umum vs override jenjang, manajemen batas sel logo, dan panduan cetak F4 bebas footer browser.
+
+
 ## 2026-11-02 - Versi Update: Solusi Batas Sel 50.000 Karakter, Kompresi Logo, & Penyimpanan Progres Bertahap
 
 - **Penyelesaian Error Limit 50.000 Karakter Google Sheets**:
